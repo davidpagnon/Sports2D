@@ -82,6 +82,18 @@ Angles are measured anticlockwise between the horizontal and the segment.
 -----
 To-do list:
 -----
+
+@misc{Pagnon20223,
+  author = {Pagnon, David},
+  title = {Sports2D - Angles from monocular video},
+  year = {2013},
+  publisher = {GitHub},
+  journal = {GitHub repository},
+  howpublished = {\url{https://github.com/davidpagnon/Sports2D}},
+}
+
+
+
 - GUI applications for all platforms (with Kivy: https://kivy.org/)
 - Pose refinement: click and move badly estimated 2D points (cf DeepLabCut: https://www.youtube.com/watch?v=bEuBKB7eqmk)
 - Include OpenPose in Sports2D (dockerize it cf https://github.com/stanfordnmbl/mobile-gaitlab/blob/master/demo/Dockerfile)
