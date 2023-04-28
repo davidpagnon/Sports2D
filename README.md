@@ -1,17 +1,22 @@
+<!-- 
+[![Continuous integration](https://github.com/davidpagnon/sports2d/actions/workflows/continuous-integration.yml/badge.svg?branch=main)](https://github.com/davidpagnon/sports2d/actions/workflows/continuous-integration.yml)
+[![PyPI version](https://badge.fury.io/py/Sports2D.svg)](https://badge.fury.io/py/Sports2D) \
+[![Downloads](https://pepy.tech/badge/sports2d)](https://pepy.tech/project/sports2d)
+[![Stars](https://badgen.net/github/stars/davidpagnon/sports2d)](https://github.com/davidpagnon/sports2d/stargazers)
+[![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
+[![GitHub issues](https://img.shields.io/github/issues/davidpagnon/sports2d)](https://github.com/davidpagnon/sports2d/issues)
+[![GitHub issues-closed](https://img.shields.io/github/issues-closed/davidpagnon/sports2d)](https://GitHub.com/davidpagnon/sports2d/issues?q=is%3Aissue+is%3Aclosed) 
+-->
 
-This repository provides a workflow to compute 2D markerless
-joint and segment angles from videos. 
-These angles can be plotted and processed with any 
-spreadsheet software or programming language.
+# Sports2D
 
-This is a headless version, but apps will be released 
-for Windows, Linux, MacOS, as well as Android and iOS.
-Mobile versions will only support exploratory joint detection 
-from BlazePose, hence less accurately and tunable.
+`Sports2D` provides a workflow to compute 2D markerless angles from a single video. 
+These joint and segment angles can be plotted and processed with any spreadsheet software or programming language.
 
-If you need to detect several persons and want more accurate results, 
-you can install and use OpenPose: 
-https://github.com/CMU-Perceptual-Computing-Lab/openpose
+This is a headless version, but apps will be released for Windows, Linux, MacOS, as well as Android and iOS.
+Mobile versions will only support exploratory joint detection from BlazePose, hence less accurately and tunable.
+
+If you need to detect several persons and want more accurate results, you can install and use [OpenPose](https://github.com/CMU-Perceptual-Computing-Lab/openpose).
 
 -----
 Sports2D installation:
