@@ -139,7 +139,10 @@ def base_params(config_dict):
     video_dir = Path(config_dict.get('project').get('video_dir')).resolve()
     if video_dir == '': video_dir = os.getcwd()
     video_file = Path(config_dict.get('project').get('video_file'))
-    frame_rate = config_dict.get('project').get('frame_rate')
+    
+    video = cv2.VideoCapture(str(video_dir / video_file))
+    frame_rate = video.get(cv2.CAP_PROP_FPS)
+    video.release()
 
     return video_dir, video_file, frame_rate
 

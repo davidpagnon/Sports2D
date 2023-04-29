@@ -8,7 +8,6 @@
 [project]
 video_dir = '' # BETWEEN SINGLE QUOTES! # If empty, project dir is current dir
 video_file = 'demo.mp4'
-frame_rate = 30 #Hz
 
 
 [pose]
