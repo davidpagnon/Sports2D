@@ -35,8 +35,6 @@ If you need research-grade markerless joint kinematics, consider using several c
    2. [Advanced-settings: Pose](#advanced-settings-pose)
    3. [Advanced-settings: Angles](#advanced-settings-angles)
 3. [How to cite and how to contribute](#how-to-cite-and-how-to-contribute)
-   1. [How to cite](#how-to-cite)
-   2. [How to contribute](#how-to-contribute)
 
 ## Installation and Demonstration
 
@@ -90,10 +88,14 @@ CSV AND DETECTION IMAGES HERE
 *N.B.:* Default parameters have been provided in `Demo\Config_demo.toml` but can be edited.\
 *N.B.:* OpenPose-like json coordinates are also stored in the `demo_blazepose_json` folder. A `logs.txt` file lets you recover details about your chosen configuration.
 
-### Go further
+## Go further
 
-#### With OpenPose and other models
+Copy, edit, and if you like, rename your `Config_demo.toml` file to alter your settings.
 
+`Project`: 
+
+
+### Pose detection
 
 
 
@@ -104,6 +106,8 @@ Detect joint centers from a video with OpenPose or BlazePose.
 Save a 2D csv position file per person, and optionally json files, image files, and video files.
 
 If OpenPose is used, multiple persons can be consistently detected across frames.
+However, it needs to be [installed](https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/installation/0_index.md) separately.
+It supports several models: BODY_25 is the standard one, BODY_25B is more accurate but requires manually [downloading the model](https://github.com/CMU-Perceptual-Computing-Lab/openpose_train/blob/master/experimental_models/README.md)
 Interpolates sequences of missing data if they are less than N frames long.
 Optionally filters results with Butterworth, gaussian, median, or loess filter.
 Optionally displays figures.
@@ -136,22 +140,26 @@ Angles are measured anticlockwise between the horizontal and the segment.
 - Forearm: Between elbow and wrist
 - Trunk: Between hip midpoint and shoulder midpoint
 
------
-To-do list:
------
+## How to cite and how to contribute
 
-@misc{Pagnon20223,
-  author = {Pagnon, David},
-  title = {Sports2D - Angles from monocular video},
-  year = {2013},
-  publisher = {GitHub},
-  journal = {GitHub repository},
-  howpublished = {\url{https://github.com/davidpagnon/Sports2D}},
-}
+### How to cite
+If you use this code or data, please cite [Pagnon, 2023].
 
+     @misc{Pagnon2023,
+       author = {Pagnon, David},
+       title = {Sports2D - Angles from monocular video},
+       year = {2013},
+       publisher = {GitHub},
+       journal = {GitHub repository},
+       howpublished = {\url{https://github.com/davidpagnon/Sports2D}},
+     }
 
+### How to contribute
+I would happily welcome any proposal for new features, code improvement, and more!\
+If you want to contribute to Sports2D, please follow [this guide](https://docs.github.com/en/get-started/quickstart/contributing-to-projects) on how to fork, modify and push code, and submit a pull request. I would appreciate it if you provided as much useful information as possible about how you modified the code, and a rationale for why you're making this pull request. Please also specify on which operating system and on which python version you have tested the code.
 
-- GUI applications for all platforms (with Kivy: https://kivy.org/)
-- Pose refinement: click and move badly estimated 2D points (cf DeepLabCut: https://www.youtube.com/watch?v=bEuBKB7eqmk)
-- Include OpenPose in Sports2D (dockerize it cf https://github.com/stanfordnmbl/mobile-gaitlab/blob/master/demo/Dockerfile)
-- Constrain points to OpenSim skeletal model for better angle estimation (cf Pose2Sim but in 2D https://github.com/perfanalytics/pose2sim)
+*Here is a to-do list, for general guidance purposes only:*
+> <li> <b>GUI applications:</b> For Windows, Mac, and Linux, as well as for Android and iOS (minimal version on mobile device, with only BlazePose). Code with [Kivy](https://kivy.org)</li>
+> <li> <b>Pose refinement:</b> Click and move badly estimated 2D points. See [DeepLabCut](https://www.youtube.com/watch?v=bEuBKB7eqmk) for inspiration.
+> <li> <b>Include OpenPose in Sports2D:</b> For example, [dockerize](https://github.com/stanfordnmbl/mobile-gaitlab/blob/master/demo/Dockerfile) it.
+> <li> <b>Constrain points</b> to OpenSim skeletal model for better angle estimation. Cf [Pose2Sim](https://github.com/perfanalytics/pose2sim), but in 2D.
