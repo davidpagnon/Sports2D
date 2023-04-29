@@ -10,40 +10,74 @@
 
 # Sports2D
 
-`Sports2D` provides a workflow to compute 2D markerless angles from a single video. 
-These joint and segment angles can be plotted and processed with any spreadsheet software or programming language.
+`Sports2D` lets you compute 2D joint and segment angles from a single video. 
 
-This is a headless version, but apps will be released for Windows, Linux, MacOS, as well as Android and iOS.
-Mobile versions will only support exploratory joint detection from BlazePose, hence less accurately and tunable.
+If you need more accurate results and want to analyze the movements of several persons, you can install and use [OpenPose](https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/installation/0_index.md) instead of the default BlazePose.
 
-If you need to detect several persons and want more accurate results, you can install and use [OpenPose](https://github.com/CMU-Perceptual-Computing-Lab/openpose).
+Apps with GUI will be released for Windows, Linux, MacOS, as well as Android and iOS.
+Mobile versions will only support exploratory angle computation from BlazePose, hence less accurately and tunable.
 
------
-Sports2D installation:
------
-Optional: 
-- Install Miniconda
-- Open a Anaconda Prompt and type: 
-`conda create -n Sports2D python>=3.7`
-`conda activate Sports2D`
-pip install 
+<!-- GIF HERE -->
 
-- Open a python prompt and type `pip install sports2d`
-- `pip show sports2d`
-- Adjust your settings (in particular video path) in `Config_demo.toml`
-- ```from Sports2D import Sports2D
-Sports2D.detect_pose('Sports2D\Demo\Config_demo.toml')
-Sports2D.compute_angles('Sports2D\Demo\Config_demo.toml')```
 
------
-/!\ Warning /!\
------
+***/!\ Warning /!\***
+
 - The angle estimation is only as good as the pose estimation algorithm, i.e., it is not perfect.
 - It will only lead to acceptable results if the persons move in the 2D plane (sagittal plane).
 - The persons need to be filmed as perpendicularly as possible from their side.
 If you need research-grade markerless joint kinematics, consider using several cameras,
 and constraining angles to a biomechanically accurate model. See Pose2Sim for example: 
 https://github.com/perfanalytics/pose2sim
+
+
+## Contents
+1. [Installation and Demonstration](#installation-and-demonstration)
+   1. [Installation](#installation)
+   2. [Demonstration: Detect pose and compute 2D angles](#demonstration-detect-pose-and-compte-2d-angles)
+2. [Go further](#go-further)
+   1. [With OpenPose and other models](#with-openpose-and-other-models)
+   2. [Advanced-settings: Pose](#advanced-settings-pose)
+   3. [Advanced-settings: Angles](#advanced-settings-angles)
+3. [How to cite and how to contribute](#how-to-cite-and-how-to-contribute)
+   1. [How to cite](#how-to-cite)
+   2. [How to contribute](#how-to-contribute)
+
+## Installation and Demonstration
+
+### Installation
+
+1. ***Optional.*** *Install Anaconda or [Miniconda](https://docs.conda.io/en/latest/miniconda.html). \
+   Open an Anaconda terminal and create a virtual environment with typing:*
+   <pre><i>conda create -n Sports2D python>=3.10 
+   conda activate Sports2D</i></pre>
+
+2. **Install Sports2D**: \
+If you don't use Anaconda, type `python -V` in terminal to make sure python '>=3.7 <=3.10' is installed.
+   - OPTION 1: **Quick install:** Open a terminal. 
+       ```
+       pip install sports2d
+       ```
+     
+   - OPTION 2: **Build from source and test the last changes:**
+     Open a terminal in the directory of your choice and clone the Sports2D repository.
+       ```
+       git clone https://github.com/davidpagnon/sports2d.git
+       cd sports2d
+       pip install .
+       ```
+
+1. ***Optional.*** **Install OpenPose** for more accurate and multi-person analysis (instructions [there](https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/installation/0_index.md)). \
+*Windows portable demo is enough.*
+
+
+
+- `pip show sports2d`
+- Adjust your settings (in particular video path) in `Config_demo.toml`
+- ```from Sports2D import Sports2D
+Sports2D.detect_pose('Sports2D\Demo\Config_demo.toml')
+Sports2D.compute_angles('Sports2D\Demo\Config_demo.toml')```
+
+
 
 -----
 Pose detection:
@@ -64,7 +98,7 @@ Angle computation:
 -----
 Compute joint and segment angles from csv position files.
 Automatically adjust angles when person switches to face the other way.
-Save a 2D csv angle file per person.
+Save a 2D csv angle file per person. These joint and segment angles can be plotted and processed with any spreadsheet software or programming language.
 Optionally filters results with Butterworth, gaussian, median, or loess filter.
 Optionally displays figures.
 
