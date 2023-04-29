@@ -14,26 +14,22 @@
 
 If you need more accurate results and want to analyze the movements of several persons, you can install and use [OpenPose](https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/installation/0_index.md) instead of the default BlazePose.
 
-Apps with GUI will be released for Windows, Linux, MacOS, as well as Android and iOS.
+`Announcement:` Apps with GUI will be released for Windows, Linux, MacOS, as well as Android and iOS.
 Mobile versions will only support exploratory angle computation from BlazePose, hence less accurately and tunable.
 
-<!-- GIF HERE -->
+
+GIF HERE
 
 
-***/!\ Warning /!\***
-
-- The angle estimation is only as good as the pose estimation algorithm, i.e., it is not perfect.
-- It will only lead to acceptable results if the persons move in the 2D plane (sagittal plane).
-- The persons need to be filmed as perpendicularly as possible from their side.
-If you need research-grade markerless joint kinematics, consider using several cameras,
-and constraining angles to a biomechanically accurate model. See Pose2Sim for example: 
-https://github.com/perfanalytics/pose2sim
+`Warning:` Angle estimation is only as good as the pose estimation algorithm, i.e., it is not perfect.\
+`Warning:` Results are acceptable only if captured persons move in 2D, from right to left or from left to right.\
+If you need research-grade markerless joint kinematics, consider using several cameras, and constraining angles to a biomechanically accurate model. See [Pose2Sim](https://github.com/perfanalytics/pose2sim) for example.
 
 
 ## Contents
 1. [Installation and Demonstration](#installation-and-demonstration)
    1. [Installation](#installation)
-   2. [Demonstration: Detect pose and compute 2D angles](#demonstration-detect-pose-and-compte-2d-angles)
+   2. [Demonstration: Detect pose and compute 2D angles](#demonstration-detect-pose-and-compute-2d-angles)
 2. [Go further](#go-further)
    1. [With OpenPose and other models](#with-openpose-and-other-models)
    2. [Advanced-settings: Pose](#advanced-settings-pose)
@@ -47,7 +43,7 @@ https://github.com/perfanalytics/pose2sim
 ### Installation
 
 1. ***Optional.*** *Install Anaconda or [Miniconda](https://docs.conda.io/en/latest/miniconda.html). \
-   Open an Anaconda terminal and create a virtual environment with typing:*
+   Open an Anaconda prompt and create a virtual environment by typing:*
    <pre><i>conda create -n Sports2D python>=3.10 
    conda activate Sports2D</i></pre>
 
@@ -57,7 +53,6 @@ If you don't use Anaconda, type `python -V` in terminal to make sure python '>=3
        ```
        pip install sports2d
        ```
-     
    - OPTION 2: **Build from source and test the last changes:**
      Open a terminal in the directory of your choice and clone the Sports2D repository.
        ```
@@ -65,17 +60,40 @@ If you don't use Anaconda, type `python -V` in terminal to make sure python '>=3
        cd sports2d
        pip install .
        ```
-
-1. ***Optional.*** **Install OpenPose** for more accurate and multi-person analysis (instructions [there](https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/installation/0_index.md)). \
-*Windows portable demo is enough.*
-
+3. ***Optional. Install OpenPose*** for more accurate and multi-person analysis (instructions [there](https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/installation/0_index.md)). \
+*Windows portable demo works fine.*
 
 
-- `pip show sports2d`
-- Adjust your settings (in particular video path) in `Config_demo.toml`
-- ```from Sports2D import Sports2D
-Sports2D.detect_pose('Sports2D\Demo\Config_demo.toml')
-Sports2D.compute_angles('Sports2D\Demo\Config_demo.toml')```
+### Demonstration: Detect pose and compute 2D angles
+
+#### Run
+Open a terminal, enter `pip show sports2d`, report package location. \
+Copy this path and go to the Demo folder with `cd <path>\Sports2D\Demo`. \
+Type `ipython`, and test the following code:
+```
+from Sports2D import Sports2D
+Sports2D.detect_pose('Config_demo.toml')
+Sports2D.compute_angles('Config_demo.toml')
+```
+
+#### Results
+You should obtain two .csv files, which can be processed with any spreadsheet software, or with the Python Pandas library:
+- `demo_blazepose_points.csv` with 2D joint coordinates
+- `demo_blazepose_angles.csv`, with joint and segment angle coordinates
+
+Additionally, you will obtain a a visual output: 
+- A video: `demo_blazepose.mp4` with detected joints overlayed on the person, as well as a angles reported in the upper-left corner. 
+- The same results as images in the `demo_blazepose_img` folder. 
+
+CSV AND DETECTION IMAGES HERE
+
+*N.B.:* Default parameters have been provided in `Demo\Config_demo.toml` but can be edited.\
+*N.B.:* OpenPose-like json coordinates are also stored in the `demo_blazepose_json` folder. A `logs.txt` file lets you recover details about your chosen configuration.
+
+### Go further
+
+#### With OpenPose and other models
+
 
 
 
