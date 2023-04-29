@@ -21,30 +21,33 @@ pose_algo = 'BLAZEPOSE' # 'OPENPOSE' or 'BLAZEPOSE'
 	model_complexity = 2 
 		
 	[pose.OPENPOSE]
-	# Install OpenPose from https://github.com/CMU-Perceptual-Computing-Lab/openpose
+	# Install OpenPose from https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/installation/0_index.md
 	#BODY_25 is standard, BODY_25B is more accurate but requires downloading the model from 
 	# https://github.com/CMU-Perceptual-Computing-Lab/openpose_train/blob/master/experimental_models/README.md
 	openpose_model = 'BODY_25' 
 	# Installation path of openpose (between single quotes) 
-	openpose_path = 'D:\softs\openpose-1.6.0-binaries-win64-gpu-flir-3d_recommended\openpose' 	
+	openpose_path = 'D:\softs\openpose-1.6.0-binaries-win64-gpu-flir-3d_recommended\openpose'
 	
 
 [compute_angles]
+# select joint angles among
+# ['rankle', 'lankle', 'rknee', 'lknee', 'rhip', 'lhip', 'rshoulder', 'lshoulder', 'relbow', 'lelbow']
+# select segment angles among
+# ['rfoot', 'lfoot', 'rshank', 'lshank', 'rthigh', 'lthigh', 'trunk', 'rarm', 'larm', 'rforearm', 'lforearm']
 joint_angles = ['rankle', 'lankle', 'rknee', 'lknee', 'rhip', 'lhip', 'rshoulder', 'lshoulder', 'relbow', 'lelbow']
-# select among ['rankle', 'lankle', 'rknee', 'lknee', 'rhip', 'lhip', 'rshoulder', 'lshoulder', 'relbow', 'lelbow']
 segment_angles = ['rfoot', 'lfoot', 'rshank', 'lshank', 'rthigh', 'lthigh', 'trunk', 'rarm', 'larm', 'rforearm', 'lforearm']
-# select among ['rfoot', 'lfoot', 'rshank', 'lshank', 'rthigh', 'lthigh', 'trunk', 'rarm', 'larm', 'rforearm', 'lforearm']
+
    	
 	
 
 # ADVANCED CONFIGURATION
 	
 [pose_advanced] # only for OPENPOSE
-load_pose = true # else proceed to detection
+load_pose = false # else proceed to detection
 save_vid = true
 save_img = true
 interp_gap_smaller_than = 5 # do not interpolate bigger gaps
-show_plots = false
+show_plots = true
 filter = true
 filter_type = 'butterworth' # butterworth, gaussian, LOESS, median
    [pose_advanced.butterworth]
@@ -60,6 +63,8 @@ filter_type = 'butterworth' # butterworth, gaussian, LOESS, median
 
 [compute_angles_advanced] # for OPENPOSE and BLAZEPOSE
 show_plots = false
+show_angles_img = true
+show_angles_vid = true
 filter = true
 filter_type = 'butterworth' # butterworth, gaussian, LOESS, median
    [compute_angles_advanced.butterworth]

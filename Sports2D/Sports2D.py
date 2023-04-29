@@ -15,7 +15,7 @@
     This is a headless version, but apps will be released 
     for Windows, Linux, MacOS, as well as Android and iOS.
     Mobile versions will only support exploratory joint detection 
-    from BlazePose, hence less accurately and tunable.
+    from BlazePose, hence less accurately and less tunable.
     
     If you need to detect several persons and want more accurate results, 
     you can install and use OpenPose: 
@@ -35,8 +35,8 @@
     - `pip show sports2d`
     - Adjust your settings (in particular video path) in `Config_demo.toml`
     - ```from Sports2D import Sports2D
-    Sports2D.detect_pose('Sports2D\Demo\Config_demo.toml')
-    Sports2D.compute_angles('Sports2D\Demo\Config_demo.toml')```
+    Sports2D.detect_pose('Config_demo.toml')
+    Sports2D.compute_angles('Config_demo.toml')```
     
     -----
     /!\ Warning /!\
