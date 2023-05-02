@@ -11,12 +11,8 @@
 # Sports2D
 
 `Sports2D` lets you compute 2D joint and segment angles from a single video. 
-
-If you need more accurate results and want to analyze the movements of several persons, you can install and use [OpenPose](https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/installation/0_index.md) instead of the default BlazePose.
-
-`Announcement:` Apps with GUI will be released for Windows, Linux, MacOS, as well as Android and iOS.
-Mobile versions will only support exploratory angle computation from BlazePose, hence less accurately and tunable.
-
+ </br>
+ </br>
 
 <figure><img src='Content/demo_gif.gif' title='Demonstration of Sports2D with OpenPose.'></figure>
 
@@ -24,6 +20,9 @@ Mobile versions will only support exploratory angle computation from BlazePose, 
 `Warning:` Angle estimation is only as good as the pose estimation algorithm, i.e., it is not perfect.\
 `Warning:` Results are acceptable only if captured persons move in 2D, from right to left or from left to right.\
 If you need research-grade markerless joint kinematics, consider using several cameras, and constraining angles to a biomechanically accurate model. See [Pose2Sim](https://github.com/perfanalytics/pose2sim) for example.
+
+`Announcement:` Apps with GUI will be released for Windows, Linux, MacOS, as well as Android and iOS.
+Mobile versions will only support exploratory angle computation from BlazePose, hence less accurately and tunable.
 
 
 ## Contents
@@ -40,31 +39,31 @@ If you need research-grade markerless joint kinematics, consider using several c
 
 ### Installation
 
-1. ***Optional.*** *Install Anaconda or [Miniconda](https://docs.conda.io/en/latest/miniconda.html). \
-   Open an Anaconda prompt and create a virtual environment by typing:*
-   <pre><i>conda create -n Sports2D python>=3.10 
-   conda activate Sports2D</i></pre>
+- OPTION 1: **Quick install:** \
+    Open a terminal. Type `python -V` to make sure python '>=3.7 <=3.10' is installed, and then:
+    ```
+    pip install sports2d
+    ```
 
-2. **Install Sports2D**: \
-If you don't use Anaconda, type `python -V` in terminal to make sure python '>=3.7 <=3.10' is installed.
-   - OPTION 1: **Quick install:** Open a terminal. 
-       ```
-       pip install sports2d
-       ```
-   - OPTION 2: **Build from source and test the last changes:**
+- OPTION 2: **Install [Miniconda](https://docs.conda.io/en/latest/miniconda.html).:** \
+    Open an Anaconda prompt and create a virtual environment by typing:
+    ```
+    conda create -n Sports2D python>=3.10 
+    conda activate Sports2D
+    pip install sports2d
+    ```
+
+- OPTION 3: **Build from source and test the last changes:**\
      Open a terminal in the directory of your choice and clone the Sports2D repository.
-       ```
-       git clone https://github.com/davidpagnon/sports2d.git
-       cd sports2d
-       pip install .
-       ```
-3. ***Optional. Install OpenPose*** for more accurate and multi-person analysis (instructions [there](https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/installation/0_index.md)). \
-*Windows portable demo works fine.*
+     ```
+     git clone https://github.com/davidpagnon/sports2d.git
+     cd sports2d
+     pip install .
+     ```
 
 
 ### Demonstration: Detect pose and compute 2D angles
 
-#### Run
 Open a terminal, enter `pip show sports2d`, report package location. \
 Copy this path and go to the Demo folder with `cd <path>\Sports2D\Demo`. \
 Type `ipython`, and test the following code:
@@ -74,16 +73,12 @@ Sports2D.detect_pose('Config_demo.toml')
 Sports2D.compute_angles('Config_demo.toml')
 ```
 
-#### Results
-You should obtain two .csv files, which can be processed with any spreadsheet software, or with the Python Pandas library:
-- `demo_blazepose_points.csv` with 2D joint coordinates
-- `demo_blazepose_angles.csv`, with joint and segment angle coordinates
+You should obtain a video with the overlaid 2D joint positions and angles. This output is also provided as an image folder.\
+You should also obtain the same information as time series stored in .csv files.
 
-Additionally, you will obtain a a visual output: 
-- A video: `demo_blazepose.mp4` with detected joints overlayed on the person, as well as a angles reported in the upper-left corner. 
-- The same results as images in the `demo_blazepose_img` folder. 
+<img src="Content/demo_blazepose_results.png" width="760">
 
-CSV AND DETECTION IMAGES HERE
+
 
 *N.B.:* Default parameters have been provided in `Demo\Config_demo.toml` but can be edited.\
 *N.B.:* OpenPose-like json coordinates are also stored in the `demo_blazepose_json` folder. A `logs.txt` file lets you recover details about your chosen configuration.
@@ -91,6 +86,11 @@ CSV AND DETECTION IMAGES HERE
 ## Go further
 
 Copy, edit, and if you like, rename your `Config_demo.toml` file to alter your settings.
+
+3. ***Optional. Install OpenPose*** for more accurate and multi-person analysis (instructions [there](https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/installation/0_index.md)). \
+*Windows portable demo works fine.*
+If you need more accurate results and want to analyze the movements of several persons, you can install and use [OpenPose](https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/installation/0_index.md) instead of the default BlazePose.
+
 
 `Project`: 
 
