@@ -90,7 +90,20 @@ You should additionally obtain the same information as time series, stored in .c
 2. Open it with any text editor.\
 Replace `video_file` value with the name of your video.
 
-3. *Optionally:* If your video is not in the same folder as `Config_demo.toml`, specify its location in `video_dir`.\
+3. Open a terminal or an Anaconda prompt, type:
+   ```
+   cd <Path/to/video/directory>
+   conda activate Sports2D (skip if you did not install with Anaconda)
+   ipython
+   ```
+   ```
+   from Sports2D import Sports2D
+   Sports2D.detect_pose('Config_demo.toml')
+   Sports2D.compute_angles('Config_demo.toml')
+   ```
+
+
+*Optionally:* If your video is not in the same folder as `Config_demo.toml`, specify its location in `video_dir`.\
 Similarly, if you launch Sports2D in an other directory, specify the location of the config file this way: `Sports2D.detect_pose(<path_to_Config_demo.toml>)`\
 In `pose`, specify the use of BlazePose or OpenPose as joint detectors: this will be detailed in the next section.\
 In `compute_angles`, select your angles of interest.
