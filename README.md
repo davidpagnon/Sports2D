@@ -14,7 +14,7 @@
  </br>
  </br>
 
-<figure><img src='Content/demo_gif.gif' title='Demonstration of Sports2D with OpenPose.'></figure>
+<img src='Content/demo_gif.gif' title='Demonstration of Sports2D with OpenPose.'  width="760">
 
 
 `Warning:` Angle estimation is only as good as the pose estimation algorithm, i.e., it is not perfect.\
@@ -30,9 +30,9 @@ Mobile versions will only support exploratory angle computation from BlazePose, 
    1. [Installation](#installation)
    2. [Demonstration: Detect pose and compute 2D angles](#demonstration-detect-pose-and-compute-2d-angles)
 2. [Go further](#go-further)
-   1. [With OpenPose and other models](#with-openpose-and-other-models)
-   2. [Advanced-settings: Pose](#advanced-settings-pose)
-   3. [Advanced-settings: Angles](#advanced-settings-angles)
+   1. [Use on your own videos](#use-on-your-own-videos)
+   2. [Use OpenPose for multi-person and more accurate analysis](#use-openpose-for-multi-person-and-more-accurate-analysis)
+   3. [Advanced-settings](#advanced-settings)
 3. [How to cite and how to contribute](#how-to-cite-and-how-to-contribute)
 
 ## Installation and Demonstration
@@ -64,8 +64,8 @@ Mobile versions will only support exploratory angle computation from BlazePose, 
 
 ### Demonstration: Detect pose and compute 2D angles
 
-Open a terminal, enter `pip show sports2d`, report package location. \
-Copy this path and go to the Demo folder with `cd <path>\Sports2D\Demo`. \
+Open a terminal, enter `pip show sports2d`, check sports2d package location. \
+Copy this path and go to the Demo folder by typing `cd <path>\Sports2D\Demo`. \
 Type `ipython`, and test the following code:
 ```
 from Sports2D import Sports2D
@@ -74,18 +74,33 @@ Sports2D.compute_angles('Config_demo.toml')
 ```
 
 You should obtain a video with the overlaid 2D joint positions and angles. This output is also provided as an image folder.\
-You should also obtain the same information as time series stored in .csv files.
+You should additionally obtain the same information as time series, stored in .csv files.
 
 <img src="Content/demo_blazepose_results.png" width="760">
 
 
-
-*N.B.:* Default parameters have been provided in `Demo\Config_demo.toml` but can be edited.\
-*N.B.:* OpenPose-like json coordinates are also stored in the `demo_blazepose_json` folder. A `logs.txt` file lets you recover details about your chosen configuration.
-
 ## Go further
 
-Copy, edit, and if you like, rename your `Config_demo.toml` file to alter your settings.
+### Use on your own videos
+
+1. Copy-paste `Config_demo.toml` in the directory of your video.
+
+2. Open it with any text editor.\
+Replace `video_file` value with the name of your video.
+
+3. *Optionally:* If your video is not in the same folder as `Config_demo.toml`, specify its location in `video_dir`.\
+Similarly, if you launch Sports2D in an other directory, specify the location of the config file this way: `Sports2D.detect_pose(<path_to_Config_demo.toml>)`\
+You can use BlazePose or OpenPose as joint detectors: this will be detailed in the next section.\
+In `compute_angles`, select your angles of interest.
+
+### Use OpenPose for multi-person and more accurate analysis
+
+
+### Advanced settings
+
+
+
+### Pose detection
 
 3. ***Optional. Install OpenPose*** for more accurate and multi-person analysis (instructions [there](https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/installation/0_index.md)). \
 *Windows portable demo works fine.*
@@ -94,8 +109,6 @@ If you need more accurate results and want to analyze the movements of several p
 
 `Project`: 
 
-
-### Pose detection
 
 
 
@@ -114,6 +127,12 @@ Optionally displays figures.
 
 If BlazePose is used, only one person can be detected.
 No interpolation nor filtering options available. Not plotting available.
+
+
+
+*N.B.:* Default parameters have been provided in `Demo\Config_demo.toml` but can be edited.\
+*N.B.:* OpenPose-like json coordinates are also stored in the `demo_blazepose_json` folder. A `logs.txt` file lets you recover details about your chosen configuration.
+
 
 -----
 Angle computation:
