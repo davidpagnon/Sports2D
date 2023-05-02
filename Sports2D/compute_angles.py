@@ -12,6 +12,7 @@
     Save a 2D csv angle file per person.
     Optionally filters results with Butterworth, gaussian, median, or loess filter.
     Optionally displays figures.
+    Optionally saves images and video with overlaid angles.
 
     Joint angle conventions:
     - Ankle dorsiflexion: Between heel and big toe, and ankle and knee
@@ -51,8 +52,11 @@
 
 ## INIT
 import logging
+import os
+from pathlib import Path
 import pandas as pd
 import numpy as np
+import cv2
 import matplotlib.pyplot as plt
 from Sports2D.Sports2D import base_params
 from Sports2D.Utilities import filter, common
@@ -75,30 +79,30 @@ __status__ = "Development"
 # dict: name: points, extra, offset, invert. 
 # Most angles are multiplied by -1 because the OpenCV y axis points down.
 joint_angle_dict = { 
-    'rankle': [['RHeel', 'RBigToe', 'RAnkle', 'RKnee'], 'dorsiflexion', -90, -1],
-    'rknee': [['RHip', 'RKnee', 'RAnkle'], 'flexion', -180, -1],
-    'rhip': [['RKnee', 'RHip', 'RShoulder'], 'flexion', -180, -1],
-    'rshoulder': [['RHip', 'RShoulder', 'RElbow'], 'flexion', 0, 1],
-    'relbow': [['RWrist', 'RElbow', 'RShoulder'], 'flexion', -180, -1],
-    'lankle': [['LHeel', 'LBigToe', 'LAnkle', 'LKnee'], 'dorsiflexion', -90, -1],
-    'lknee': [['LHip', 'LKnee', 'LAnkle'], 'flexion', -180, -1],
-    'lhip': [['LKnee', 'LHip', 'LShoulder'], 'flexion', -180, -1],
-    'lshoulder': [['LHip', 'LShoulder', 'LElbow'], 'flexion', 0, 1],
-    'lelbow': [['LWrist', 'LElbow', 'LShoulder'], 'flexion', -180, -1]
+    'Right ankle': [['RHeel', 'RBigToe', 'RAnkle', 'RKnee'], 'dorsiflexion', -90, -1],
+    'Right knee': [['RHip', 'RKnee', 'RAnkle'], 'flexion', -180, -1],
+    'Right hip': [['RKnee', 'RHip', 'RShoulder'], 'flexion', -180, -1],
+    'Right shoulder': [['RHip', 'RShoulder', 'RElbow'], 'flexion', 0, 1],
+    'Right elbow': [['RWrist', 'RElbow', 'RShoulder'], 'flexion', -180, -1],
+    'Left ankle': [['LHeel', 'LBigToe', 'LAnkle', 'LKnee'], 'dorsiflexion', -90, -1],
+    'Left knee': [['LHip', 'LKnee', 'LAnkle'], 'flexion', -180, -1],
+    'Left hip': [['LKnee', 'LHip', 'LShoulder'], 'flexion', -180, -1],
+    'Left shoulder': [['LHip', 'LShoulder', 'LElbow'], 'flexion', 0, 1],
+    'Left elbow': [['LWrist', 'LElbow', 'LShoulder'], 'flexion', -180, -1]
     }
 
 segment_angle_dict = {     
-    'rfoot': [['RHeel', 'RBigToe'], 'horizontal', 0, -1],
-    'lfoot': [['LHeel', 'LBigToe'], 'horizontal', 0, -1],
-    'rshank': [['RAnkle', 'RKnee'], 'horizontal', 0, -1],
-    'lshank': [['LAnkle', 'LKnee'], 'horizontal', 0, -1],
-    'rthigh': [['RHip', 'RKnee'], 'horizontal', 0, -1],
-    'lthigh': [['LHip', 'LKnee'], 'horizontal', 0, -1],
-    'trunk': [['RHip', 'RShoulder'], 'horizontal', 0, 1],
-    'rarm': [['RShoulder', 'RElbow'], 'horizontal', 0, -1],
-    'larm': [['LShoulder', 'LElbow'], 'horizontal', 0, -1],
-    'rforearm': [['RElbow', 'RWrist'], 'horizontal', 0, -1],
-    'lforearm': [['LElbow', 'LWrist'], 'horizontal', 0, -1]
+    'Right foot': [['RHeel', 'RBigToe'], 'horizontal', 0, -1],
+    'Left foot': [['LHeel', 'LBigToe'], 'horizontal', 0, -1],
+    'Right shank': [['RKnee', 'RAnkle'], 'horizontal', 0, -1],
+    'Left shank': [['LKnee', 'LAnkle'], 'horizontal', 0, -1],
+    'Right thigh': [['RHip', 'RKnee'], 'horizontal', 0, -1],
+    'Left thigh': [['LHip', 'LKnee'], 'horizontal', 0, -1],
+    'Trunk': [['RShoulder', 'RHip'], 'horizontal', 0, 1],
+    'Right arm': [['RShoulder', 'RElbow'], 'horizontal', 0, -1],
+    'Left arm': [['LShoulder', 'LElbow'], 'horizontal', 0, -1],
+    'Right forearm': [['RElbow', 'RWrist'], 'horizontal', 0, -1],
+    'Left forearm': [['LElbow', 'LWrist'], 'horizontal', 0, -1]
     }
     
 
@@ -160,11 +164,148 @@ def points2D_to_angles(points_list):
         vx, vy = dx-cx, dy-cy
             
     ang = np.array(np.degrees(np.arctan2(uy, ux) - np.arctan2(vy, vx)))
-    ang = np.where(ang>180,ang-360,ang)
-
+    
     return ang
             
 
+def flip_left_right_direction(df_points):
+    '''
+    Inverts X coordinates to get consistent angles when person changes direction and goes to the left.
+    The person is deemed to go to the left when their toes are to the left of their heels.
+    
+    INPUT:
+    - df_points: dataframe of pose detection
+    
+    OUTPUT:
+    - df_points: dataframe of pose detection with flipped X coordinates
+    '''
+    
+    righ_orientation = df_points.iloc[:,df_points.columns.get_level_values(2)=='RBigToe'].iloc[:,0] - df_points.iloc[:,df_points.columns.get_level_values(2)=='RHeel'].iloc[:,0]
+    left_orientation = df_points.iloc[:,df_points.columns.get_level_values(2)=='LBigToe'].iloc[:,0] - df_points.iloc[:,df_points.columns.get_level_values(2)=='LHeel'].iloc[:,0]
+    orientation = righ_orientation + left_orientation
+    df_points.iloc[:,1::3] = df_points.iloc[:,1::3] * np.where(orientation>=0, 1, -1).reshape(-1,1)
+    
+    return df_points
+            
+
+def joint_angles_series_from_points(df_points, angle_params):
+    '''
+    Obtain joint angle series from point series.
+    
+    INPUT: 
+    - df_points: dataframe of pose detection, from csv
+    - angle_params: dictionary specifying which points to use, and what offset and multiplying factor to use
+    
+    OUTPUT:
+    - ang_series: array of time series of the considered angle
+    '''
+    
+    # Retrieve points
+    keypt_series = []
+    for k in angle_params[0]:
+        keypt_series += [df_points.iloc[:,df_points.columns.get_level_values(2)==k].iloc[:,:2]]
+
+    # Compute angles
+    points_list = [k.values.T for k in keypt_series]
+    ang_series = points2D_to_angles(points_list)
+    ang_series += angle_params[2]
+    ang_series *= angle_params[3]
+    ang_series = np.where(ang_series>180,ang_series-360,ang_series)
+    ang_series = np.where((ang_series==0) | (ang_series==90) | (ang_series==180), +0, ang_series)
+
+    
+    return ang_series
+
+
+def segment_angles_series_from_points(df_points, angle_params, segment):
+    '''
+    Obtain segment angle series w/r horizontal from point series.
+    For trunk segment: mean of the angles between RHip-RShoulder and LHip-LShoulder
+    
+    INPUT: 
+    - df_points: dataframe of pose detection, from csv
+    - angle_params: dictionary specifying which points to use, and what offset and multiplying factor to use
+    - segment: which segment angle is considered
+    
+    OUTPUT:
+    - ang_series: array of time series of the considered angle
+    '''
+    
+    # Retrieve points
+    keypt_series = []
+    for k in angle_params[0]:
+        keypt_series += [df_points.iloc[:,df_points.columns.get_level_values(2)==k].iloc[:,:2]]
+    points_list = [k.values.T for k in keypt_series]
+    
+    # Compute angles
+    ang_series = points2D_to_angles(points_list)
+    ang_series += angle_params[2]
+    ang_series *= angle_params[3]
+    ang_series = np.where(ang_series>180,ang_series-360,ang_series)
+    
+    # For trunk: mean between angles RHip-RShoulder and LHip-LShoulder
+    if segment == 'Trunk':
+        ang_seriesR = ang_series
+        angle_params[0] = [a.replace('R','L') for a in angle_params[0]]
+        keypt_series = []
+        for k in angle_params[0]:
+            keypt_series += [df_points.iloc[:,df_points.columns.get_level_values(2)==k].iloc[:,:2]]
+        # Compute angles
+        points_list = [k.values.T for k in keypt_series]
+        ang_series = points2D_to_angles(points_list)
+        ang_series += angle_params[2]
+        ang_series *= angle_params[3]
+        ang_series = np.mean((ang_seriesR, ang_series), axis=0)
+        ang_series = np.where(ang_series>180,ang_series-360,ang_series)
+        
+    return ang_series
+    
+    
+def overlay_angles(frame, df_angles_list_frame):
+    '''
+    Overlays a text box for each detected person with joint and segment angles
+    
+    INPUT:
+    - frame: a frame opened with OpenCV
+    - df_angles_list_frame: list of one frame for all angles
+    '''
+    
+    cmap = plt.cm.hsv
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    for i, angles_frame_person in enumerate(df_angles_list_frame):
+        for ang_nb in range(len(angles_frame_person)):
+            # Angle label
+            frame = cv2.putText(frame, 
+                angles_frame_person.index[ang_nb][2] + ':',
+                (10+250*i, 15+15*ang_nb), 
+                font, 0.5, 
+                (np.array(cmap((i+1)/len(df_angles_list_frame)))*255).tolist(), 
+                1, 
+                cv2.LINE_4)
+            # Angle value
+            frame = cv2.putText(frame, 
+                str(round(angles_frame_person[ang_nb],1)),
+                (150+250*i, 15+15*ang_nb), 
+                font, 0.5, 
+                (np.array(cmap((i+1)/len(df_angles_list_frame)))*255).tolist(), 
+                1, 
+                cv2.LINE_4)
+            # Progress bar
+            x_ang = int(angles_frame_person[ang_nb]*50/180)
+            if x_ang > 0:
+                sub_frame = frame[ 1+15*ang_nb : 16+15*ang_nb , 170+250*i : 170+250*i+x_ang ]
+                white_rect = np.ones(sub_frame.shape, dtype=np.uint8) * 255
+                res = cv2.addWeighted(sub_frame, 0.6, white_rect, 0.4, 1.0)
+                frame[ 1+15*ang_nb : 16+15*ang_nb , 170+250*i : 170+250*i+x_ang ] = res
+            elif x_ang < 0:
+                sub_frame = frame[ 1+15*ang_nb : 16+15*ang_nb , 170+250*i+x_ang : 170+250*i ]
+                white_rect = np.ones(sub_frame.shape, dtype=np.uint8) * 255
+                res = cv2.addWeighted(sub_frame, 0.6, white_rect, 0.4, 1.0)
+                frame[ 1+15*ang_nb : 16+15*ang_nb , 170+250*i+x_ang : 170+250*i ] = res
+        
+    return frame
+    
+    
 def compute_angles_fun(config_dict):
     '''
     Compute joint and segment angles from csv position files.
@@ -228,12 +369,16 @@ def compute_angles_fun(config_dict):
     median_filter_kernel = config_dict.get('compute_angles_advanced').get('median').get('kernel_size')
     filter_options = (do_filter, filter_type, butterworth_filter_order, butterworth_filter_cutoff, frame_rate, gaussian_filter_kernel, loess_filter_kernel, median_filter_kernel)
     
+    show_angles_img = config_dict.get('compute_angles_advanced').get('show_angles_img')
+    show_angles_vid = config_dict.get('compute_angles_advanced').get('show_angles_vid')
+    
     # Find csv position files in video_dir, search pose_model and video_file.stem
     logging.info(f'Retrieving csv position files in {video_dir}...')
     csv_paths = list(video_dir.glob(f'*{video_file.stem}_{pose_model}_*points*.csv'))
     logging.info(f'{len(csv_paths)} persons found.')
 
     # Compute angles
+    df_angles_list = []
     for i, c in enumerate(csv_paths):
         # Prepare angle csv header
         scorer = ['DavidPagnon']*angle_nb
@@ -249,58 +394,25 @@ def compute_angles_fun(config_dict):
             df_points = pd.read_csv(c_f, header=[0,1,2,3])
             
             # Flip along x when feet oriented to the left
-            righ_orientation = df_points.iloc[:,df_points.columns.get_level_values(2)=='RBigToe'].iloc[:,0] - df_points.iloc[:,df_points.columns.get_level_values(2)=='RHeel'].iloc[:,0]
-            left_orientation = df_points.iloc[:,df_points.columns.get_level_values(2)=='LBigToe'].iloc[:,0] - df_points.iloc[:,df_points.columns.get_level_values(2)=='LHeel'].iloc[:,0]
-            orientation = righ_orientation + left_orientation
-            df_points.iloc[:,1::3] = df_points.iloc[:,1::3] * np.where(orientation>=0, 1, -1).reshape(-1,1)
+            df_points = flip_left_right_direction(df_points)
             
-            # joint angles
+            # Joint angles
             joint_angle_series = []
             for j in joint_angles: 
                 angle_params = joint_angle_dict.get(j)
-                keypt_series = []
-                for k in angle_params[0]:
-                    keypt_series += [df_points.iloc[:,df_points.columns.get_level_values(2)==k].iloc[:,:2]]
-                # Compute angles
-                points_list = [k.values.T for k in keypt_series]
-                ang_series = points2D_to_angles(points_list)
-                ang_series += angle_params[2]
-                ang_series *= angle_params[3]
-                ang_series = np.where(ang_series>180,ang_series-360,ang_series)
-                joint_angle_series += [ang_series]
+                j_ang_series = joint_angles_series_from_points(df_points, angle_params)
+                joint_angle_series += [j_ang_series]
     
-            # segment angles
+            # Segment angles
             segment_angle_series = []
             for s in segment_angles:
                 angle_params = segment_angle_dict.get(s)
-                keypt_series = []
-                for k in angle_params[0]:
-                    keypt_series += [df_points.iloc[:,df_points.columns.get_level_values(2)==k].iloc[:,:2]]
-                # Compute angles
-                points_list = [k.values.T for k in keypt_series]
-                ang_series = points2D_to_angles(points_list)
-                ang_series += angle_params[2]
-                ang_series *= angle_params[3]
-                ang_series = np.where(ang_series>180,ang_series-360,ang_series)
-                # for trunk: mean between angles RHip-RShoulder and LHip-LShoulder
-                if s == 'trunk':
-                    ang_seriesR = ang_series
-                    angle_params[0] = [a.replace('R','L') for a in angle_params[0]]
-                    keypt_series = []
-                    for k in angle_params[0]:
-                        keypt_series += [df_points.iloc[:,df_points.columns.get_level_values(2)==k].iloc[:,:2]]
-                    # Compute angles
-                    points_list = [k.values.T for k in keypt_series]
-                    ang_series = points2D_to_angles(points_list)
-                    ang_series += angle_params[2]
-                    ang_series *= angle_params[3]
-                    ang_series = np.mean((ang_seriesR, ang_series), axis=0)
-                    ang_series = np.where(ang_series>180,ang_series-360,ang_series)
-                segment_angle_series += [ang_series]
-                
+                s_ang_series = segment_angles_series_from_points(df_points, angle_params, s)
+                segment_angle_series += [s_ang_series]
+            
             angle_series = joint_angle_series + segment_angle_series
-            df_list = []
-            df_list += [ pd.DataFrame(angle_series, index=index_angs_csv).T]
+            df_angles = []
+            df_angles += [pd.DataFrame(angle_series, index=index_angs_csv).T]
             
             # Filter
             if filter_options[0]:
@@ -314,19 +426,72 @@ def compute_angles_fun(config_dict):
                 if filter_type == 'median':
                     args = f'Median filter, kernel of {filter_options[7]}.'
                 logging.info(f'Person {i}: Filtering with {args}.')
-                df_list[0].replace(0, np.nan, inplace=True)
-                df_list += [df_list[0].copy()]
-                df_list[1] = df_list[1].apply(filter.filter1d, axis=0, args=filter_options)
-            df_list[-1].replace(np.nan, 0, inplace=True)
+                df_angles[0].replace(0, np.nan, inplace=True)
+                df_angles += [df_angles[0].copy()]
+                df_angles[1] = df_angles[1].apply(filter.filter1d, axis=0, args=filter_options)
+            df_angles[-1].replace(np.nan, 0, inplace=True)
                
             # Creation of the csv files
             csv_angle_path = c.parent / (c.stem.replace('points', 'angles') + '.csv')
             logging.info(f'Person {i}: Saving csv angle file in {csv_angle_path}.')
-            df_list[-1].to_csv(csv_angle_path, sep=',', index=True, lineterminator='\n')
-    
+            df_angles[-1].to_csv(csv_angle_path, sep=',', index=True, lineterminator='\n')
+            
             # Display figures
             if show_plots:
                 logging.info(f'Person {i}: Displaying figures.')
-                display_figures_fun(df_list)
+                display_figures_fun(df_angles)
+
+            df_angles_list += [df_angles[-1]]
+
+    # Add angles to vid and img
+    if show_angles_img or show_angles_vid:
+        video_base = Path(video_dir / video_file)
+        img_pose = video_base.parent / (video_base.stem + '_' + pose_model + '_img')
+        video_pose = video_base.parent / (video_base.stem + '_' + pose_model + '.mp4')
+        video_pose2 = video_base.parent / (video_base.stem + '_' + pose_model + '2.mp4')
+        
+        if show_angles_vid:
+            cap = [cv2.VideoCapture(str(video_pose)) if Path.exists(video_pose) else cv2.VideoCapture(str(video_base))][0]
+            fps = cap.get(cv2.CAP_PROP_FPS)
+            W, H = cap.get(cv2.CAP_PROP_FRAME_WIDTH), cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+            writer = cv2.VideoWriter(str(video_pose2), fourcc, fps, (int(W), int(H)))
+        
+        # Preferentially from pose image files
+        frames_img = list(img_pose.glob('*'))
+        if len(frames_img)>0:
+            for frame_nb in range(df_angles_list[0].shape[0]):
+                df_angles_list_frame = [df_angles_list[n].iloc[frame_nb,:] for n in range(len(df_angles_list))]
+                frame = cv2.imread(str(frames_img[frame_nb]))
+                frame = overlay_angles(frame, df_angles_list_frame)
+                if show_angles_img:
+                    cv2.imwrite(str(frames_img[frame_nb]), frame)
+                if show_angles_vid:
+                    writer.write(frame)
+            writer.release()
+                
+        # Else from pose video (or base video if pose video does not exist)
+        elif Path.exists(video_base) or Path.exists(video_pose):
+            frame_nb = 0
+            while cap.isOpened():
+                ret, frame = cap.read()
+                if ret == True:
+                    df_angles_list_frame = [df_angles_list[n].iloc[frame_nb,:] for n in range(len(df_angles_list))]
+                    frame = overlay_angles(frame, df_angles_list_frame)
+                    if show_angles_img:
+                        if frame_nb==0: img_pose.mkdir(parents=True, exist_ok=True)
+                        cv2.imwrite(str(img_pose / (video_base.stem + '_' + pose_model + '.' + str(frame_nb).zfill(5)+'.png')), frame)
+                    if show_angles_vid:
+                        writer.write(frame)
+                    frame_nb+=1
+                else:
+                    break
+        
+        cap.release()
+        writer.release()
+        if show_angles_vid:
+            if Path.exists(video_pose): os.remove(video_pose)
+            os.rename(video_pose2,video_pose)
+            if Path.exists(video_pose2): os.remove(video_pose2)
 
     logging.info(f'Done.')

@@ -70,6 +70,7 @@
     Save a 2D csv angle file per person.
     Optionally filters results with Butterworth, gaussian, median, or loess filter.
     Optionally displays figures.
+    Optionally saves images and video with overlaid angles.
 
     Joint angle conventions:
     - Ankle dorsiflexion: Between heel and big toe, and ankle and knee
@@ -101,8 +102,9 @@
 ## INIT
 import toml
 import os
-from pathlib import Path
 import time
+import cv2
+from pathlib import Path
 import logging, logging.handlers
 
 with open(Path('logs.txt'), 'a+') as log_f: pass

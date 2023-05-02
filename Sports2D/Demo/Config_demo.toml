@@ -11,7 +11,7 @@ video_file = 'demo.mp4'
 
 
 [pose]
-pose_algo = 'BLAZEPOSE' # 'OPENPOSE' or 'BLAZEPOSE' 
+pose_algo = 'OPENPOSE' # 'OPENPOSE' or 'BLAZEPOSE' 
 # OpenPose is more accurate and supports multi-person detection, but needs to be installed separately	
 # Coming soon: 'deeplabcut', 'alphapose'
 	
@@ -23,18 +23,20 @@ pose_algo = 'BLAZEPOSE' # 'OPENPOSE' or 'BLAZEPOSE'
 	# Install OpenPose from https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/installation/0_index.md
 	#BODY_25 is standard, BODY_25B is more accurate but requires downloading the model from 
 	# https://github.com/CMU-Perceptual-Computing-Lab/openpose_train/blob/master/experimental_models/README.md
-	openpose_model = 'BODY_25' 
+	openpose_model = 'BODY_25B' 
+	
 	# Installation path of openpose (between single quotes) 
 	openpose_path = 'D:\softs\openpose-1.6.0-binaries-win64-gpu-flir-3d_recommended\openpose'
 	
 
 [compute_angles]
-# select joint angles among
-# ['rankle', 'lankle', 'rknee', 'lknee', 'rhip', 'lhip', 'rshoulder', 'lshoulder', 'relbow', 'lelbow']
-# select segment angles among
-# ['rfoot', 'lfoot', 'rshank', 'lshank', 'rthigh', 'lthigh', 'trunk', 'rarm', 'larm', 'rforearm', 'lforearm']
-joint_angles = ['rankle', 'lankle', 'rknee', 'lknee', 'rhip', 'lhip', 'rshoulder', 'lshoulder', 'relbow', 'lelbow']
-segment_angles = ['rfoot', 'lfoot', 'rshank', 'lshank', 'rthigh', 'lthigh', 'trunk', 'rarm', 'larm', 'rforearm', 'lforearm']
+# Select joint angles among
+# ['Right ankle', 'Left ankle', 'Right knee', 'Left knee', 'Right hip', 'Left hip', 'Right shoulder', 'Left shoulder', 'Right elbow', 'Left elbow']
+joint_angles = ['Right ankle', 'Left ankle', 'Right knee', 'Left knee', 'Right hip', 'Left hip', 'Right shoulder', 'Left shoulder', 'Right elbow', 'Left elbow']
+
+# Select segment angles among
+# ['Right foot', 'Left foot', 'Right shank', 'Left shank', 'Right thigh', 'Left thigh', 'Trunk', 'Right arm', 'Left arm', 'Right forearm', 'Left forearm']
+segment_angles = ['Right foot', 'Left foot', 'Right shank', 'Left shank', 'Right thigh', 'Left thigh', 'Trunk', 'Right arm', 'Left arm', 'Right forearm', 'Left forearm']
 
    	
 	
@@ -46,7 +48,7 @@ load_pose = false # else proceed to detection
 save_vid = true
 save_img = true
 interp_gap_smaller_than = 5 # do not interpolate bigger gaps
-show_plots = true
+show_plots = false
 filter = true
 filter_type = 'butterworth' # butterworth, gaussian, LOESS, median
    [pose_advanced.butterworth]
@@ -64,7 +66,7 @@ filter_type = 'butterworth' # butterworth, gaussian, LOESS, median
 show_plots = false
 show_angles_img = true
 show_angles_vid = true
-filter = true
+filter = false
 filter_type = 'butterworth' # butterworth, gaussian, LOESS, median
    [compute_angles_advanced.butterworth]
    order = 4 

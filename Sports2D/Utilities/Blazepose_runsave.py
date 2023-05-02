@@ -77,13 +77,13 @@ def save_to_csv_or_h5(kpt_list, output_folder, video_name, to_csv, to_h5):
     df = pd.DataFrame(np.array(kpt_list).T, index=index_csv).T
 
     if to_csv:
-        csv_file = os.path.join(output_folder, video_name+'_blazepose_points.csv')
+        csv_file = os.path.join(output_folder, video_name+'_BLAZEPOSE_points.csv')
         logging.info(f'Saving csv file in {csv_file}.')
         df.to_csv(csv_file, sep=',', index=True, lineterminator='\n')
 
     if to_h5:
-        h5_file = os.path.join(output_folder, video_name+'_blazepose_points.h5')
-        df.to_hdf(h5_file, index=True, key='blazepose_detection')
+        h5_file = os.path.join(output_folder, video_name+'_BLAZEPOSE_points.h5')
+        df.to_hdf(h5_file, index=True, key='BLAZEPOSE_detection')
 
 
 def save_to_json(kpt_list, output_folder, video_name):
@@ -100,7 +100,7 @@ def save_to_json(kpt_list, output_folder, video_name):
     - Creation of json files in output_folder/json_folder    
     '''
 
-    json_folder = os.path.join(output_folder, video_name + '_blazepose_json')
+    json_folder = os.path.join(output_folder, video_name + '_BLAZEPOSE_json')
     if not os.path.exists(json_folder):
         os.mkdir(json_folder)
 
@@ -119,7 +119,7 @@ def save_to_json(kpt_list, output_folder, video_name):
     # write each h5 line in json file
     for frame, kpt in enumerate(kpt_list):
         json_dict['people'][0]['pose_keypoints_2d'] = kpt
-        json_file = os.path.join(json_folder, video_name+'_blazepose.'+str(frame).zfill(5)+'.json')
+        json_file = os.path.join(json_folder, video_name+'_BLAZEPOSE.'+str(frame).zfill(5)+'.json')
         with open(json_file, 'w') as js_f:
             js_f.write(json.dumps(json_dict))
 
@@ -201,16 +201,16 @@ def blazepose_detec_func(**args):
 
                 # Save images
                 if save_images: 
-                    images_folder = os.path.join(output_folder, video_name + '_blazepose_img')
+                    images_folder = os.path.join(output_folder, video_name + '_BLAZEPOSE_img')
                     if not os.path.exists(images_folder):
                         os.mkdir(images_folder)
-                    cv2.imwrite(os.path.join(images_folder, video_name+'_blazepose.'+str(count).zfill(5)+'.png'), frame)
+                    cv2.imwrite(os.path.join(images_folder, video_name+'_BLAZEPOSE.'+str(count).zfill(5)+'.png'), frame)
 
                 # Save video
                 if save_video:
                     if count == 0:
-                        fourcc = cv2.VideoWriter_fourcc(*'MP4V')
-                        writer = cv2.VideoWriter(os.path.join(output_folder, video_name+'_blazepose.mp4'), fourcc, fps, (int(W), int(H)))
+                        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+                        writer = cv2.VideoWriter(os.path.join(output_folder, video_name+'_BLAZEPOSE.mp4'), fourcc, fps, (int(W), int(H)))
                     writer.write(frame)
 
                 # Store coordinates

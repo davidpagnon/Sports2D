@@ -444,7 +444,7 @@ def save_imgvid_reID(video_path, save_vid=1, save_img=1, *pose_model):
             break
         f += 1
     cap.release()
-    cv2.destroyAllWindows()
+    writer.release()
 
 
 def detect_pose_fun(config_dict):
