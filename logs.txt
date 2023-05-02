@@ -2122,3 +2122,48 @@ Person 2: Computing 2D joint and segment angles.
 Person 2: Saving csv angle file in D:\softs\github_david\sports2d\Sports2D\Demo\demo_BODY_25B_person2_angles.csv.
 Done.
 Joint and segment computation took 4.45 s.
+
+
+---------------------------------------------------------------------
+Detect pose for video demo.mp4
+---------------------------------------------------------------------
+Detecting 2D joint positions with OpenPose model BODY_25B, for demo.mp4.
+Sorting people across frames.
+3 persons found.
+Person 0: Interpolating missing sequences if they are smaller than 5 frames.
+Person 0: Filtering with Butterworth filter, 4th order, 6 Hz..
+Person 0: Saving csv position file in D:\softs\github_david\sports2d\Sports2D\Demo\demo_BODY_25B_person0_points.csv.
+Person 1: Interpolating missing sequences if they are smaller than 5 frames.
+Person 1: Filtering with Butterworth filter, 4th order, 6 Hz..
+Person 1: Saving csv position file in D:\softs\github_david\sports2d\Sports2D\Demo\demo_BODY_25B_person1_points.csv.
+Person 2: Interpolating missing sequences if they are smaller than 5 frames.
+Person 2: Filtering with Butterworth filter, 4th order, 6 Hz..
+Person 2: Saving csv position file in D:\softs\github_david\sports2d\Sports2D\Demo\demo_BODY_25B_person2_points.csv.
+Saving images and video in D:\softs\github_david\sports2d\Sports2D\Demo.
+Done.
+Pose detection took 16.92 s.
+
+
+---------------------------------------------------------------------
+Compute angles for video demo.mp4 
+for ['Right ankle', 'Left ankle', 'Right knee', 'Left knee', 'Right hip', 'Left hip', 'Right shoulder', 'Left shoulder', 'Right elbow', 'Left elbow']
+and ['Right foot', 'Left foot', 'Right shank', 'Left shank', 'Right thigh', 'Left thigh', 'Trunk', 'Right arm', 'Left arm', 'Right forearm', 'Left forearm'].
+---------------------------------------------------------------------
+Retrieving csv position files in D:\softs\github_david\sports2d\Sports2D\Demo...
+3 persons found.
+Person 0: Computing 2D joint and segment angles.
+Person 0: Saving csv angle file in D:\softs\github_david\sports2d\Sports2D\Demo\demo_BODY_25B_person0_angles.csv.
+Person 1: Computing 2D joint and segment angles.
+Person 1: Saving csv angle file in D:\softs\github_david\sports2d\Sports2D\Demo\demo_BODY_25B_person1_angles.csv.
+Person 2: Computing 2D joint and segment angles.
+Person 2: Saving csv angle file in D:\softs\github_david\sports2d\Sports2D\Demo\demo_BODY_25B_person2_angles.csv.
+Done.
+Joint and segment computation took 4.38 s.
+
+
+---------------------------------------------------------------------
+Detect pose for video demo.mp4
+---------------------------------------------------------------------
+Detecting 2D joint positions with BlazePose for D:\softs\github_david\sports2d\Sports2D\Demo\demo.mp4.
+Only one person can be detected by BlazePose. No interpolation nor filtering options available. Not plotting available.
+Saving images and video in D:\softs\github_david\sports2d\Sports2D\Demo.

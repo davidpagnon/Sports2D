@@ -11,7 +11,7 @@ video_file = 'demo.mp4'
 
 
 [pose]
-pose_algo = 'OPENPOSE' # 'OPENPOSE' or 'BLAZEPOSE' 
+pose_algo = 'BLAZEPOSE' # 'OPENPOSE' or 'BLAZEPOSE' 
 # OpenPose is more accurate and supports multi-person detection, but needs to be installed separately	
 # Coming soon: 'deeplabcut', 'alphapose'
 	
