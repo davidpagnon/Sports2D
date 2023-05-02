@@ -18,7 +18,7 @@ If you need more accurate results and want to analyze the movements of several p
 Mobile versions will only support exploratory angle computation from BlazePose, hence less accurately and tunable.
 
 
-GIF HERE
+<figure><img src='Content/demo_gif.gif' title='Demonstration of Sports2D with OpenPose.'></figure>
 
 
 `Warning:` Angle estimation is only as good as the pose estimation algorithm, i.e., it is not perfect.\
