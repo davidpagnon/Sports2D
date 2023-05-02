@@ -8,6 +8,7 @@
 [![GitHub issues-closed](https://img.shields.io/github/issues-closed/davidpagnon/sports2d)](https://GitHub.com/davidpagnon/sports2d/issues?q=is%3Aissue+is%3Aclosed) 
 -->
 
+
 # Sports2D
 
 `Sports2D` lets you compute 2D joint and segment angles from a single video. 
@@ -16,13 +17,12 @@
 
 <img src='Content/demo_gif.gif' title='Demonstration of Sports2D with OpenPose.'  width="760">
 
-
 `Warning:` Angle estimation is only as good as the pose estimation algorithm, i.e., it is not perfect.\
 `Warning:` Results are acceptable only if captured persons move in 2D, from right to left or from left to right.\
 If you need research-grade markerless joint kinematics, consider using several cameras, and constraining angles to a biomechanically accurate model. See [Pose2Sim](https://github.com/perfanalytics/pose2sim) for example.
 
 `Announcement:` Apps with GUI will be released for Windows, Linux, MacOS, as well as Android and iOS.
-Mobile versions will only support exploratory angle computation from BlazePose, hence less accurately and tunable.
+Mobile versions will only support simple exploratory analysis. This involves single-person angle computation, in less accurate and tunable way.
 
 
 ## Contents
@@ -31,9 +31,11 @@ Mobile versions will only support exploratory angle computation from BlazePose, 
    2. [Demonstration: Detect pose and compute 2D angles](#demonstration-detect-pose-and-compute-2d-angles)
 2. [Go further](#go-further)
    1. [Use on your own videos](#use-on-your-own-videos)
-   2. [Use OpenPose for multi-person and more accurate analysis](#use-openpose-for-multi-person-and-more-accurate-analysis)
+   2. [Use OpenPose for multi-person, more accurate analysis](#use-openpose-for-multi-person-more-accurate-analysis)
    3. [Advanced-settings](#advanced-settings)
+   4. [How it works](#how-it-works)
 3. [How to cite and how to contribute](#how-to-cite-and-how-to-contribute)
+
 
 ## Installation and Demonstration
 
@@ -90,26 +92,39 @@ Replace `video_file` value with the name of your video.
 
 3. *Optionally:* If your video is not in the same folder as `Config_demo.toml`, specify its location in `video_dir`.\
 Similarly, if you launch Sports2D in an other directory, specify the location of the config file this way: `Sports2D.detect_pose(<path_to_Config_demo.toml>)`\
-You can use BlazePose or OpenPose as joint detectors: this will be detailed in the next section.\
+In `pose`, specify the use of BlazePose or OpenPose as joint detectors: this will be detailed in the next section.\
 In `compute_angles`, select your angles of interest.
 
-### Use OpenPose for multi-person and more accurate analysis
+
+### Use OpenPose for multi-person, more accurate analysis
+
+1. **Install OpenPose** (instructions [there](https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/installation/0_index.md)). \
+*Windows portable demo works fine.*
+
+2. If you want even more accurate results, use the BODY_25B experimental model instead of the standard BODY_25 one. This requires manually [downloading the model](https://github.com/CMU-Perceptual-Computing-Lab/openpose_train/blob/master/experimental_models/README.md).
+
+3. In `pose.OPENPOSE`, specify your OpenPose model, and the path where you downloaded OpenPose.
+
+*N.B.:* If you want to benefit from the capabilities of OpenPose but do not manage to install it, you can use the `Colab notebook` version.\
+Note that your data will be sent to the Google servers, which do not follow the European GDPR requirements regarding privacy.
+**COMING SOON**
 
 
 ### Advanced settings
 
+1. `pose_advanced`: These settings are only taken into account if OpenPose is used.
+   1. `load_pose`: If you need to change some settings but have already run a pose estimation, you can set this to `true` in order to not regenerate the json pose files.
+
+   2. `save_vid` and `save_img`: You can choose whether you want to save the resulting video and images. If set to `false`, only pose and angle `.csv` files will be generated.
+
+   3. `interp_gap_smaller_than`: 
 
 
-### Pose detection
 
-3. ***Optional. Install OpenPose*** for more accurate and multi-person analysis (instructions [there](https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/installation/0_index.md)). \
-*Windows portable demo works fine.*
-If you need more accurate results and want to analyze the movements of several persons, you can install and use [OpenPose](https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/installation/0_index.md) instead of the default BlazePose.
+*N.B.:* `logs.txt` in the sports2d installation folder (`pip show sports2d` to find the path).
 
 
-`Project`: 
-
-
+### How it works
 
 
 -----
