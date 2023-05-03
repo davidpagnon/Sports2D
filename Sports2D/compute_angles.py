@@ -369,8 +369,8 @@ def compute_angles_fun(config_dict):
     median_filter_kernel = config_dict.get('compute_angles_advanced').get('median').get('kernel_size')
     filter_options = (do_filter, filter_type, butterworth_filter_order, butterworth_filter_cutoff, frame_rate, gaussian_filter_kernel, loess_filter_kernel, median_filter_kernel)
     
-    show_angles_img = config_dict.get('compute_angles_advanced').get('show_angles_img')
-    show_angles_vid = config_dict.get('compute_angles_advanced').get('show_angles_vid')
+    show_angles_img = config_dict.get('compute_angles_advanced').get('save_img')
+    show_angles_vid = config_dict.get('compute_angles_advanced').get('save_vid')
     
     # Find csv position files in video_dir, search pose_model and video_file.stem
     logging.info(f'Retrieving csv position files in {video_dir}...')

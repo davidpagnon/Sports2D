@@ -48,8 +48,8 @@ load_pose = false # else proceed to detection
 save_vid = true
 save_img = true
 interp_gap_smaller_than = 5 # do not interpolate bigger gaps
-show_plots = false
 filter = true
+show_plots = false
 filter_type = 'butterworth' # butterworth, gaussian, LOESS, median
    [pose_advanced.butterworth]
    order = 4 
@@ -63,10 +63,10 @@ filter_type = 'butterworth' # butterworth, gaussian, LOESS, median
 
 
 [compute_angles_advanced] # for OPENPOSE and BLAZEPOSE
-show_plots = false
-show_angles_img = true
-show_angles_vid = true
+save_img = true
+save_vid = true
 filter = false
+show_plots = false
 filter_type = 'butterworth' # butterworth, gaussian, LOESS, median
    [compute_angles_advanced.butterworth]
    order = 4 
