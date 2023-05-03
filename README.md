@@ -147,9 +147,10 @@ Note that your data will be sent to the Google servers, which do not follow the 
 
    3. `show_plots`: Cf `pose_advanced`.
 
+<img src="Content/demo_show_plots.png" width="760">
+
 *N.B.:* The settings and results of all analyses are stored int the `logs.txt` file, which can be found in in the sports2d installation folder (`pip show sports2d` to find the path).
 
-<img src="Content/demo_show_plots.png" width="760">
 
 
 ### How it works
