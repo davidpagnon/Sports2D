@@ -507,7 +507,7 @@ def detect_pose_fun(config_dict):
         json_path = video_dir / '_'.join((video_file_stem,pose_model,'json'))
         
         # Pose detection skipped if load existing json files
-        if load_pose and list(json_path.glob('*'))>0:
+        if load_pose and len(list(json_path.glob('*')))>0:
             pass
         else:
             logging.info(f'Detecting 2D joint positions with OpenPose model {pose_model}, for {video_file}.')
