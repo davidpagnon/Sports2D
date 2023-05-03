@@ -11,18 +11,19 @@
 
 # Sports2D
 
-`Sports2D` lets you compute 2D joint and segment angles from a single video. 
+**`Sports2D` lets you compute 2D joint and segment angles from a single video.**
+
  </br>
  </br>
 
 <img src='Content/demo_gif.gif' title='Demonstration of Sports2D with OpenPose.'  width="760">
 
 `Warning:` Angle estimation is only as good as the pose estimation algorithm, i.e., it is not perfect.\
-`Warning:` Results are acceptable only if captured persons move in 2D, from right to left or from left to right.\
+`Warning:` Results are acceptable only if the persons move in the 2D plane, from right to left or from left to right.\
 If you need research-grade markerless joint kinematics, consider using several cameras, and constraining angles to a biomechanically accurate model. See [Pose2Sim](https://github.com/perfanalytics/pose2sim) for example.
 
 `Announcement:` Apps with GUI will be released for Windows, Linux, MacOS, as well as Android and iOS.
-Mobile versions will only support simple exploratory analysis. This involves single-person angle computation, in less accurate and tunable way.
+Mobile versions will only support simple exploratory analysis. This involves single-person angle computation, in a potentially less accurate and tunable way.
 
 
 ## Contents
@@ -47,7 +48,7 @@ Mobile versions will only support simple exploratory analysis. This involves sin
     pip install sports2d
     ```
 
-- OPTION 2: **Install [Miniconda](https://docs.conda.io/en/latest/miniconda.html).:** \
+- OPTION 2: **Install [Miniconda](https://docs.conda.io/en/latest/miniconda.html):** \
     Open an Anaconda prompt and create a virtual environment by typing:
     ```
     conda create -n Sports2D python>=3.10 
@@ -75,6 +76,9 @@ Sports2D.detect_pose('Config_demo.toml')
 Sports2D.compute_angles('Config_demo.toml')
 ```
 
+<img src="Content/demo_blazepose_terminal.png" width="760">
+
+
 You should obtain a video with the overlaid 2D joint positions and angles. This output is also provided as an image folder.\
 You should additionally obtain the same information as time series, stored in .csv files.
 
@@ -88,7 +92,7 @@ You should additionally obtain the same information as time series, stored in .c
 1. Copy-paste `Config_demo.toml` in the directory of your video.
 
 2. Open it with any text editor.\
-Replace `video_file` value with the name of your video.
+Replace the `video_file` value with the name of your video.
 
 3. Open a terminal or an Anaconda prompt, type:
    ```
@@ -101,7 +105,6 @@ Replace `video_file` value with the name of your video.
    Sports2D.detect_pose('Config_demo.toml')
    Sports2D.compute_angles('Config_demo.toml')
    ```
-
 
 *Optionally:* If your video is not in the same folder as `Config_demo.toml`, specify its location in `video_dir`.\
 Similarly, if you launch Sports2D in an other directory, specify the location of the config file this way: `Sports2D.detect_pose(<path_to_Config_demo.toml>)`\
@@ -130,19 +133,27 @@ Note that your data will be sent to the Google servers, which do not follow the 
 
    2. `save_vid` and `save_img`: You can choose whether you want to save the resulting video and images. If set to `false`, only pose and angle `.csv` files will be generated.
 
-   3. `interp_gap_smaller_than`: 
+   3. `interp_gap_smaller_than`: Gaps are interpolated only if they are not too wide.
+   
+   4. `filter`: `true` or `false`. If `true`, you can choose among `Butterworth`, `Gaussian`, `LOESS`, or `Median`, and specify their parameters.\
+   Beware that the appearance of the unfiltered skeleton may not match the filtered coordinates and angles.
 
+   5. `show_plots`: Displays a window with tabs corresponding to the coordinates of each detected point. This may cause Python to crash.
 
+2. `compute_angles_advanced`: These settings are taken into account both with BlazePose and OpenPose.
+   1. `save_vid` and `save_img`: Cf `pose_advanced`.
 
-*N.B.:* `logs.txt` in the sports2d installation folder (`pip show sports2d` to find the path).
+   2. `filter`: Cf `pose_advanced`.
+
+   3. `show_plots`: Cf `pose_advanced`.
+
+*N.B.:* The settings and results of all analyses are stored int the `logs.txt` file, which can be found in in the sports2d installation folder (`pip show sports2d` to find the path).
 
 
 ### How it works
 
+#### Pose detection:
 
------
-Pose detection:
------
 Detect joint centers from a video with OpenPose or BlazePose.
 Save a 2D csv position file per person, and optionally json files, image files, and video files.
 
@@ -162,9 +173,8 @@ No interpolation nor filtering options available. Not plotting available.
 *N.B.:* OpenPose-like json coordinates are also stored in the `demo_blazepose_json` folder. A `logs.txt` file lets you recover details about your chosen configuration.
 
 
------
-Angle computation:
------
+#### Angle computation:
+
 Compute joint and segment angles from csv position files.
 Automatically adjust angles when person switches to face the other way.
 Save a 2D csv angle file per person. These joint and segment angles can be plotted and processed with any spreadsheet software or programming language.
