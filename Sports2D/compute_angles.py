@@ -80,15 +80,17 @@ __status__ = "Development"
 # Most angles are multiplied by -1 because the OpenCV y axis points down.
 joint_angle_dict = { 
     'Right ankle': [['RHeel', 'RBigToe', 'RAnkle', 'RKnee'], 'dorsiflexion', -90, -1],
-    'Right knee': [['RHip', 'RKnee', 'RAnkle'], 'flexion', -180, -1],
-    'Right hip': [['RKnee', 'RHip', 'RShoulder'], 'flexion', -180, -1],
-    'Right shoulder': [['RHip', 'RShoulder', 'RElbow'], 'flexion', 0, 1],
-    'Right elbow': [['RWrist', 'RElbow', 'RShoulder'], 'flexion', -180, -1],
     'Left ankle': [['LHeel', 'LBigToe', 'LAnkle', 'LKnee'], 'dorsiflexion', -90, -1],
+    'Right knee': [['RHip', 'RKnee', 'RAnkle'], 'flexion', -180, -1],
     'Left knee': [['LHip', 'LKnee', 'LAnkle'], 'flexion', -180, -1],
+    'Right hip': [['RKnee', 'RHip', 'RShoulder'], 'flexion', -180, -1],
     'Left hip': [['LKnee', 'LHip', 'LShoulder'], 'flexion', -180, -1],
+    'Right shoulder': [['RHip', 'RShoulder', 'RElbow'], 'flexion', 0, 1],
     'Left shoulder': [['LHip', 'LShoulder', 'LElbow'], 'flexion', 0, 1],
-    'Left elbow': [['LWrist', 'LElbow', 'LShoulder'], 'flexion', -180, -1]
+    'Right elbow': [['RWrist', 'RElbow', 'RShoulder'], 'flexion', -180, -1],
+    'Left elbow': [['LWrist', 'LElbow', 'LShoulder'], 'flexion', -180, -1],
+    'Right wrist': [['RIndex', 'RWrist', 'RElbow'], 'flexion', -180, -1],
+    'Left wrist': [['LIndex', 'LWrist', 'LElbow'], 'flexion', -180, -1]
     }
 
 segment_angle_dict = {     
@@ -102,7 +104,9 @@ segment_angle_dict = {
     'Right arm': [['RShoulder', 'RElbow'], 'horizontal', 0, -1],
     'Left arm': [['LShoulder', 'LElbow'], 'horizontal', 0, -1],
     'Right forearm': [['RElbow', 'RWrist'], 'horizontal', 0, -1],
-    'Left forearm': [['LElbow', 'LWrist'], 'horizontal', 0, -1]
+    'Left forearm': [['LElbow', 'LWrist'], 'horizontal', 0, -1],
+    'Right hand': [['RWrist', 'RIndex'], 'horizontal', 0, -1],
+    'Left hand': [['LWrist', 'LIndex'], 'horizontal', 0, -1]
     }
     
 

@@ -21,7 +21,7 @@ pose_algo = 'BLAZEPOSE' # 'OPENPOSE' or 'BLAZEPOSE'
 		
 	[pose.OPENPOSE]
 	# Install OpenPose from https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/installation/0_index.md
-	#BODY_25 is standard, BODY_25B is more accurate but requires downloading the model from 
+	# BODY_25 is standard, BODY_25B is more accurate but requires downloading the model from 
 	# https://github.com/CMU-Perceptual-Computing-Lab/openpose_train/blob/master/experimental_models/README.md
 	openpose_model = 'BODY_25B' 
 	
@@ -31,11 +31,11 @@ pose_algo = 'BLAZEPOSE' # 'OPENPOSE' or 'BLAZEPOSE'
 
 [compute_angles]
 # Select joint angles among
-# ['Right ankle', 'Left ankle', 'Right knee', 'Left knee', 'Right hip', 'Left hip', 'Right shoulder', 'Left shoulder', 'Right elbow', 'Left elbow']
+# ['Right ankle', 'Left ankle', 'Right knee', 'Left knee', 'Right hip', 'Left hip', 'Right shoulder', 'Left shoulder', 'Right elbow', 'Left elbow', 'Right wrist', 'Left wrist']
 joint_angles = ['Right ankle', 'Left ankle', 'Right knee', 'Left knee', 'Right hip', 'Left hip', 'Right shoulder', 'Left shoulder', 'Right elbow', 'Left elbow']
 
 # Select segment angles among
-# ['Right foot', 'Left foot', 'Right shank', 'Left shank', 'Right thigh', 'Left thigh', 'Trunk', 'Right arm', 'Left arm', 'Right forearm', 'Left forearm']
+# ['Right foot', 'Left foot', 'Right shank', 'Left shank', 'Right thigh', 'Left thigh', 'Trunk', 'Right arm', 'Left arm', 'Right forearm', 'Left forearm', 'Right hand', 'Left hand']
 segment_angles = ['Right foot', 'Left foot', 'Right shank', 'Left shank', 'Right thigh', 'Left thigh', 'Trunk', 'Right arm', 'Left arm', 'Right forearm', 'Left forearm']
 
    	
