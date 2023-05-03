@@ -79,8 +79,9 @@ Sports2D.compute_angles('Config_demo.toml')
 <img src="Content/demo_blazepose_terminal.png" width="760">
 
 
-You should obtain a video with the overlaid 2D joint positions and angles. This output is also provided as an image folder.\
-You should additionally obtain the same information as time series, stored in .csv files.
+You should obtain a video with the overlaid 2D joint positions, and angle text values. This output is also provided as an image folder.\
+You should additionally obtain the same information as time series, stored in .csv files. These files can be opened with any spreadsheet software, or with the Pandas Python library for example.\
+In addition, you will get the original OpenPose-like json coordinates files.
 
 <img src="Content/demo_blazepose_results.png" width="760">
 
@@ -114,12 +115,14 @@ In `compute_angles`, select your angles of interest.
 
 ### Use OpenPose for multi-person, more accurate analysis
 
+OpenPose is slower than OpenPose, but more accurate. It also allows for the detection of multiple persons, whose indices are consistent across frames. 
+
 1. **Install OpenPose** (instructions [there](https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/installation/0_index.md)). \
 *Windows portable demo works fine.*
 
-2. If you want even more accurate results, use the BODY_25B experimental model instead of the standard BODY_25 one. This requires manually [downloading the model](https://github.com/CMU-Perceptual-Computing-Lab/openpose_train/blob/master/experimental_models/README.md).
+2. If you want even more accurate results, use the BODY_25B experimental model instead of the standard BODY_25 one. This requires manually [downloading the model](https://github.com/CMU-Perceptual-Computing-Lab/openpose_train/blob/master/experimental_models/README.md). You can optionally download from there the BODY_135 model which will let you compute wrist flexion and hand segment angle, however this will be much slower.
 
-3. In `pose.OPENPOSE`, specify your OpenPose model, and the path where you downloaded OpenPose.
+3. In `Config_demo.toml` → `pose.OPENPOSE`, specify your OpenPose model, and the path where you downloaded OpenPose.
 
 *N.B.:* If you want to benefit from the capabilities of OpenPose but do not manage to install it, you can use the `Colab notebook` version.\
 Note that your data will be sent to the Google servers, which do not follow the European GDPR requirements regarding privacy.
@@ -128,7 +131,7 @@ Note that your data will be sent to the Google servers, which do not follow the 
 
 ### Advanced settings
 
-1. `pose_advanced`: These settings are only taken into account if OpenPose is used.
+1. `Config_demo.toml` → `pose_advanced`: These settings are only taken into account if OpenPose is used.
    1. `load_pose`: If you need to change some settings but have already run a pose estimation, you can set this to `true` in order to not regenerate the json pose files.
 
    2. `save_vid` and `save_img`: You can choose whether you want to save the resulting video and images. If set to `false`, only pose and angle `.csv` files will be generated.
@@ -140,14 +143,14 @@ Note that your data will be sent to the Google servers, which do not follow the 
 
    5. `show_plots`: Displays a window with tabs corresponding to the coordinates of each detected point. This may cause Python to crash.
 
-2. `compute_angles_advanced`: These settings are taken into account both with BlazePose and OpenPose.
+2. `Config_demo.toml` → `compute_angles_advanced`: These settings are taken into account both with BlazePose and OpenPose.
    1. `save_vid` and `save_img`: Cf `pose_advanced`.
 
    2. `filter`: Cf `pose_advanced`.
 
    3. `show_plots`: Cf `pose_advanced`.
 
-<img src="Content/demo_show_plots.png" width="760">
+   <img src="Content/demo_show_plots.png" width="760">
 
 *N.B.:* The settings and results of all analyses are stored int the `logs.txt` file, which can be found in in the sports2d installation folder (`pip show sports2d` to find the path).
 
@@ -157,48 +160,37 @@ Note that your data will be sent to the Google servers, which do not follow the 
 
 #### Pose detection:
 
-Detect joint centers from a video with OpenPose or BlazePose.
-Save a 2D csv position file per person, and optionally json files, image files, and video files.
+BlazePose or OpenPose are used to detect joint centers from a video.
 
-If OpenPose is used, multiple persons can be consistently detected across frames.
-However, it needs to be [installed](https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/installation/0_index.md) separately.
-It supports several models: BODY_25 is the standard one, BODY_25B is more accurate but requires manually [downloading the model](https://github.com/CMU-Perceptual-Computing-Lab/openpose_train/blob/master/experimental_models/README.md)
-Interpolates sequences of missing data if they are less than N frames long.
-Optionally filters results with Butterworth, gaussian, median, or loess filter.
-Optionally displays figures.
+If `BlazePose` is used, only one person can be detected.\
+No interpolation nor filtering options are available. Not plotting available.
 
-If BlazePose is used, only one person can be detected.
-No interpolation nor filtering options available. Not plotting available.
-
-
-
-*N.B.:* Default parameters have been provided in `Demo\Config_demo.toml` but can be edited.\
-*N.B.:* OpenPose-like json coordinates are also stored in the `demo_blazepose_json` folder. A `logs.txt` file lets you recover details about your chosen configuration.
+If `OpenPose` is used, multiple persons can be consistently detected across frames. A person is matched to another in the next frame when their average point clouds are at a small euclidian distance.\
+Sequences of missing data are interpolated if they are less than N frames long.\
+Resulting coordinates can be filtered with Butterworth, gaussian, median, or loess filter. They can also be plotted.
 
 
 #### Angle computation:
 
-Compute joint and segment angles from csv position files.
-Automatically adjust angles when person switches to face the other way.
-Save a 2D csv angle file per person. These joint and segment angles can be plotted and processed with any spreadsheet software or programming language.
-Optionally filters results with Butterworth, gaussian, median, or loess filter.
-Optionally displays figures.
+Joint and segment angles are computed from csv position files.\
+If a person suddently faces the other way, this change of direction is taken into account.\
+Resulting angles can be filtered in the same way as point coordinates, and they can also be plotted.
 
-Joint angle conventions:
+**Joint angle conventions:**
 - Ankle dorsiflexion: Between heel and big toe, and ankle and knee
 - Knee flexion: Between hip, knee, and ankle 
 - Hip flexion: Between knee, hip, and shoulder
 - Shoulder flexion: Between hip, shoulder, and elbow
 - Elbow flexion: Between wrist, elbow, and shoulder
 
-Segment angle conventions:
+**Segment angle conventions:**\
 Angles are measured anticlockwise between the horizontal and the segment.
 - Foot: Between heel and big toe
-- Shank: Between ankle and knee
+- Shank: Between knee and ankle
 - Thigh: Between hip and knee
 - Arm: Between shoulder and elbow
 - Forearm: Between elbow and wrist
-- Trunk: Between hip midpoint and shoulder midpoint
+- Trunk: Between shoulder midpoint and hip midpoint
 
 ## How to cite and how to contribute
 
