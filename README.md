@@ -44,13 +44,14 @@ Mobile versions will only support simple exploratory analysis. This involves sin
 
 ### Installation
 
-- OPTION 1: **Quick install:** \
+- OPTION 1: **Quick install** \
     Open a terminal. Type `python -V` to make sure python '>=3.7 <=3.10' is installed, and then:
     ```
     pip install sports2d
     ```
 
-- OPTION 2: **Install [Miniconda](https://docs.conda.io/en/latest/miniconda.html):** \
+- OPTION 2: **Safer install with Anaconda**\
+    Install [Miniconda](https://docs.conda.io/en/latest/miniconda.html):\
     Open an Anaconda prompt and create a virtual environment by typing:
     ```
     conda create -n Sports2D python<=3.10 
@@ -58,7 +59,7 @@ Mobile versions will only support simple exploratory analysis. This involves sin
     pip install sports2d
     ```
 
-- OPTION 3: **Build from source and test the last changes:**\
+- OPTION 3: **Build from source and test the last changes**\
      Open a terminal in the directory of your choice and clone the Sports2D repository.
      ```
      git clone https://github.com/davidpagnon/sports2d.git
