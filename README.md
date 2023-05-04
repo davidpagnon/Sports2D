@@ -13,7 +13,7 @@
 
 # Sports2D
 
-**`Sports2D` lets you compute 2D joint and segment angles from a single video.**
+**`Sports2D` lets you compute 2D joint and segment angles from a video.**
 
  </br>
  </br>
