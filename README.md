@@ -130,7 +130,7 @@ OpenPose is slower than OpenPose, but more accurate. It also allows for the dete
 Note that your data will be sent to the Google servers, which do not follow the European GDPR requirements regarding privacy.
 **COMING SOON**
 
-<img src="Content/demo_blazepose_results.png" width="760">
+<img src="Content/demo_openpose_results.png" width="760">
 
 ### Advanced settings
 
