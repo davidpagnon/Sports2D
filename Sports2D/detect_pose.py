@@ -51,8 +51,6 @@ import pandas as pd
 import cv2
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-mpl.use('qt5agg')
-mpl.rc('figure', max_open_warning=0)
 from Sports2D.Sports2D import base_params
 from Sports2D.Utilities import Blazepose_runsave, filter, common
 from Sports2D.Utilities.skeletons import *
@@ -82,6 +80,9 @@ def display_figures_fun(df_list):
     - matplotlib window with tabbed figures for each keypoint
     '''
     
+    mpl.use('qt5agg')
+    mpl.rc('figure', max_open_warning=0)
+
     keypoints_names = df_list[0].columns.get_level_values(2)[1::3]
     
     pw = common.plotWindow()
