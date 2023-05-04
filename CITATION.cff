@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: "If you use Sports2D, please cite it as below."
+authors:
+- family-names: "Pagnon"
+  given-names: "David"
+  orcid: "https://orcid.org/0000-0002-6891-8331"
+title: "Sports2D - Angles from video"
+version: 0.1.0
+doi: ''
+date-released: 2023-05-05
+url: "https://github.com/davidpagnon/Sports2D"
+journal = "GitHub repository"
