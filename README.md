@@ -202,8 +202,8 @@ If you use this code or data, please cite [Pagnon, 2023].
 
      @misc{Pagnon2023,
        author = {Pagnon, David},
-       title = {Sports2D - Angles from monocular video},
-       year = {2013},
+       title = {Sports2D - Angles from video},
+       year = {2023},
        publisher = {GitHub},
        journal = {GitHub repository},
        howpublished = {\url{https://github.com/davidpagnon/Sports2D}},
