@@ -43,6 +43,7 @@
 import os
 import logging
 from pathlib import Path
+from sys import platform
 import json
 import subprocess
 import itertools as it
@@ -103,6 +104,64 @@ def display_figures_fun(df_list):
         pw.addPlot(keypoint, f)
     
     pw.show()
+    
+
+def run_openpose_windows(video_path, json_path, pose_model):
+    '''
+    Use a subprocess to run OpenPoseDemo.exe, and saves json coordinate files.
+     
+    INPUTS:
+    - video_path: Path of the video to analyze
+    - json_path: Path of the directory where to save json files
+    - pose_model: string. "BODY_25B", "BODY_25", or others.
+          
+    OUTPUTS:
+    - json files in json_path
+    '''
+
+    subprocess.run(["bin\OpenPoseDemo.exe", "--video", video_path, \
+    "--model_pose", pose_model, \
+    "--write_json", json_path, \
+    "--render_pose", "0", "--display", "0"])
+
+
+def run_openpose_linux(video_path, json_path, pose_model):
+    '''
+    Use a subprocess to run openpose.bin, and saves json coordinate files.
+     
+    INPUTS:
+    - video_path: Path of the video to analyze
+    - json_path: Path of the directory where to save json files
+    - pose_model: string. "BODY_25B", "BODY_25", or others.
+          
+    OUTPUTS:
+    - json files in json_path
+    '''
+
+    subprocess.run(["./build/examples/openpose/openpose.bin", "--video", video_path, \
+    "--model_pose", pose_model, \
+    "--write_json", json_path, \
+    "--render_pose", "0", "--display", "0"])
+
+
+def run_openpose_mac(video_path, json_path, pose_model):
+    '''
+    Use a subprocess to run openpose.bin, and saves json coordinate files.
+    WARNING: not tested.
+     
+    INPUTS:
+    - video_path: Path of the video to analyze
+    - json_path: Path of the directory where to save json files
+    - pose_model: string. "BODY_25B", "BODY_25", or others.
+          
+    OUTPUTS:
+    - json files in json_path
+    '''
+
+    subprocess.run(["./build/examples/openpose/openpose.bin", "--video", video_path, \
+    "--model_pose", pose_model, \
+    "--write_json", json_path, \
+    "--render_pose", "0", "--display", "0"])
     
     
 def euclidean_distance(q1, q2):
@@ -515,10 +574,12 @@ def detect_pose_fun(config_dict):
             json_path.mkdir(parents=True, exist_ok=True)
             openpose_path = config_dict.get('pose').get('OPENPOSE').get('openpose_path')
             os.chdir(openpose_path)
-            subprocess.run(["bin\OpenPoseDemo.exe", "--video", video_path, \
-                "--model_pose", pose_model, \
-                "--write_json", json_path, \
-                "--render_pose", "0", "--display", "0"])
+            if platform =="win32":
+                run_openpose_windows(video_path, json_path, pose_model)
+            elif platform == "darwin":
+                run_openpose_mac(video_path, json_path, pose_model)
+            elif platform == "linux" or platform=="linux2":
+                run_openpose_linux(video_path, json_path, pose_model)
             os.chdir(root_dir)
         
     # Sort people and save to csv, optionally display plot
