@@ -1,7 +1,8 @@
 
 [![Continuous integration](https://github.com/davidpagnon/sports2d/actions/workflows/continuous-integration.yml/badge.svg?branch=main)](https://github.com/davidpagnon/sports2d/actions/workflows/continuous-integration.yml)
 [![PyPI version](https://badge.fury.io/py/Sports2D.svg)](https://badge.fury.io/py/Sports2D)\
-[![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
+[![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)\
+<a href="https://colab.research.google.com/github/davidpagnon/Sports2D/blob/main/Sports2D/Sports2D.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
 <!-- [![Downloads](https://pepy.tech/badge/sports2d)](https://pepy.tech/project/sports2d)
 [![Stars](https://badgen.net/github/stars/davidpagnon/sports2d)](https://github.com/davidpagnon/sports2d/stargazers)
@@ -127,9 +128,10 @@ OpenPose is slower than OpenPose, but more accurate. It also allows for the dete
 
 3. In `Config_demo.toml` → `pose.OPENPOSE`, specify your OpenPose model, and the path where you downloaded OpenPose.
 
-*N.B.:* If you want to benefit from the capabilities of OpenPose but do not manage to install it, you can use the `Colab notebook` version.\
+*N.B.:* If you want to benefit from the capabilities of OpenPose but do not manage to install it, you can use the `Colab notebook` version.
 Note that your data will be sent to the Google servers, which do not follow the European GDPR requirements regarding privacy.
-**COMING SOON**
+<a href="https://colab.research.google.com/github/davidpagnon/Sports2D/blob/main/Sports2D/Sports2D.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+
 
 <img src="Content/demo_openpose_results.png" width="760">
 
