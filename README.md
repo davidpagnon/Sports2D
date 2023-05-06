@@ -216,8 +216,15 @@ If you use this code or data, please cite [Pagnon, 2023].
 I would happily welcome any proposal for new features, code improvement, and more!\
 If you want to contribute to Sports2D, please follow [this guide](https://docs.github.com/en/get-started/quickstart/contributing-to-projects) on how to fork, modify and push code, and submit a pull request. I would appreciate it if you provided as much useful information as possible about how you modified the code, and a rationale for why you're making this pull request. Please also specify on which operating system and on which python version you have tested the code.
 
-*Here is a to-do list, for general guidance purposes only:*
-> <li> <b>GUI applications:</b> For Windows, Mac, and Linux, as well as for Android and iOS (minimal version on mobile device, with only BlazePose). Code with <a href="https://kivy.org">Kivy</a>.</li>
-> <li> <b>Pose refinement:</b> Click and move badly estimated 2D points. See <a href="https://www.youtube.com/watch?v=bEuBKB7eqmk">DeepLabCut</a> for inspiration.
-> <li> <b>Include OpenPose in Sports2D:</b> For example, <a href="https://github.com/stanfordnmbl/mobile-gaitlab/blob/master/demo/Dockerfile">Dockerize</a> it. Otherwise, run Sports2D in a <a href="https://colab.research.google.com/github/hardik0/AI-basketball-analysis-on-google-colab/blob/master/AI_basketball_analysis_google_colab.ipynb">Colab notebook</a>. Write and test functions run_openpose_linux() and run_openpose_mac() in `detect_pose.py`.
-> <li> <b>Constrain points</b> to OpenSim skeletal model for better angle estimation. Cf <a href="https://github.com/perfanalytics/pose2sim">Pose2Sim</a>, but in 2D.
+*Here is a to-do list: feel free to complete it:*
+- [x] Compute **segment angles**
+- [x] **Multi-person** detection, consistent over time
+- [x] **Only interpolate small gaps**
+- [x] **Filtering and plotting tools**
+- [x] Handle sudden **changes of direction**
+- [x] **Colab version** for those who cannot install OpenPose
+- [ ] Full test on **MacOS**
+- [ ] **GUI applications** for Windows, Mac, and Linux, as well as for Android and iOS (minimal version on mobile device, with only BlazePose). Code with [Kivy](https://kivy.org)
+- [ ] **Pose refinement**. Click and move badly estimated 2D points. See [DeepLabCut](https://www.youtube.com/watch?v=bEuBKB7eqmk) for inspiration
+- [ ] **Include OpenPose** in Sports2D executable files. [Dockerize](https://github.com/stanfordnmbl/mobile-gaitlab/blob/master/demo/Dockerfile) it? 
+- [ ] **Constrain points** to OpenSim skeletal model for better angle estimation (like with [Pose2Sim](https://github.com/perfanalytics/pose2sim), but in 2D.
