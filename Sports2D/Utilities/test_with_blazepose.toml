@@ -46,8 +46,7 @@ segment_angles = ['Right foot', 'Left foot', 'Right shank', 'Left shank', 'Right
 # ADVANCED CONFIGURATION
 	
 [pose_advanced] # only for OPENPOSE
-load_pose = false # else proceed to detection
-save_vid = true
+load_pose = true # proceeds to detection only if pose files not foundsave_vid = true
 save_img = true
 interp_gap_smaller_than = 5 # do not interpolate bigger gaps
 filter = true
