@@ -16,16 +16,15 @@
 
 **`Sports2D` lets you compute 2D joint and segment angles from a video.**
 
- </br>
- </br>
-
 <img src='Content/demo_gif.gif' title='Demonstration of Sports2D with OpenPose.'  width="760">
 
 `Warning:` Angle estimation is only as good as the pose estimation algorithm, i.e., it is not perfect.\
 `Warning:` Results are acceptable only if the persons move in the 2D plane, from right to left or from left to right.\
 If you need research-grade markerless joint kinematics, consider using several cameras, and constraining angles to a biomechanically accurate model. See [Pose2Sim](https://github.com/perfanalytics/pose2sim) for example.
 
-`Announcement:` Apps with GUI will be released for Windows, Linux, MacOS, as well as Android and iOS.
+`Know issue`: Results won't be good with some iPhone videos in portrait mode. This is solved by priorly converting them with `ffmpeg -i video_input.mov video_output.mp4`, or even more simply with any random online video converter such as https://video-converter.com.
+
+`Announcement:` Apps with GUI will soon be released for Windows, Linux, MacOS, as well as Android and iOS.
 Mobile versions will only support simple exploratory analysis. This involves single-person angle computation, in a potentially less accurate and tunable way.
 
 
