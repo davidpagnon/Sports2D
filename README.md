@@ -207,6 +207,7 @@ If you use this code or data, please cite [Pagnon, 2023].
        author = {Pagnon, David},
        title = {Sports2D - Angles from video},
        year = {2023},
+       doi= {10.5281/zenodo.7903963},
        publisher = {GitHub},
        journal = {GitHub repository},
        howpublished = {\url{https://github.com/davidpagnon/Sports2D}},
