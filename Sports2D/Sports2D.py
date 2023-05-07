@@ -144,6 +144,11 @@ def base_params(config_dict):
     
     video = cv2.VideoCapture(str(video_dir / video_file))
     frame_rate = video.get(cv2.CAP_PROP_FPS)
+    try:
+        1/frame_rate
+    except ZeroDivisionError:
+        print('Frame rate could not be retrieved: check that your video exists at the correct path')
+        raise
     video.release()
 
     return video_dir, video_file, frame_rate

@@ -298,14 +298,16 @@ def overlay_angles(frame, df_angles_list_frame):
             x_ang = int(angles_frame_person[ang_nb]*50/180)
             if x_ang > 0:
                 sub_frame = frame[ 1+15*ang_nb : 16+15*ang_nb , 170+250*i : 170+250*i+x_ang ]
-                white_rect = np.ones(sub_frame.shape, dtype=np.uint8) * 255
-                res = cv2.addWeighted(sub_frame, 0.6, white_rect, 0.4, 1.0)
-                frame[ 1+15*ang_nb : 16+15*ang_nb , 170+250*i : 170+250*i+x_ang ] = res
+                if sub_frame.size>0:
+                    white_rect = np.ones(sub_frame.shape, dtype=np.uint8) * 255
+                    res = cv2.addWeighted(sub_frame, 0.6, white_rect, 0.4, 1.0)
+                    frame[ 1+15*ang_nb : 16+15*ang_nb , 170+250*i : 170+250*i+x_ang ] = res
             elif x_ang < 0:
                 sub_frame = frame[ 1+15*ang_nb : 16+15*ang_nb , 170+250*i+x_ang : 170+250*i ]
-                white_rect = np.ones(sub_frame.shape, dtype=np.uint8) * 255
-                res = cv2.addWeighted(sub_frame, 0.6, white_rect, 0.4, 1.0)
-                frame[ 1+15*ang_nb : 16+15*ang_nb , 170+250*i+x_ang : 170+250*i ] = res
+                if sub_frame.size>0:
+                    white_rect = np.ones(sub_frame.shape, dtype=np.uint8) * 255
+                    res = cv2.addWeighted(sub_frame, 0.6, white_rect, 0.4, 1.0)
+                    frame[ 1+15*ang_nb : 16+15*ang_nb , 170+250*i+x_ang : 170+250*i ] = res
         
     return frame
     

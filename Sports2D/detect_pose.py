@@ -137,7 +137,7 @@ def run_openpose_linux(video_path, json_path, pose_model):
     OUTPUTS:
     - json files in json_path
     '''
-
+    
     subprocess.run(["./build/examples/openpose/openpose.bin", "--video", video_path, \
     "--model_pose", pose_model, \
     "--write_json", json_path, \
@@ -285,7 +285,7 @@ def json_to_csv(json_path, pose_model, interp_gap_smaller_than, filter_options, 
     keypoints_names = [node.name for _, _, node in RenderTree(model) if node.id!=None]
     keypoints_names_rearranged = [y for x,y in sorted(zip(keypoints_ids,keypoints_names))]
     keypoints_nb = len(keypoints_ids)
-       
+
     # Retrieve coordinates
     logging.info('Sorting people across frames.')
     json_fnames = list(json_path.glob('*.json'))
@@ -302,7 +302,7 @@ def json_to_csv(json_path, pose_model, interp_gap_smaller_than, filter_options, 
             # Make sure keypt is as large as the number of persons that need to be detected
             if len(keypt) < nb_persons_to_detect:
                 empty_keypt_to_add = np.concatenate( [[ np.zeros([25,3]) ]] * (nb_persons_to_detect-len(keypt)) )
-                keypt = np.concatenate([keypt, empty_keypt_to_add])
+                keypt = [np.concatenate([keypt, empty_keypt_to_add]) if keypt!=[] else empty_keypt_to_add][0]
             if 'keyptpre' not in locals():
                 keyptpre = keypt
             # Associate persons across frames
@@ -380,7 +380,7 @@ def draw_bounding_box(X, Y, img):
         (np.nanmax(x).astype(int)+25, np.nanmax(y).astype(int)+25), 
         (np.array(cmap((i+1)/len(X)))*255).tolist(), 
         2) 
-        for i,(x,y) in enumerate(zip(X,Y))]
+        for i,(x,y) in enumerate(zip(X,Y)) if not np.isnan(x).all()]
  
     # Write person ID
     [cv2.putText(img, str(i),
@@ -388,7 +388,7 @@ def draw_bounding_box(X, Y, img):
         cv2.FONT_HERSHEY_SIMPLEX, 1,
         (np.array(cmap((i+1)/len(X)))*255).tolist(),
         2, cv2.LINE_AA) 
-        for i,(x,y) in enumerate(zip(X,Y))]
+        for i,(x,y) in enumerate(zip(X,Y)) if not np.isnan(x).all()]
     
     return img
 
@@ -560,12 +560,12 @@ def detect_pose_fun(config_dict):
     filter_options = (do_filter, filter_type, butterworth_filter_order, butterworth_filter_cutoff, frame_rate, gaussian_filter_kernel, loess_filter_kernel, median_filter_kernel)
     
     video_file_stem = video_file.stem
-    video_path = video_dir / video_file
+    video_path = (video_dir / video_file)
 
     if pose_algo == 'OPENPOSE':
         pose_model = config_dict.get('pose').get('OPENPOSE').get('openpose_model')
         json_path = video_dir / '_'.join((video_file_stem,pose_model,'json'))
-        
+
         # Pose detection skipped if load existing json files
         if load_pose and len(list(json_path.glob('*')))>0:
             pass
