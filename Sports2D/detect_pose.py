@@ -288,7 +288,7 @@ def json_to_csv(json_path, pose_model, interp_gap_smaller_than, filter_options, 
 
     # Retrieve coordinates
     logging.info('Sorting people across frames.')
-    json_fnames = list(json_path.glob('*.json'))
+    json_fnames = sorted(json_path.glob('*.json'))
     nb_persons_to_detect = max([len(json.load(open(json_fname))['people']) for json_fname in json_fnames])
     Coords = [np.array([]).reshape(0,keypoints_nb*3)] * nb_persons_to_detect
     for json_fname in json_fnames:    # for each frame
@@ -455,9 +455,9 @@ def save_imgvid_reID(video_path, save_vid=1, save_img=1, *pose_model):
             
    # Find csv position files, prepare video and image saving paths
     pose_model = pose_model[0]
-    csv_paths = list(video_path.parent.glob(f'*{video_path.stem}*{pose_model}*points*refined*.csv'))
+    csv_paths = sorted(video_path.parent.glob(f'*{video_path.stem}*{pose_model}*points*refined*.csv'))
     if csv_paths == []:
-        csv_paths = list(video_path.parent.glob(f'*{video_path.stem}*{pose_model}*points*.csv'))
+        csv_paths = sorted(video_path.parent.glob(f'*{video_path.stem}*{pose_model}*points*.csv'))
         
     # Open csv files
     coords = []
@@ -480,7 +480,7 @@ def save_imgvid_reID(video_path, save_vid=1, save_img=1, *pose_model):
         img_pose_path.mkdir(parents=True, exist_ok=True)  
         
     f = 0
-    while(cap.isOpened()):
+    while(cap.isOpened() and f < len(coords[0])):
         ret, frame = cap.read()
         if ret == True:
             X = [np.array(coord.iloc[f,1::3]) for coord in coords]

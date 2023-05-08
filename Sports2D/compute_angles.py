@@ -380,7 +380,7 @@ def compute_angles_fun(config_dict):
     
     # Find csv position files in video_dir, search pose_model and video_file.stem
     logging.info(f'Retrieving csv position files in {video_dir}...')
-    csv_paths = list(video_dir.glob(f'*{video_file.stem}_{pose_model}_*points*.csv'))
+    csv_paths = sorted(video_dir.glob(f'*{video_file.stem}_{pose_model}_*points*.csv'))
     logging.info(f'{len(csv_paths)} persons found.')
 
     # Compute angles
@@ -464,7 +464,7 @@ def compute_angles_fun(config_dict):
             writer = cv2.VideoWriter(str(video_pose2), fourcc, fps, (int(W), int(H)))
         
         # Preferentially from pose image files
-        frames_img = list(img_pose.glob('*'))
+        frames_img = sorted(img_pose.glob('*'))
         if len(frames_img)>0:
             for frame_nb in range(df_angles_list[0].shape[0]):
                 df_angles_list_frame = [df_angles_list[n].iloc[frame_nb,:] for n in range(len(df_angles_list))]
