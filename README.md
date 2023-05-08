@@ -103,7 +103,7 @@ Replace the `video_file` value with the name of your video.
 3. Open a terminal or an Anaconda prompt, type:
    ```
    cd <Path/to/video/directory>
-   conda activate Sports2D (skip if you did not install with Anaconda)
+   conda activate Sports2D #skip if you did not install with Anaconda
    ipython
    ```
    ```
@@ -169,12 +169,12 @@ Note that your data will be sent to the Google servers, which do not follow the 
 
 BlazePose or OpenPose are used to detect joint centers from a video.
 
-If `BlazePose` is used, only one person can be detected.\
-No interpolation nor filtering options are available. Not plotting available.
+- If `BlazePose` is used, only one person can be detected.\
+  No interpolation nor filtering options are available. Not plotting available.
 
-If `OpenPose` is used, multiple persons can be consistently detected across frames. A person is matched to another in the next frame when their average point clouds are at a small euclidian distance.\
-Sequences of missing data are interpolated if they are less than N frames long.\
-Resulting coordinates can be filtered with Butterworth, gaussian, median, or loess filter. They can also be plotted.
+- If `OpenPose` is used, multiple persons can be consistently detected across frames. A person is matched to another in the next frame when their average point clouds are at a small euclidian distance.\
+  Sequences of missing data are interpolated if they are less than N frames long.\
+  Resulting coordinates can be filtered with Butterworth, gaussian, median, or loess filter. They can also be plotted.
 
 
 #### Angle computation:
