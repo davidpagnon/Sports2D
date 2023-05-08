@@ -55,7 +55,7 @@ Mobile versions will only support simple exploratory analysis. This involves sin
     Install [Miniconda](https://docs.conda.io/en/latest/miniconda.html):\
     Open an Anaconda prompt and create a virtual environment by typing:
     ```
-    conda create -n Sports2D python<=3.10 
+    conda create -n Sports2D python=3.10 -y
     conda activate Sports2D
     pip install sports2d
     ```
