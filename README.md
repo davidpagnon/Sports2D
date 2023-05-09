@@ -219,14 +219,16 @@ I would happily welcome any proposal for new features, code improvement, and mor
 If you want to contribute to Sports2D, please follow [this guide](https://docs.github.com/en/get-started/quickstart/contributing-to-projects) on how to fork, modify and push code, and submit a pull request. I would appreciate it if you provided as much useful information as possible about how you modified the code, and a rationale for why you're making this pull request. Please also specify on which operating system and on which python version you have tested the code.
 
 *Here is a to-do list: feel free to complete it:*
-- [x] Compute **segment angles**
-- [x] **Multi-person** detection, consistent over time
-- [x] **Only interpolate small gaps**
-- [x] **Filtering and plotting tools**
-- [x] Handle sudden **changes of direction**
-- [x] **Colab version** for those who cannot install OpenPose
-- [ ] Full test on **MacOS**
-- [ ] **GUI applications** for Windows, Mac, and Linux, as well as for Android and iOS (minimal version on mobile device, with only BlazePose). Code with [Kivy](https://kivy.org)
-- [ ] **Pose refinement**. Click and move badly estimated 2D points. See [DeepLabCut](https://www.youtube.com/watch?v=bEuBKB7eqmk) for inspiration
+- [x] Compute **segment angles**.
+- [x] **Multi-person** detection, consistent over time.
+- [x] **Only interpolate small gaps**.
+- [x] **Filtering and plotting tools**.
+- [x] Handle sudden **changes of direction**.
+- [x] **Colab version** for those who cannot install OpenPose.
+- [ ] Full test on **MacOS**.
+- [ ] **GUI applications** for Windows, Mac, and Linux, as well as for Android and iOS (minimal version on mobile device, with only BlazePose). Code with [Kivy](https://kivy.org).
 - [ ] **Include OpenPose** in Sports2D executable files. [Dockerize](https://github.com/stanfordnmbl/mobile-gaitlab/blob/master/demo/Dockerfile) it? 
+- [ ] **Track other points and angles** with classic tracking methods (cf. [Kinovea](https://www.kinovea.org/features.html)), or by training a model (cf. [DeepLabCut](https://deeplabcut.github.io/DeepLabCut/README.html)).
+- [ ] **Pose refinement**. Click and move badly estimated 2D points. See [DeepLabCut](https://www.youtube.com/watch?v=bEuBKB7eqmk) for inspiration.
 - [ ] **Constrain points** to OpenSim skeletal model for better angle estimation (like with [Pose2Sim](https://github.com/perfanalytics/pose2sim), but in 2D.
+- [ ] Add tools for annotating images, undistort them, take perspective into account, etc. (cf. [Kinovea](https://www.kinovea.org/features.html)).
