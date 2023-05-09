@@ -232,3 +232,4 @@ If you want to contribute to Sports2D, please follow [this guide](https://docs.g
 - [ ] **Pose refinement**. Click and move badly estimated 2D points. See [DeepLabCut](https://www.youtube.com/watch?v=bEuBKB7eqmk) for inspiration.
 - [ ] **Constrain points** to OpenSim skeletal model for better angle estimation (like with [Pose2Sim](https://github.com/perfanalytics/pose2sim), but in 2D.
 - [ ] Add tools for annotating images, undistort them, take perspective into account, etc. (cf. [Kinovea](https://www.kinovea.org/features.html)).
+- [ ] Check other methods for sorting people across frames ([STAF](https://github.com/soulslicer/STAF/tree/staf) or [LivePoseTracker](https://github.com/ortegatron/liveposetracker).
