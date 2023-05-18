@@ -145,7 +145,7 @@ def base_params(config_dict):
     try:
         1/frame_rate
     except ZeroDivisionError:
-        print('Frame rate could not be retrieved: check that your video exists at the correct path')
+        print(f'Frame rate of {str(video_dir / video_file)} could not be retrieved: check that it exists at the correct path')
         raise
     video.release()
 
