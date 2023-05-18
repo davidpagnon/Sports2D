@@ -107,10 +107,6 @@ import cv2
 from pathlib import Path
 import logging, logging.handlers
 
-with open(Path('logs.txt'), 'a+') as log_f: pass
-logging.basicConfig(format='%(message)s', level=logging.INFO, 
-    handlers = [logging.handlers.TimedRotatingFileHandler(Path('logs.txt'), when='D', interval=7), logging.StreamHandler()]) 
-
 
 ## AUTHORSHIP INFORMATION
 __author__ = "David Pagnon"
@@ -141,6 +137,8 @@ def base_params(config_dict):
     video_dir = Path(config_dict.get('project').get('video_dir')).resolve()
     if video_dir == '': video_dir = os.getcwd()
     video_file = Path(config_dict.get('project').get('video_file'))
+    result_dir = Path(config_dict.get('project').get('result_dir')).resolve()
+    if result_dir == '': result_dir = os.getcwd()
     
     video = cv2.VideoCapture(str(video_dir / video_file))
     frame_rate = video.get(cv2.CAP_PROP_FPS)
@@ -151,7 +149,7 @@ def base_params(config_dict):
         raise
     video.release()
 
-    return video_dir, video_file, frame_rate
+    return video_dir, video_file, result_dir, frame_rate
 
 
 def detect_pose(config='Config_demo.toml'):
@@ -164,7 +162,11 @@ def detect_pose(config='Config_demo.toml'):
     from Sports2D.detect_pose import detect_pose_fun
     
     config_dict = read_config_file(config)
-    _, video_file, _ = base_params(config_dict)
+    _, video_file, result_dir, _ = base_params(config_dict)
+        
+    with open(result_dir / 'logs.txt', 'a+') as log_f: pass
+    logging.basicConfig(format='%(message)s', level=logging.INFO, force=True, 
+        handlers = [logging.handlers.TimedRotatingFileHandler(result_dir / 'logs.txt', when='D', interval=7), logging.StreamHandler()]) 
     
     logging.info("\n\n---------------------------------------------------------------------")
     logging.info(f"Detect pose for video {video_file}")
@@ -187,7 +189,12 @@ def compute_angles(config='Config_demo.toml'):
     from Sports2D.compute_angles import compute_angles_fun
 
     config_dict = read_config_file(config)
-    _, video_file, _ = base_params(config_dict)
+    _, video_file, result_dir, _ = base_params(config_dict)
+        
+    with open(result_dir / 'logs.txt', 'a+') as log_f: pass
+    logging.basicConfig(format='%(message)s', level=logging.INFO, force=True, 
+        handlers = [logging.handlers.TimedRotatingFileHandler(result_dir / 'logs.txt', when='D', interval=7), logging.StreamHandler()])
+        
     joint_angles = config_dict.get('compute_angles').get('joint_angles')
     segment_angles = config_dict.get('compute_angles').get('segment_angles')
 

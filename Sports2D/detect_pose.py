@@ -288,7 +288,7 @@ def json_to_csv(json_path, pose_model, interp_gap_smaller_than, filter_options, 
 
     # Retrieve coordinates
     logging.info('Sorting people across frames.')
-    json_fnames = sorted(json_path.glob('*.json'))
+    json_fnames = list(json_path.glob('*.json'))
     nb_persons_to_detect = max([len(json.load(open(json_fname))['people']) for json_fname in json_fnames])
     Coords = [np.array([]).reshape(0,keypoints_nb*3)] * nb_persons_to_detect
     for json_fname in json_fnames:    # for each frame
@@ -438,7 +438,7 @@ def draw_keypts_skel(X, Y, img, *pose_model):
     return img
 
 
-def save_imgvid_reID(video_path, save_vid=1, save_img=1, *pose_model):
+def save_imgvid_reID(video_path, video_result_path, save_vid=1, save_img=1, *pose_model):
     '''
     Displays json 2d detections overlayed on original raw images.
     High confidence keypoints are green, low confidence ones are red.
@@ -455,9 +455,9 @@ def save_imgvid_reID(video_path, save_vid=1, save_img=1, *pose_model):
             
    # Find csv position files, prepare video and image saving paths
     pose_model = pose_model[0]
-    csv_paths = sorted(video_path.parent.glob(f'*{video_path.stem}*{pose_model}*points*refined*.csv'))
+    csv_paths = list(video_result_path.parent.glob(f'*{video_result_path.stem}*{pose_model}*points*refined*.csv'))
     if csv_paths == []:
-        csv_paths = sorted(video_path.parent.glob(f'*{video_path.stem}*{pose_model}*points*.csv'))
+        csv_paths = list(video_result_path.parent.glob(f'*{video_result_path.stem}*{pose_model}*points*.csv'))
         
     # Open csv files
     coords = []
@@ -472,15 +472,15 @@ def save_imgvid_reID(video_path, save_vid=1, save_img=1, *pose_model):
     if (cap.isOpened()== False): 
         print("Error opening video stream or file")
     if save_vid:
-        video_pose_path = video_path.parent / (video_path.stem + '_' + pose_model + '.mp4')
+        video_pose_path = video_result_path.parent / (video_result_path.stem + '_' + pose_model + '.mp4')
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         writer = cv2.VideoWriter(str(video_pose_path), fourcc, fps, (int(W), int(H)))
     if save_img:
-        img_pose_path = video_path.parent / (video_path.stem + '_' + pose_model + '_img')
+        img_pose_path = video_result_path.parent / (video_result_path.stem + '_' + pose_model + '_img')
         img_pose_path.mkdir(parents=True, exist_ok=True)  
         
     f = 0
-    while(cap.isOpened() and f < len(coords[0])):
+    while(cap.isOpened()):
         ret, frame = cap.read()
         if ret == True:
             X = [np.array(coord.iloc[f,1::3]) for coord in coords]
@@ -498,7 +498,7 @@ def save_imgvid_reID(video_path, save_vid=1, save_img=1, *pose_model):
             if save_vid:
                 writer.write(frame)
             if save_img:
-                cv2.imwrite(str( img_pose_path / (video_path.stem+'_'+pose_model+'.'+str(f).zfill(5)+'.png' )), frame)
+                cv2.imwrite(str( img_pose_path / (video_result_path.stem+'_'+pose_model+'.'+str(f).zfill(5)+'.png' )), frame)
 
         else: 
             break
@@ -541,7 +541,7 @@ def detect_pose_fun(config_dict):
     
     # Retrieve parameters
     root_dir = os.getcwd()
-    video_dir, video_file, frame_rate = base_params(config_dict)
+    video_dir, video_file, result_dir, frame_rate = base_params(config_dict)
     pose_algo = config_dict.get('pose').get('pose_algo')
     
     load_pose = config_dict.get('pose_advanced').get('load_pose')
@@ -560,11 +560,12 @@ def detect_pose_fun(config_dict):
     filter_options = (do_filter, filter_type, butterworth_filter_order, butterworth_filter_cutoff, frame_rate, gaussian_filter_kernel, loess_filter_kernel, median_filter_kernel)
     
     video_file_stem = video_file.stem
-    video_path = (video_dir / video_file)
+    video_path = video_dir / video_file
+    video_result_path = result_dir / video_file
 
     if pose_algo == 'OPENPOSE':
         pose_model = config_dict.get('pose').get('OPENPOSE').get('openpose_model')
-        json_path = video_dir / '_'.join((video_file_stem,pose_model,'json'))
+        json_path = result_dir / '_'.join((video_file_stem,pose_model,'json'))
 
         # Pose detection skipped if load existing json files
         if load_pose and len(list(json_path.glob('*')))>0:
@@ -587,17 +588,17 @@ def detect_pose_fun(config_dict):
         
     # Save images and files after reindentification
         if save_img and save_vid:
-            logging.info(f'Saving images and video in {video_dir}.')
+            logging.info(f'Saving images and video in {result_dir}.')
         if save_img and not save_vid:
-            logging.info(f'Saving images in {video_dir}.')
+            logging.info(f'Saving images in {result_dir}.')
         if not save_img and save_vid:
-            logging.info(f'Saving video in {video_dir}.')
+            logging.info(f'Saving video in {result_dir}.')
         if save_vid or save_img:
-            save_imgvid_reID(video_path, save_vid, save_img, pose_model)
+            save_imgvid_reID(video_path, video_result_path, save_vid, save_img, pose_model)
    
      
     elif pose_algo == 'BLAZEPOSE':
         model_complexity = config_dict.get('pose').get('BLAZEPOSE').get('model_complexity')
-        Blazepose_runsave.blazepose_detec_func(input_file=video_path, save_images=save_img, to_json=True, save_video=save_vid, to_csv=True, model_complexity=model_complexity)
+        Blazepose_runsave.blazepose_detec_func(input_file=video_path, save_images=save_img, to_json=True, save_video=save_vid, to_csv=True, output_folder=result_dir, model_complexity=model_complexity)
 
     logging.info(f'Done.')

@@ -355,7 +355,7 @@ def compute_angles_fun(config_dict):
     '''
     
     # Retrieve parameters
-    video_dir, video_file, frame_rate = base_params(config_dict)
+    video_dir, video_file, result_dir, frame_rate = base_params(config_dict)
     pose_algo = config_dict.get('pose').get('pose_algo')
     if pose_algo == 'OPENPOSE':
         pose_model = config_dict.get('pose').get('OPENPOSE').get('openpose_model')
@@ -379,8 +379,8 @@ def compute_angles_fun(config_dict):
     show_angles_vid = config_dict.get('compute_angles_advanced').get('save_vid')
     
     # Find csv position files in video_dir, search pose_model and video_file.stem
-    logging.info(f'Retrieving csv position files in {video_dir}...')
-    csv_paths = sorted(video_dir.glob(f'*{video_file.stem}_{pose_model}_*points*.csv'))
+    logging.info(f'Retrieving csv position files in {result_dir}...')
+    csv_paths = list(result_dir.glob(f'*{video_file.stem}_{pose_model}_*points*.csv'))
     logging.info(f'{len(csv_paths)} persons found.')
 
     # Compute angles
@@ -452,9 +452,9 @@ def compute_angles_fun(config_dict):
     # Add angles to vid and img
     if show_angles_img or show_angles_vid:
         video_base = Path(video_dir / video_file)
-        img_pose = video_base.parent / (video_base.stem + '_' + pose_model + '_img')
-        video_pose = video_base.parent / (video_base.stem + '_' + pose_model + '.mp4')
-        video_pose2 = video_base.parent / (video_base.stem + '_' + pose_model + '2.mp4')
+        img_pose = result_dir / (video_base.stem + '_' + pose_model + '_img')
+        video_pose = result_dir / (video_base.stem + '_' + pose_model + '.mp4')
+        video_pose2 = result_dir / (video_base.stem + '_' + pose_model + '2.mp4')
         
         if show_angles_vid:
             cap = [cv2.VideoCapture(str(video_pose)) if Path.exists(video_pose) else cv2.VideoCapture(str(video_base))][0]
@@ -464,7 +464,7 @@ def compute_angles_fun(config_dict):
             writer = cv2.VideoWriter(str(video_pose2), fourcc, fps, (int(W), int(H)))
         
         # Preferentially from pose image files
-        frames_img = sorted(img_pose.glob('*'))
+        frames_img = list(img_pose.glob('*'))
         if len(frames_img)>0:
             for frame_nb in range(df_angles_list[0].shape[0]):
                 df_angles_list_frame = [df_angles_list[n].iloc[frame_nb,:] for n in range(len(df_angles_list))]
