@@ -120,7 +120,7 @@ In `compute_angles`, select your angles of interest.
 
 ### Use OpenPose for multi-person, more accurate analysis
 
-OpenPose is slower than OpenPose, but more accurate. It also allows for the detection of multiple persons, whose indices are consistent across frames. 
+OpenPose is slower than BlazePose, but usually more accurate. It also allows for the detection of multiple persons, whose indices are consistent across frames. 
 
 1. **Install OpenPose** (instructions [there](https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/installation/0_index.md)). \
 *Windows portable demo works fine.*
