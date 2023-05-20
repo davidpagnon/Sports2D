@@ -464,7 +464,7 @@ def compute_angles_fun(config_dict):
             writer = cv2.VideoWriter(str(video_pose2), fourcc, fps, (int(W), int(H)))
         
         # Preferentially from pose image files
-        frames_img = sorted(list(img_pose.glob('*')))
+        frames_img = sorted(list(img_pose.glob('*.png')))
         if len(frames_img)>0:
             for frame_nb in range(df_angles_list[0].shape[0]):
                 df_angles_list_frame = [df_angles_list[n].iloc[frame_nb,:] for n in range(len(df_angles_list))]
