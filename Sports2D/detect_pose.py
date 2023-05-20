@@ -288,7 +288,7 @@ def json_to_csv(json_path, pose_model, interp_gap_smaller_than, filter_options, 
 
     # Retrieve coordinates
     logging.info('Sorting people across frames.')
-    json_fnames = list(json_path.glob('*.json'))
+    json_fnames = sorted(list(json_path.glob('*.json')))
     nb_persons_to_detect = max([len(json.load(open(json_fname))['people']) for json_fname in json_fnames])
     Coords = [np.array([]).reshape(0,keypoints_nb*3)] * nb_persons_to_detect
     for json_fname in json_fnames:    # for each frame
