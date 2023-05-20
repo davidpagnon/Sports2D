@@ -392,7 +392,7 @@ def compute_angles_fun(config_dict):
         angs = joint_angles + segment_angles
         coords = [joint_angle_dict.get(j)[1] for j in joint_angles] + [segment_angle_dict.get(s)[1] for s in segment_angles]
         tuples = list(zip(scorer, individuals, angs, coords))
-        index_angs_csv = pd.MultiIndex.from_tuples(tuples, names=['scorer', 'individuals', 'angs', 'coords'])    
+        index_angs_csv = pd.MultiIndex.from_tuples(tuples, names=['scorer', 'individuals', 'joints', 'angles'])    
 
         # Compute angles for each person, for each angle, with each required keypoint position
         logging.info(f'Person {i}: Computing 2D joint and segment angles.')
