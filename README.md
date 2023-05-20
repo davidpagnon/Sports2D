@@ -5,7 +5,7 @@
 [![Open Source? Yes!](https://badgen.net/badge/Open%20Source%20%3F/Yes%21/blue?icon=github)](https://github.com/Naereen/badges/)
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 [![DOI](https://zenodo.org/badge/634044634.svg)](https://zenodo.org/badge/latestdoi/634044634)\
-<a href="https://colab.research.google.com/github/davidpagnon/Sports2D/blob/main/Sports2D/Sports2D.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://bit.ly/Sports2D_Colab)
 
 <!-- [![Stars](https://badgen.net/github/stars/davidpagnon/sports2d)](https://github.com/davidpagnon/sports2d/stargazers)
 [![GitHub issues](https://img.shields.io/github/issues/davidpagnon/sports2d)](https://github.com/davidpagnon/sports2d/issues)
@@ -18,16 +18,21 @@
 
 **`Sports2D` lets you compute 2D joint and segment angles from a video.**
 
+</br>
+
+**`Announcement:` \
+User-friendly Colab version released!\
+Works on any smartphone!**\
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://bit.ly/Sports2D_Colab)
+
 <img src='Content/demo_gif.gif' title='Demonstration of Sports2D with OpenPose.'  width="760">
 
 `Warning:` Angle estimation is only as good as the pose estimation algorithm, i.e., it is not perfect.\
 `Warning:` Results are acceptable only if the persons move in the 2D plane, from right to left or from left to right.\
-If you need research-grade markerless joint kinematics, consider using several cameras, and constraining angles to a biomechanically accurate model. See [Pose2Sim](https://github.com/perfanalytics/pose2sim) for example.
+If you need research-grade markerless joint kinematics, consider using several cameras, and constraining angles to a biomechanically accurate model. See [Pose2Sim](https://github.com/perfanalytics/pose2sim) for example.\
+`Warning:` Google Colab does not follow the European GDPR requirements regarding data privacy. [Install locally](#installation) if this matters.
 
-`Know issue`: Results won't be good with some iPhone videos in portrait mode. This is solved by priorly converting them with `ffmpeg -i video_input.mov video_output.mp4`, or even more simply with any random online video converter such as https://video-converter.com.
-
-`Announcement:` Apps with GUI will soon be released for Windows, Linux, MacOS, as well as Android and iOS.
-Mobile versions will only support simple exploratory analysis. This involves single-person angle computation, in a potentially less accurate and tunable way.
+`Know issue`: Results won't be good with some iPhone videos in portrait mode (unless you are working on Colab). This is solved by priorly converting them with `ffmpeg -i video_input.mov video_output.mp4`, or even more simply with any random online video converter such as https://video-converter.com.
 
 
 ## Contents
@@ -131,8 +136,7 @@ OpenPose is slower than BlazePose, but usually more accurate. It also allows for
 
 *N.B.:* If you want to benefit from the capabilities of OpenPose but do not manage to install it, you can use the `Colab notebook` version.
 Note that your data will be sent to the Google servers, which do not follow the European GDPR requirements regarding privacy.
-<a href="https://colab.research.google.com/github/davidpagnon/Sports2D/blob/main/Sports2D/Sports2D.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
-
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://bit.ly/Sports2D_Colab)
 
 <img src="Content/demo_openpose_results.png" width="760">
 
@@ -202,7 +206,7 @@ Angles are measured anticlockwise between the horizontal and the segment.
 ## How to cite and how to contribute
 
 ### How to cite
-If you use this code or data, please cite [Pagnon, 2023].
+If you use Sports2D, please cite [Pagnon, 2023].
 
      @misc{Pagnon2023,
        author = {Pagnon, David},
@@ -225,11 +229,14 @@ If you want to contribute to Sports2D, please follow [this guide](https://docs.g
 - [x] **Filtering and plotting tools**.
 - [x] Handle sudden **changes of direction**.
 - [x] **Colab version** for those who cannot install OpenPose.
+- [x] **Colab version** more user-friendly, usable on a smartphone.
+- [ ] Perform **Inverse kinematics and dynamics** with OpenSim (cf. [Pose2Sim](https://github.com/perfanalytics/pose2sim), but in 2D).
 - [ ] Full test on **MacOS**.
+</br>
+
 - [ ] **GUI applications** for Windows, Mac, and Linux, as well as for Android and iOS (minimal version on mobile device, with only BlazePose). Code with [Kivy](https://kivy.org).
 - [ ] **Include OpenPose** in Sports2D executable files. [Dockerize](https://github.com/stanfordnmbl/mobile-gaitlab/blob/master/demo/Dockerfile) it? 
 - [ ] **Track other points and angles** with classic tracking methods (cf. [Kinovea](https://www.kinovea.org/features.html)), or by training a model (cf. [DeepLabCut](https://deeplabcut.github.io/DeepLabCut/README.html)).
 - [ ] **Pose refinement**. Click and move badly estimated 2D points. See [DeepLabCut](https://www.youtube.com/watch?v=bEuBKB7eqmk) for inspiration.
-- [ ] **Constrain points** to OpenSim skeletal model for better angle estimation (like with [Pose2Sim](https://github.com/perfanalytics/pose2sim), but in 2D.
 - [ ] Add tools for annotating images, undistort them, take perspective into account, etc. (cf. [Kinovea](https://www.kinovea.org/features.html)).
 - [ ] Check other methods for sorting people across frames ([STAF](https://github.com/soulslicer/STAF/tree/staf) or [LivePoseTracker](https://github.com/ortegatron/liveposetracker).
