@@ -25,6 +25,8 @@ User-friendly Colab version released!\
 Works on any smartphone!**\
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://bit.ly/Sports2D_Colab)
 
+</br>
+
 <img src='Content/demo_gif.gif' title='Demonstration of Sports2D with OpenPose.'  width="760">
 
 `Warning:` Angle estimation is only as good as the pose estimation algorithm, i.e., it is not perfect.\
