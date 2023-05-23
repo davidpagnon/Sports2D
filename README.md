@@ -53,6 +53,10 @@ If you need research-grade markerless joint kinematics, consider using several c
 
 ### Installation
 
+- OPTION 0: **Use Colab** \
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://bit.ly/Sports2D_Colab)
+
+
 - OPTION 1: **Quick install** \
     Open a terminal. Type `python -V` to make sure python '>=3.7 <=3.10' is installed, and then:
     ```
