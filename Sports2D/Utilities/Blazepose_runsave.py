@@ -49,7 +49,7 @@ __status__ = "Development"
 
 
 ## FUNCTIONS
-def save_to_csv_or_h5(kpt_list, output_folder, video_name, to_csv, to_h5):
+def save_to_csv_or_h5(kpt_list, fps, output_folder, video_name, to_csv, to_h5):
     '''
     Saves blazepose keypoint coordinates to csv or h5 file, 
     in the DeepLabCut format.
@@ -66,15 +66,16 @@ def save_to_csv_or_h5(kpt_list, output_folder, video_name, to_csv, to_h5):
     '''
     
     # Prepare dataframe file
-    scorer = ['DavidPagnon']*len(mp_pose.PoseLandmark)*3
-    individuals = ['person']*len(mp_pose.PoseLandmark)*3
+    scorer = ['DavidPagnon']*(len(mp_pose.PoseLandmark)*3+1)
+    individuals = ['person']*(len(mp_pose.PoseLandmark)*3+1)
     bodyparts = [[p]*3 for p in ['Nose', 'LEyeInner', 'LEye', 'LEyeOuter', 'REyeInner', 'REye', 'REyeOuter', 'LEar', 'REar', 'LMouth', 'RMouth', 'LShoulder', 'RShoulder', 'LElbow', 'RElbow', 'LWrist', 'RWrist', 'LPinky', 'RPinky', 'LIndex', 'RIndex', 'LThumb', 'RThumb', 'LHip', 'RHip', 'LKnee', 'RKnee', 'LAnkle', 'RAnkle', 'LHeel', 'RHeel', 'LBigToe', 'RBigToe']]
-    bodyparts = [item for sublist in bodyparts for item in sublist]
-    coords = ['x', 'y', 'likelihood']*len(mp_pose.PoseLandmark)
-
+    bodyparts = ['Times'] + [item for sublist in bodyparts for item in sublist]
+    coords = ['seconds'] + ['x', 'y', 'likelihood']*len(mp_pose.PoseLandmark)
     tuples = list(zip(scorer, individuals, bodyparts, coords))
     index_csv = pd.MultiIndex.from_tuples(tuples, names=['scorer', 'individuals', 'bodyparts', 'coords'])
-    df = pd.DataFrame(np.array(kpt_list).T, index=index_csv).T
+    
+    time = np.expand_dims( np.arange(0,len(kpt_list)/fps, 1/fps), axis=0 )
+    df = pd.DataFrame(np.concatenate(( time, np.array(kpt_list).T)), index=index_csv).T
 
     if to_csv:
         csv_file = os.path.join(output_folder, video_name+'_BLAZEPOSE_points.csv')
@@ -229,7 +230,7 @@ def blazepose_detec_func(**args):
 
     # Save coordinates
     if to_csv or to_h5:
-        save_to_csv_or_h5(kpt_list, output_folder, video_name, to_csv, to_h5)
+        save_to_csv_or_h5(kpt_list, fps, output_folder, video_name, to_csv, to_h5)
    
     if to_json:
         save_to_json(kpt_list, output_folder, video_name)

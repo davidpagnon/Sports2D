@@ -123,15 +123,17 @@ def display_figures_fun(df_list):
     - matplotlib window with tabbed figures for each angle
     '''
     
-    angle_names = df_list[0].columns.get_level_values(2)
+    angle_names = df_list[0].iloc[:,1:].columns.get_level_values(2)
+    time = df_list[0].iloc[:,0]
     
     pw = common.plotWindow()
     for id, angle in enumerate(angle_names): # angles
         f = plt.figure()
         
         plt.plot()
-        [plt.plot(df_list[0].index, df.iloc[:,id], label=['unfiltered' if i==0 else 'filtered' if i==1 else ''][0]) for i,df in enumerate(df_list)]
-        plt.ylabel(angle) # nom angle
+        [plt.plot(time, df.iloc[:,id+1], label=['unfiltered' if i==0 else 'filtered' if i==1 else ''][0]) for i,df in enumerate(df_list)]
+        plt.xlabel('Time (seconds)')
+        plt.ylabel(angle)
         plt.legend()
 
         pw.addPlot(angle, f)
@@ -187,7 +189,7 @@ def flip_left_right_direction(df_points):
     righ_orientation = df_points.iloc[:,df_points.columns.get_level_values(2)=='RBigToe'].iloc[:,0] - df_points.iloc[:,df_points.columns.get_level_values(2)=='RHeel'].iloc[:,0]
     left_orientation = df_points.iloc[:,df_points.columns.get_level_values(2)=='LBigToe'].iloc[:,0] - df_points.iloc[:,df_points.columns.get_level_values(2)=='LHeel'].iloc[:,0]
     orientation = righ_orientation + left_orientation
-    df_points.iloc[:,1::3] = df_points.iloc[:,1::3] * np.where(orientation>=0, 1, -1).reshape(-1,1)
+    df_points.iloc[:,2::3] = df_points.iloc[:,2::3] * np.where(orientation>=0, 1, -1).reshape(-1,1)
     
     return df_points
             
@@ -217,7 +219,6 @@ def joint_angles_series_from_points(df_points, angle_params):
     ang_series = np.where(ang_series>180,ang_series-360,ang_series)
     ang_series = np.where((ang_series==0) | (ang_series==90) | (ang_series==180), +0, ang_series)
 
-    
     return ang_series
 
 
@@ -387,17 +388,18 @@ def compute_angles_fun(config_dict):
     df_angles_list = []
     for i, c in enumerate(csv_paths):
         # Prepare angle csv header
-        scorer = ['DavidPagnon']*angle_nb
-        individuals = [f'person{i}']*angle_nb
-        angs = joint_angles + segment_angles
-        coords = [joint_angle_dict.get(j)[1] for j in joint_angles] + [segment_angle_dict.get(s)[1] for s in segment_angles]
+        scorer = ['DavidPagnon']*(angle_nb+1)
+        individuals = [f'person{i}']*(angle_nb+1)
+        angs = ['Time'] + joint_angles + segment_angles
+        coords = ['seconds'] + [joint_angle_dict.get(j)[1] for j in joint_angles] + [segment_angle_dict.get(s)[1] for s in segment_angles]
         tuples = list(zip(scorer, individuals, angs, coords))
-        index_angs_csv = pd.MultiIndex.from_tuples(tuples, names=['scorer', 'individuals', 'joints', 'angles'])    
+        index_angs_csv = pd.MultiIndex.from_tuples(tuples, names=['scorer', 'individuals', 'angs', 'coords'])    
 
         # Compute angles for each person, for each angle, with each required keypoint position
         logging.info(f'Person {i}: Computing 2D joint and segment angles.')
         with open(c) as c_f:
             df_points = pd.read_csv(c_f, header=[0,1,2,3])
+            time = [np.array(df_points.iloc[:,1])]
             
             # Flip along x when feet oriented to the left
             df_points = flip_left_right_direction(df_points)
@@ -416,7 +418,7 @@ def compute_angles_fun(config_dict):
                 s_ang_series = segment_angles_series_from_points(df_points, angle_params, s)
                 segment_angle_series += [s_ang_series]
             
-            angle_series = joint_angle_series + segment_angle_series
+            angle_series = time + joint_angle_series + segment_angle_series
             df_angles = []
             df_angles += [pd.DataFrame(angle_series, index=index_angs_csv).T]
             
@@ -464,7 +466,7 @@ def compute_angles_fun(config_dict):
             writer = cv2.VideoWriter(str(video_pose2), fourcc, fps, (int(W), int(H)))
         
         # Preferentially from pose image files
-        frames_img = sorted(list(img_pose.glob('*.png')))
+        frames_img = list(img_pose.glob('*'))
         if len(frames_img)>0:
             for frame_nb in range(df_angles_list[0].shape[0]):
                 df_angles_list_frame = [df_angles_list[n].iloc[frame_nb,:] for n in range(len(df_angles_list))]

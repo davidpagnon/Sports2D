@@ -91,14 +91,14 @@ def display_figures_fun(df_list):
         f = plt.figure()
         
         axX = plt.subplot(211)
-        [plt.plot(df_list[0].index, df.iloc[:,id*3], label=['unfiltered' if i==0 else 'filtered' if i==1 else ''][0]) for i,df in enumerate(df_list)]
+        [plt.plot(df.iloc[:,0], df.iloc[:,id*3+1], label=['unfiltered' if i==0 else 'filtered' if i==1 else ''][0]) for i,df in enumerate(df_list)]
         plt.setp(axX.get_xticklabels(), visible=False)
         axX.set_ylabel(keypoint+' X')
         plt.legend()
 
         axY = plt.subplot(212)
-        [plt.plot(df_list[0].index, df.iloc[:,id*3+1]) for df in df_list]
-        plt.setp(axY.get_xticklabels(), visible=False)
+        [plt.plot(df.iloc[:,0], df.iloc[:,id*3+2]) for df in df_list]
+        axY.set_xlabel('Time (seconds)')
         axY.set_ylabel(keypoint+' Y')
 
         pw.addPlot(keypoint, f)
@@ -263,7 +263,7 @@ def sort_people(keyptpre, keypt, nb_persons_to_detect):
     return keypt
 
 
-def json_to_csv(json_path, pose_model, interp_gap_smaller_than, filter_options, show_plots):
+def json_to_csv(json_path, frame_rate, pose_model, interp_gap_smaller_than, filter_options, show_plots):
     '''
     Converts frame-by-frame json coordinate files 
     to one csv files per detected person
@@ -288,7 +288,7 @@ def json_to_csv(json_path, pose_model, interp_gap_smaller_than, filter_options, 
 
     # Retrieve coordinates
     logging.info('Sorting people across frames.')
-    json_fnames = sorted(list(json_path.glob('*.json')))
+    json_fnames = list(json_path.glob('*.json'))
     nb_persons_to_detect = max([len(json.load(open(json_fname))['people']) for json_fname in json_fnames])
     Coords = [np.array([]).reshape(0,keypoints_nb*3)] * nb_persons_to_detect
     for json_fname in json_fnames:    # for each frame
@@ -316,18 +316,22 @@ def json_to_csv(json_path, pose_model, interp_gap_smaller_than, filter_options, 
     # Inject coordinates in dataframes and save
     for i in range(nb_persons_to_detect): 
         # Prepare csv header
-        scorer = ['DavidPagnon']*keypoints_nb*3
-        individuals = [f'person{i}']*keypoints_nb*3
+        scorer = ['DavidPagnon']*(keypoints_nb*3+1)
+        individuals = [f'person{i}']*(keypoints_nb*3+1)
         bodyparts = [[p]*3 for p in keypoints_names_rearranged]
-        bodyparts = [item for sublist in bodyparts for item in sublist]
-        coords = ['x', 'y', 'likelihood']*keypoints_nb
+        bodyparts = ['Time']+[item for sublist in bodyparts for item in sublist]
+        coords = ['seconds']+['x', 'y', 'likelihood']*keypoints_nb
         tuples = list(zip(scorer, individuals, bodyparts, coords))
         index_csv = pd.MultiIndex.from_tuples(tuples, names=['scorer', 'individuals', 'bodyparts', 'coords'])
-    
+
+        # Create dataframe
+        df_list=[]
+        time = np.expand_dims( np.arange(0,len(Coords[i])/frame_rate, 1/frame_rate), axis=0 )
+        time_coords = np.concatenate(( time, Coords[i].T ))
+        df_list += [pd.DataFrame(time_coords, index=index_csv).T]
+
         # Interpolate
         logging.info(f'Person {i}: Interpolating missing sequences if they are smaller than {interp_gap_smaller_than} frames.')
-        df_list=[]
-        df_list += [pd.DataFrame(Coords[i].T, index=index_csv).T]
         df_list[0] = df_list[0].apply(common.interpolate_zeros_nans, axis=0, args = [interp_gap_smaller_than, 'linear'])
         
         # Filter
@@ -483,9 +487,9 @@ def save_imgvid_reID(video_path, video_result_path, save_vid=1, save_img=1, *pos
     while(cap.isOpened()):
         ret, frame = cap.read()
         if ret == True:
-            X = [np.array(coord.iloc[f,1::3]) for coord in coords]
+            X = [np.array(coord.iloc[f,2::3]) for coord in coords]
             X = [np.where(x==0., np.nan, x) for x in X]
-            Y = [np.array(coord.iloc[f,2::3]) for coord in coords]
+            Y = [np.array(coord.iloc[f,3::3]) for coord in coords]
             Y = [np.where(y==0., np.nan, y) for y in Y]
 
             # Draw bounding box
@@ -584,7 +588,7 @@ def detect_pose_fun(config_dict):
             os.chdir(root_dir)
         
     # Sort people and save to csv, optionally display plot
-        json_to_csv(json_path, pose_model, interp_gap_smaller_than, filter_options, show_plots)
+        json_to_csv(json_path, frame_rate, pose_model, interp_gap_smaller_than, filter_options, show_plots)
         
     # Save images and files after reindentification
         if save_img and save_vid:
