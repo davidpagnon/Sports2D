@@ -486,7 +486,7 @@ def save_imgvid_reID(video_path, video_result_path, save_vid=1, save_img=1, *pos
     f = 0
     while(cap.isOpened()):
         ret, frame = cap.read()
-        if ret == True:
+        try:
             X = [np.array(coord.iloc[f,2::3]) for coord in coords]
             X = [np.where(x==0., np.nan, x) for x in X]
             Y = [np.array(coord.iloc[f,3::3]) for coord in coords]
@@ -504,7 +504,7 @@ def save_imgvid_reID(video_path, video_result_path, save_vid=1, save_img=1, *pos
             if save_img:
                 cv2.imwrite(str( img_pose_path / (video_result_path.stem+'_'+pose_model+'.'+str(f).zfill(5)+'.png' )), frame)
 
-        else: 
+        except: 
             break
         f += 1
     cap.release()
