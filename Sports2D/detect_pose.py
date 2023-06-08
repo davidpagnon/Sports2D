@@ -573,6 +573,7 @@ def detect_pose_fun(config_dict):
 
         # Pose detection skipped if load existing json files
         if load_pose and len(list(json_path.glob('*')))>0:
+            logging.info(f'2D joint positions have already been detected. To run the analysis over again from the beginning, set "load_pose" to false in Advanced pose settings.')
             pass
         else:
             logging.info(f'Detecting 2D joint positions with OpenPose model {pose_model}, for {video_file}.')
