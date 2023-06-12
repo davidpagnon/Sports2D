@@ -476,7 +476,8 @@ def compute_angles_fun(config_dict):
                     cv2.imwrite(str(frames_img[frame_nb]), frame)
                 if show_angles_vid:
                     writer.write(frame)
-            writer.release()
+            if show_angles_vid:
+                writer.release()
                 
         # Else from pose video (or base video if pose video does not exist)
         elif Path.exists(video_base) or Path.exists(video_pose):
@@ -495,9 +496,9 @@ def compute_angles_fun(config_dict):
                 else:
                     break
         
-        cap.release()
-        writer.release()
         if show_angles_vid:
+            cap.release()
+            writer.release()
             if Path.exists(video_pose): os.remove(video_pose)
             os.rename(video_pose2,video_pose)
             if Path.exists(video_pose2): os.remove(video_pose2)

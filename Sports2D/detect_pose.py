@@ -326,7 +326,7 @@ def json_to_csv(json_path, frame_rate, pose_model, interp_gap_smaller_than, filt
 
         # Create dataframe
         df_list=[]
-        time = np.expand_dims( np.arange(0,len(Coords[i])/frame_rate, 1/frame_rate), axis=0 )
+        time = np.expand_dims( np.arange(0,len(Coords[i]), 1)/frame_rate, axis=0 )
         time_coords = np.concatenate(( time, Coords[i].T ))
         df_list += [pd.DataFrame(time_coords, index=index_csv).T]
 
