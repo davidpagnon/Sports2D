@@ -54,7 +54,7 @@ If you need research-grade markerless joint kinematics, consider using several c
 ### Installation
 
 - OPTION 0: **Use Colab** \
-  User-friendly (but full) version, also works on a phone or a tablet.
+  User-friendly (but full) version, also works on a phone or a tablet.\
   [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://bit.ly/Sports2D_Colab)
 
 
