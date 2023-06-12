@@ -45,7 +45,7 @@ segment_angles = ['Right foot', 'Left foot', 'Right shank', 'Left shank', 'Right
 # ADVANCED CONFIGURATION
 	
 [pose_advanced] # only for OPENPOSE
-load_pose = true # proceeds to detection only if pose files not found
+load_pose = true # If true, don't run openpose again if json pose files are found. If false, run it and overwrite pose files. 
 save_vid = true
 save_img = true
 interp_gap_smaller_than = 5 # do not interpolate bigger gaps
@@ -64,8 +64,8 @@ filter_type = 'butterworth' # butterworth, gaussian, LOESS, median
 
 
 [compute_angles_advanced] # for OPENPOSE and BLAZEPOSE
-save_img = true
-save_vid = true
+show_angles_on_img = true
+show_angles_on_vid = true
 filter = false
 show_plots = false
 filter_type = 'butterworth' # butterworth, gaussian, LOESS, median
