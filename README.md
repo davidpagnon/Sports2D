@@ -55,7 +55,10 @@ If you need research-grade markerless joint kinematics, consider using several c
 
 - OPTION 0: **Use Colab** \
   User-friendly (but full) version, also works on a phone or a tablet.\
-  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://bit.ly/Sports2D_Colab)
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://bit.ly/Sports2D_Colab)\
+  YouTube tutorial:\
+  <a href = "https://www.youtube.com/watch?v=Er5RpcJ8o1Y"><img src="Content/Video_tuto_Sports2D_Colab.png" width="380"></a>
+  
 
 
 - OPTION 1: **Quick install** \
