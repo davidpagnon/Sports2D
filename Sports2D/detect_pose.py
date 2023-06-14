@@ -548,7 +548,7 @@ def detect_pose_fun(config_dict):
     video_dir, video_file, result_dir, frame_rate = base_params(config_dict)
     pose_algo = config_dict.get('pose').get('pose_algo')
     
-    load_pose = config_dict.get('pose_advanced').get('load_pose')
+    load_pose = not config_dict.get('pose_advanced').get('overwrite_pose')
     save_vid = config_dict.get('pose_advanced').get('save_vid')
     save_img = config_dict.get('pose_advanced').get('save_img')
     interp_gap_smaller_than = config_dict.get('pose_advanced').get('interp_gap_smaller_than')
@@ -573,7 +573,7 @@ def detect_pose_fun(config_dict):
 
         # Pose detection skipped if load existing json files
         if load_pose and len(list(json_path.glob('*')))>0:
-            logging.info(f'2D joint positions have already been detected. To run the analysis over again from the beginning, set "load_pose" to false in Advanced pose settings.')
+            logging.info(f'2D joint positions have already been detected. To run the analysis over again from the beginning, set "overwrite_pose" to true in Advanced pose settings.')
             pass
         else:
             logging.info(f'Detecting 2D joint positions with OpenPose model {pose_model}, for {video_file}.')

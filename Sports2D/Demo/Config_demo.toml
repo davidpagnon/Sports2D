@@ -45,7 +45,7 @@ segment_angles = ['Right foot', 'Left foot', 'Right shank', 'Left shank', 'Right
 # ADVANCED CONFIGURATION
 	
 [pose_advanced] # only for OPENPOSE
-load_pose = true # If true, don't run openpose again if json pose files are found. If false, run it and overwrite pose files. 
+overwrite_pose = false # If false, don't run openpose again if json pose files are found. 
 save_vid = true
 save_img = true
 interp_gap_smaller_than = 5 # do not interpolate bigger gaps
