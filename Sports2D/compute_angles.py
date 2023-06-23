@@ -280,6 +280,13 @@ def overlay_angles(frame, df_angles_list_frame):
     for i, angles_frame_person in enumerate(df_angles_list_frame):
         for ang_nb in range(len(angles_frame_person)):
             # Angle label
+            cv2.putText(frame, 
+                angles_frame_person.index[ang_nb][2] + ':',
+                (10+250*i, 15+15*ang_nb), 
+                font, 0.5, 
+                (0,0,0), 
+                2, 
+                cv2.LINE_4)
             frame = cv2.putText(frame, 
                 angles_frame_person.index[ang_nb][2] + ':',
                 (10+250*i, 15+15*ang_nb), 
@@ -288,6 +295,13 @@ def overlay_angles(frame, df_angles_list_frame):
                 1, 
                 cv2.LINE_4)
             # Angle value
+            cv2.putText(frame, 
+                str(round(angles_frame_person[ang_nb],1)),
+                (150+250*i, 15+15*ang_nb), 
+                font, 0.5, 
+                (0,0,0), 
+                2, 
+                cv2.LINE_4)
             frame = cv2.putText(frame, 
                 str(round(angles_frame_person[ang_nb],1)),
                 (150+250*i, 15+15*ang_nb), 
@@ -459,12 +473,15 @@ def compute_angles_fun(config_dict):
         video_pose2 = result_dir / (video_base.stem + '_' + pose_model + '2.mp4')
         
         if show_angles_vid:
+            logging.info(f'Saving video in {str(video_pose)}.')
             cap = [cv2.VideoCapture(str(video_pose)) if Path.exists(video_pose) else cv2.VideoCapture(str(video_base))][0]
             fps = cap.get(cv2.CAP_PROP_FPS)
             W, H = cap.get(cv2.CAP_PROP_FRAME_WIDTH), cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
             writer = cv2.VideoWriter(str(video_pose2), fourcc, fps, (int(W), int(H)))
-        
+        if show_angles_img:
+            logging.info(f'Saving images in {img_pose}.')
+            
         # Preferentially from pose image files
         frames_img = list(img_pose.glob('*'))
         if len(frames_img)>0:
