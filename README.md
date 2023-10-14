@@ -63,14 +63,14 @@ If you need research-grade markerless joint kinematics, consider using several c
 
 - OPTION 1: **Quick install** \
     Open a terminal. Type `python -V` to make sure python '>=3.7 <=3.10' is installed, and then:
-    ```
+    ``` cmd
     pip install sports2d
     ```
 
 - OPTION 2: **Safer install with Anaconda**\
     Install [Miniconda](https://docs.conda.io/en/latest/miniconda.html):\
     Open an Anaconda prompt and create a virtual environment by typing:
-    ```
+    ``` cmd
     conda create -n Sports2D python=3.10 -y
     conda activate Sports2D
     pip install sports2d
@@ -78,7 +78,7 @@ If you need research-grade markerless joint kinematics, consider using several c
 
 - OPTION 3: **Build from source and test the last changes**\
      Open a terminal in the directory of your choice and clone the Sports2D repository.
-     ```
+     ``` cmd
      git clone https://github.com/davidpagnon/sports2d.git
      cd sports2d
      pip install .
@@ -90,7 +90,7 @@ If you need research-grade markerless joint kinematics, consider using several c
 Open a terminal, enter `pip show sports2d`, check sports2d package location. \
 Copy this path and go to the Demo folder by typing `cd <path>\Sports2D\Demo`. \
 Type `ipython`, and test the following code:
-```
+``` python
 from Sports2D import Sports2D
 Sports2D.detect_pose('Config_demo.toml')
 Sports2D.compute_angles('Config_demo.toml')
@@ -116,12 +116,12 @@ In addition, you will get the original OpenPose-like json coordinates files.
 Replace the `video_file` value with the name of your video.
 
 3. Open a terminal or an Anaconda prompt, type:
-   ```
+   ``` cmd
    cd <Path/to/video/directory>
    conda activate Sports2D (skip if you did not install with Anaconda)
    ipython
    ```
-   ```
+   ``` python
    from Sports2D import Sports2D
    Sports2D.detect_pose('Config_demo.toml')
    Sports2D.compute_angles('Config_demo.toml')
