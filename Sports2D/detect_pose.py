@@ -285,7 +285,6 @@ def json_to_csv(json_path, frame_rate, pose_model, interp_gap_smaller_than, filt
     keypoints_names = [node.name for _, _, node in RenderTree(model) if node.id!=None]
     keypoints_names_rearranged = [y for x,y in sorted(zip(keypoints_ids,keypoints_names))]
     keypoints_nb = len(keypoints_ids)
-    print(keypoints_nb)
 
     # Retrieve coordinates
     logging.info('Sorting people across frames.')
