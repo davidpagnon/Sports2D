@@ -24,7 +24,7 @@ pose_algo = 'BLAZEPOSE' # 'OPENPOSE' or 'BLAZEPOSE'
 	# Install OpenPose from https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/installation/0_index.md
 	# BODY_25 is standard, BODY_25B is more accurate but requires downloading the model from 
 	# https://github.com/CMU-Perceptual-Computing-Lab/openpose_train/blob/master/experimental_models/README.md
-	openpose_model = 'BODY_25B' 
+	openpose_model = 'BODY_25' 
 	
 	# Installation path of openpose (between single quotes) 
 	openpose_path = 'D:\softs\openpose-1.6.0-binaries-win64-gpu-flir-3d_recommended\openpose'
