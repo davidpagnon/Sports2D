@@ -285,7 +285,6 @@ def json_to_csv(json_path, frame_rate, pose_model, interp_gap_smaller_than, filt
     keypoints_names = [node.name for _, _, node in RenderTree(model) if node.id!=None]
     keypoints_names_rearranged = [y for x,y in sorted(zip(keypoints_ids,keypoints_names))]
     keypoints_nb = len(keypoints_ids)
-    print(keypoints_nb)
 
     # Retrieve coordinates
     logging.info('Sorting people across frames.')
@@ -302,10 +301,6 @@ def json_to_csv(json_path, frame_rate, pose_model, interp_gap_smaller_than, filt
             keypt = np.array(keypt)
             # Make sure keypt is as large as the number of persons that need to be detected
             if len(keypt) < nb_persons_to_detect:
-                # print('\n')
-                # print(nb_persons_to_detect)
-                # print(len(keypt))
-                # print(repr(keypt))
                 empty_keypt_to_add = np.concatenate( [[ np.zeros([keypoints_nb,3]) ]] * (nb_persons_to_detect-len(keypt)) )
                 keypt = [np.concatenate([keypt, empty_keypt_to_add]) if list(keypt)!=[] else empty_keypt_to_add][0]
             if 'keyptpre' not in locals():
