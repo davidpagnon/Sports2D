@@ -21,7 +21,7 @@
 </br>
 
 **`Announcement:` \
-User-friendly Colab version released!\
+User-friendly Colab version released! (and fixed for the new Ubuntu version, too)\
 Works on any smartphone!**\
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://bit.ly/Sports2D_Colab)
 
