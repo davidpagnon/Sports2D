@@ -248,7 +248,7 @@ def sort_people(keyptpre, keypt, nb_persons_to_detect):
     '''
     
     # Generate possible person correspondences across frames
-    personsIDs_comb = list(it.product(range(len(keyptpre)),range(len(keypt))))
+    personsIDs_comb = sorted(list(it.product(range(len(keyptpre)),range(len(keypt)))))
     # Compute distance between persons from one frame to another
     frame_by_frame_dist = []
     for comb in personsIDs_comb:
