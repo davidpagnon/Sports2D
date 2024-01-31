@@ -198,7 +198,7 @@ def min_with_single_indices(L, T):
       = [(0,0),(0,1),(0,2),(0,3),(1,0),(1,1),(1,2),(1,3),(2,0),(2,1),(2,2),(2,3)]
 
     - 1st smallest value: 3 with tuple (2,3), index 11
-    - 2nd smallest value when excluding indices [(0,0),(0,1),(0,2),X,(1,0),(1,1),(1,2),X,X,X,X,X]:
+    - 2nd smallest value when excluding indices (2,.) and (.,3), i.e. [(0,0),(0,1),(0,2),X,(1,0),(1,1),(1,2),X,X,X,X,X]:
     20 with tuple (0,0), index 0
     - 3rd smallest value when excluding [X,X,X,X,X,(1,1),(1,2),X,X,X,X,X]:
     23 with tuple (1,1), index 5
