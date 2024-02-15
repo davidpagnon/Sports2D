@@ -113,7 +113,7 @@ __author__ = "David Pagnon"
 __copyright__ = "Copyright 2023, Sports2D"
 __credits__ = ["David Pagnon"]
 __license__ = "BSD 3-Clause License"
-__version__ = "0.1"
+__version__ = "0.3.0"
 __maintainer__ = "David Pagnon"
 __email__ = "contact@david-pagnon.com"
 __status__ = "Development"
@@ -136,20 +136,25 @@ def base_params(config_dict):
 
     video_dir = Path(config_dict.get('project').get('video_dir')).resolve()
     if video_dir == '': video_dir = os.getcwd()
-    video_file = Path(config_dict.get('project').get('video_file'))
+    video_files = config_dict.get('project').get('video_file')
+    if isinstance(video_files, str):
+        video_files = [Path(video_files)]
+    else: 
+        video_files = [Path(v) for v in video_files]
     result_dir = Path(config_dict.get('project').get('result_dir')).resolve()
     if result_dir == '': result_dir = os.getcwd()
     
-    video = cv2.VideoCapture(str(video_dir / video_file))
-    frame_rate = video.get(cv2.CAP_PROP_FPS)
-    try:
-        1/frame_rate
-    except ZeroDivisionError:
-        print('Frame rate could not be retrieved: check that your video exists at the correct path')
-        raise
-    video.release()
+    for video_file in video_files:
+        video = cv2.VideoCapture(str(video_dir / video_file))
+        frame_rate = video.get(cv2.CAP_PROP_FPS)
+        try:
+            1/frame_rate
+        except ZeroDivisionError:
+            print('Frame rate could not be retrieved: check that your video exists at the correct path')
+            raise
+        video.release()
 
-    return video_dir, video_file, result_dir, frame_rate
+    return video_dir, video_files, result_dir, frame_rate
 
 
 def detect_pose(config='Config_demo.toml'):
@@ -162,21 +167,22 @@ def detect_pose(config='Config_demo.toml'):
     from Sports2D.detect_pose import detect_pose_fun
     
     config_dict = read_config_file(config)
-    _, video_file, result_dir, _ = base_params(config_dict)
+    _, video_files, result_dir, _ = base_params(config_dict)
         
     with open(result_dir / 'logs.txt', 'a+') as log_f: pass
     logging.basicConfig(format='%(message)s', level=logging.INFO, force=True, 
         handlers = [logging.handlers.TimedRotatingFileHandler(result_dir / 'logs.txt', when='D', interval=7), logging.StreamHandler()]) 
     
-    logging.info("\n\n---------------------------------------------------------------------")
-    logging.info(f"Detect pose for video {video_file}")
-    logging.info("---------------------------------------------------------------------")
-    start = time.time()
-    
-    detect_pose_fun(config_dict)
-    
-    end = time.time()
-    logging.info(f'Pose detection took {end-start:.2f} s.')
+    for video_file in video_files:
+        logging.info("\n\n---------------------------------------------------------------------")
+        logging.info(f"Detecting pose for video {video_file}")
+        logging.info("---------------------------------------------------------------------")
+        start = time.time()
+        
+        detect_pose_fun(config_dict, video_file)
+        
+        end = time.time()
+        logging.info(f'Pose detection took {end-start:.2f} s.')
     
     
 def compute_angles(config='Config_demo.toml'):
@@ -189,7 +195,7 @@ def compute_angles(config='Config_demo.toml'):
     from Sports2D.compute_angles import compute_angles_fun
 
     config_dict = read_config_file(config)
-    _, video_file, result_dir, _ = base_params(config_dict)
+    _, video_files, result_dir, _ = base_params(config_dict)
         
     with open(result_dir / 'logs.txt', 'a+') as log_f: pass
     logging.basicConfig(format='%(message)s', level=logging.INFO, force=True, 
@@ -198,17 +204,15 @@ def compute_angles(config='Config_demo.toml'):
     joint_angles = config_dict.get('compute_angles').get('joint_angles')
     segment_angles = config_dict.get('compute_angles').get('segment_angles')
 
-    logging.info("\n\n---------------------------------------------------------------------")
-    logging.info(f"Compute angles for video {video_file} ")
-    logging.info(f"for {joint_angles}")
-    logging.info(f"and {segment_angles}.")
-    logging.info("---------------------------------------------------------------------")
-    start = time.time()
-    
-    compute_angles_fun(config_dict)
-    
-    end = time.time()
-    logging.info(f'Joint and segment computation took {end-start:.2f} s.')
-    
-    
-
+    for video_file in video_files:
+        logging.info("\n\n---------------------------------------------------------------------")
+        logging.info(f"Computing angles for video {video_file} ")
+        logging.info(f"for {joint_angles}")
+        logging.info(f"and {segment_angles}.")
+        logging.info("---------------------------------------------------------------------")
+        start = time.time()
+        
+        compute_angles_fun(config_dict, video_file)
+        
+        end = time.time()
+        logging.info(f'Joint and segment computation took {end-start:.2f} s.')

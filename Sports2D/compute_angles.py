@@ -68,7 +68,7 @@ __author__ = "David Pagnon"
 __copyright__ = "Copyright 2023, Sports2D"
 __credits__ = ["David Pagnon"]
 __license__ = "BSD 3-Clause License"
-__version__ = "0.1"
+__version__ = "0.3.0"
 __maintainer__ = "David Pagnon"
 __email__ = "contact@david-pagnon.com"
 __status__ = "Development"
@@ -296,21 +296,21 @@ def overlay_angles(frame, df_angles_list_frame):
                 cv2.LINE_4)
             # Angle value
             cv2.putText(frame, 
-                str(round(angles_frame_person[ang_nb],1)),
+                str(round(angles_frame_person.iloc[ang_nb],1)),
                 (150+250*i, 15+15*ang_nb), 
                 font, 0.5, 
                 (0,0,0), 
                 2, 
                 cv2.LINE_4)
             frame = cv2.putText(frame, 
-                str(round(angles_frame_person[ang_nb],1)),
+                str(round(angles_frame_person.iloc[ang_nb],1)),
                 (150+250*i, 15+15*ang_nb), 
                 font, 0.5, 
                 (np.array(cmap((i+1)/len(df_angles_list_frame)))*255).tolist(), 
                 1, 
                 cv2.LINE_4)
             # Progress bar
-            x_ang = int(angles_frame_person[ang_nb]*50/180)
+            x_ang = int(angles_frame_person.iloc[ang_nb]*50/180)
             if x_ang > 0:
                 sub_frame = frame[ 1+15*ang_nb : 16+15*ang_nb , 170+250*i : 170+250*i+x_ang ]
                 if sub_frame.size>0:
@@ -327,7 +327,7 @@ def overlay_angles(frame, df_angles_list_frame):
     return frame
     
     
-def compute_angles_fun(config_dict):
+def compute_angles_fun(config_dict, video_file):
     '''
     Compute joint and segment angles from csv position files.
     Automatically adjust angles when person switches to face the other way.
@@ -370,7 +370,7 @@ def compute_angles_fun(config_dict):
     '''
     
     # Retrieve parameters
-    video_dir, video_file, result_dir, frame_rate = base_params(config_dict)
+    video_dir, video_files, result_dir, frame_rate = base_params(config_dict)
     pose_algo = config_dict.get('pose').get('pose_algo')
     if pose_algo == 'OPENPOSE':
         pose_model = config_dict.get('pose').get('OPENPOSE').get('openpose_model')
@@ -519,5 +519,3 @@ def compute_angles_fun(config_dict):
             if Path.exists(video_pose): os.remove(video_pose)
             os.rename(video_pose2,video_pose)
             if Path.exists(video_pose2): os.remove(video_pose2)
-
-    logging.info(f'Done.')

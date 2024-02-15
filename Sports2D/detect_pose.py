@@ -62,7 +62,7 @@ __author__ = "David Pagnon"
 __copyright__ = "Copyright 2023, Sports2D"
 __credits__ = ["David Pagnon"]
 __license__ = "BSD 3-Clause License"
-__version__ = "0.1"
+__version__ = "0.3.0"
 __maintainer__ = "David Pagnon"
 __email__ = "contact@david-pagnon.com"
 __status__ = "Development"
@@ -511,7 +511,7 @@ def save_imgvid_reID(video_path, video_result_path, save_vid=1, save_img=1, *pos
     writer.release()
 
 
-def detect_pose_fun(config_dict):
+def detect_pose_fun(config_dict, video_file):
     '''
     Detect joint centers from a video with OpenPose or BlazePose.
     Save a 2D csv file per person, and optionally json files, image files, and video file.
@@ -545,7 +545,7 @@ def detect_pose_fun(config_dict):
     
     # Retrieve parameters
     root_dir = os.getcwd()
-    video_dir, video_file, result_dir, frame_rate = base_params(config_dict)
+    video_dir, video_files, result_dir, frame_rate = base_params(config_dict)
     pose_algo = config_dict.get('pose').get('pose_algo')
     
     load_pose = not config_dict.get('pose_advanced').get('overwrite_pose')
@@ -605,5 +605,3 @@ def detect_pose_fun(config_dict):
     elif pose_algo == 'BLAZEPOSE':
         model_complexity = config_dict.get('pose').get('BLAZEPOSE').get('model_complexity')
         Blazepose_runsave.blazepose_detec_func(input_file=video_path, save_images=save_img, to_json=True, save_video=save_vid, to_csv=True, output_folder=result_dir, model_complexity=model_complexity)
-
-    logging.info(f'Done.')
