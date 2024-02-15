@@ -7,7 +7,7 @@
 
 [project]
 video_dir = '' # BETWEEN SINGLE QUOTES! # If empty, result dir is current dir
-video_file = 'demo.mp4'
+video_files = 'demo.mp4' # video file (e.g.: 'demo.mp4') or list of video files (e.g.: ['demo.mp4', 'other.mov'])
 result_dir = '' # BETWEEN SINGLE QUOTES! # If empty, project dir is current dir
 
 
