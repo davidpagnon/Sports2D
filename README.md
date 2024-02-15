@@ -29,6 +29,8 @@ User-friendly Colab version released! (and latest issues fixed, too)\
 Works on any smartphone!**\
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://bit.ly/Sports2D_Colab)
 
+**Batch processing enabled: process multiple videos at once!**
+
 </br>
 
 <img src='Content/demo_gif.gif' title='Demonstration of Sports2D with OpenPose.'  width="760">
@@ -114,15 +116,15 @@ In addition, you will get the original OpenPose-like json coordinates files.
 
 ### Use on your own videos
 
-1. Copy-paste `Config_demo.toml` in the directory of your video.
+1. Copy-paste `Config_demo.toml` in the directory of your videos.
 
 2. Open it with any text editor.\
-Replace the `video_file` value with the name of your video.
+Replace the `video_files` value with the name of your videos.
 
 3. Open a terminal or an Anaconda prompt, type:
    ``` cmd
-   cd <Path/to/video/directory>
-   conda activate Sports2D (skip if you did not install with Anaconda)
+   cd path/to/video/directory
+   conda activate Sports2D &:: skip if you did not install with Anaconda
    ipython
    ```
    ``` python
@@ -131,7 +133,7 @@ Replace the `video_file` value with the name of your video.
    Sports2D.compute_angles('Config_demo.toml')
    ```
 
-*Optionally:* If your video is not in the same folder as `Config_demo.toml`, specify its location in `video_dir`.\
+*Optionally:* If your videos are not in the same folder as `Config_demo.toml`, specify their location in `video_dir`.\
 Similarly, if you launch Sports2D in an other directory, specify the location of the config file this way: `Sports2D.detect_pose(<path_to_Config_demo.toml>)`\
 In `pose`, specify the use of BlazePose or OpenPose as joint detectors: this will be detailed in the next section.\
 In `compute_angles`, select your angles of interest.
