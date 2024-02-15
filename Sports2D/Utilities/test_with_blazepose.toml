@@ -9,7 +9,7 @@
 
 [project]
 video_dir = '../Demo' # BETWEEN SINGLE QUOTES! # If empty, project dir is current dir
-video_file = 'demo.mp4'
+video_files = 'demo.mp4'
 result_dir = '../Demo' # BETWEEN SINGLE QUOTES! # If empty, project dir is current dir
 
 
