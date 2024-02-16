@@ -67,7 +67,7 @@ If you need research-grade markerless joint kinematics, consider using several c
 
 
 - OPTION 1: **Quick install** \
-    Open a terminal. Type `python -V` to make sure python '>=3.7 <=3.10' is installed, and then:
+    Open a terminal. Type `python -V` to make sure python '>=3.7 <=3.11' is installed, and then:
     ``` cmd
     pip install sports2d
     ```
@@ -92,6 +92,7 @@ If you need research-grade markerless joint kinematics, consider using several c
 
 ### Demonstration: Detect pose and compute 2D angles
 
+If you did the conda install, type `conda activate Sports2D` in the Anaconda prompt. Otherwise, skip to the next line.\
 Open a terminal, enter `pip show sports2d`, check sports2d package location. \
 Copy this path and go to the Demo folder by typing `cd <path>\Sports2D\Demo`. \
 Type `ipython`, and test the following code:
