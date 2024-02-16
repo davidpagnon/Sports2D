@@ -192,7 +192,7 @@ BlazePose or OpenPose are used to detect joint centers from a video.
 - If `BlazePose` is used, only one person can be detected.\
   No interpolation nor filtering options are available. Not plotting available.
 
-- If `OpenPose` is used, multiple persons can be consistently detected across frames. A person is matched to another in the next frame when their average point clouds are at a small euclidian distance.\
+- If `OpenPose` is used, multiple persons can be consistently detected across frames. A person is associated to another in the next frame when they are at a small distance.\
   Sequences of missing data are interpolated if they are less than N frames long.\
   Resulting coordinates can be filtered with Butterworth, gaussian, median, or loess filter. They can also be plotted.
 
@@ -200,7 +200,7 @@ BlazePose or OpenPose are used to detect joint centers from a video.
 #### Angle computation:
 
 Joint and segment angles are computed from csv position files.\
-If a person suddently faces the other way, this change of direction is taken into account.\
+If a person suddenly faces the other way, this change of direction is taken into account.\
 Resulting angles can be filtered in the same way as point coordinates, and they can also be plotted.
 
 **Joint angle conventions:**
@@ -246,6 +246,7 @@ If you want to contribute to Sports2D, please follow [this guide](https://docs.g
 - [x] Handle sudden **changes of direction**.
 - [x] **Colab version** for those who cannot install OpenPose.
 - [x] **Colab version** more user-friendly, usable on a smartphone.
+- [x] **Batch processing** for the analysis of multiple videos at once.
 - [ ] **Implement [AlphaPose](https://github.com/MVIG-SJTU/AlphaPose)** which might be more accurate on broadcasted videos.
 - [ ] Perform **Inverse kinematics and dynamics** with OpenSim (cf. [Pose2Sim](https://github.com/perfanalytics/pose2sim), but in 2D). Update [this model](https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Utilities/2D_gait.osim) (add arms, markers, remove muscles and contact spheres). Add pipeline example.
 </br>
