@@ -1,5 +1,5 @@
 ---
-title: 'Sports2D: Compute 2D joint and segment angles on your smartphone.'
+title: 'Sports2D: Compute 2D joint and segment angles from your smartphone.'
 tags:
   - python
   - markerless kinematics
