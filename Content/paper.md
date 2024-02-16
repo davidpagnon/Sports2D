@@ -24,15 +24,16 @@ bibliography: paper.bib
 
 The output incorporates annotated videos and image sequences overlaid with joint locations, joint angles, and segment angles, for each of the detected persons. This information is also stored in .csv files for further analysis, editable on MS Excel® or any other spreadsheet editor. 
 
-`Sports2D` may be useful for clinicians as a decision supports system (CDSS) [@Bright_2012], as well as for gait analysis [@Whittle_2014] or ergonomic design [@Patrizi_2016]. Sports coaches can also use it to quantify key performance indicators (KPIs) [@ODonoghue_2008, @Pagnon_2022b], or to better understand, correct, or compare athletes' movement patterns. Finally, it can be used by researchers as a simple tool for 2D biomechanical analysis on the fly. One of the multiple use cases would be to evaluate ACL injury risks from deceleration drills [@Di_2012]. 
+`Sports2D` may be useful for clinicians as a decision supports system (CDSS) [@Bright_2012], as well as for gait analysis [@Whittle_2014] or ergonomic design [@Patrizi_2016]. Sports coaches can also use it to quantify key performance indicators (KPIs) [@ODonoghue_2008; @Pagnon_2022b], or to better understand, correct, or compare athletes' movement patterns. Finally, it can be used by researchers as a simple tool for 2D biomechanical analysis on the fly. One of the multiple use cases would be to evaluate ACL injury risks from deceleration drills [@Di_2021]. 
 
 ![Example results from a Demo video.\label{fig:demo_video_results}](demo_openpose_results.png)
+
 ![Example plot of joint angle evolution.\label{fig:joint_angle_evolution}](demo_show_plots.png)
 
 
 # Statement of need
 
-Machine learning has recently accelerated the development and availability of markerless kinematics [@Zheng_2023, @Colyer_2018], which allows for the collection of kinematic data without the use of physical markers or of manual annotation. 
+Machine learning has recently accelerated the development and availability of markerless kinematics [@Zheng_2023; @Colyer_2018], which allows for the collection of kinematic data without the use of physical markers or of manual annotation. 
 
 A large part of these tools focus on 2D analysis, such as `OpenPose` [@Cao_2019], `BlazePose` [@Bazarevsky_2020], or `DeepLabCut` [@Mathis_2018]. Although they bear the advantage of being open-source, they are not easily accessible to people who do not have a programming background, and the output is not directly usable for further kinematic investigation. Yet, clinical acceptance of new technologies is known to be influenced not only by their price value and their performance, but also by their perceived ease-of-use, the social influence around the customer, and other parameters described by the Unified Theory of Acceptance and Use of Technology (UTAUT2) [@Venkatesh_2012].
 
@@ -72,7 +73,7 @@ Segment angles are measured anticlockwise between the horizontal and the segment
 * Forearm: Between elbow and wrist;
 * Trunk: Between shoulder midpoint and hip midpoint.
 
-![Joint angle conventions. Adapted from [@Yang2007].\label{fig:joint_angle_conventions}](joint_convention.png)
+![Joint angle conventions. Adapted from [@Yang_2007].\label{fig:joint_angle_conventions}](joint_convention.png)
 
 
 # Limitations
