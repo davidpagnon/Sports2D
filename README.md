@@ -247,6 +247,7 @@ If you want to contribute to Sports2D, please follow [this guide](https://docs.g
 - [x] **Colab version** for those who cannot install OpenPose.
 - [x] **Colab version** more user-friendly, usable on a smartphone.
 - [x] **Batch processing** for the analysis of multiple videos at once.
+- [ ] **Convert positions to meters** bu providing the distence between two clicked points
 - [ ] **Implement [AlphaPose](https://github.com/MVIG-SJTU/AlphaPose)** which might be more accurate on broadcasted videos.
 - [ ] Perform **Inverse kinematics and dynamics** with OpenSim (cf. [Pose2Sim](https://github.com/perfanalytics/pose2sim), but in 2D). Update [this model](https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Utilities/2D_gait.osim) (add arms, markers, remove muscles and contact spheres). Add pipeline example.
 </br>
