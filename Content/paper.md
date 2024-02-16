@@ -24,7 +24,7 @@ bibliography: paper.bib
 
 It outputs annotated videos and image sequences which display joint locations, joint angles, and segment angles, for each of the detected persons. This information is also stored in .csv files, editable on MS Excel or any other spreadsheet editor for further analysis. 
 
-`Sports2D` may be useful for clinicians as a decision supports system (CDSS) [], as well as for gait analysis [] or ergonomic design []. Sports coaches can also use it to quantify key performance indicators (KPIs) [], or to better understand, correct, or compare athletes' movement patterns. Finally, it can be used by researchers as a simple tool for 2D biomechanical analysis on the fly. One of the multiple use cases would be to evaluate ACL injury risks from deceleration drills [].
+`Sports2D` may be useful for clinicians as a decision supports system (CDSS) [], as well as for gait analysis [] or ergonomic design []. Sports coaches can also use it to quantify key performance indicators (KPIs) [], or to better understand, correct, or compare athletes' movement patterns. Finally, it can be used by researchers as a simple tool for 2D biomechanical analysis on the fly. One of the multiple use cases would be to evaluate ACL injury risks from deceleration drills []. 
 
 ![Example results from a Demo video.\label{fig:demo video results}](demo_openpose_results.png)
 ![Example plot of joint angle evolution.\label{fig:joint angle evolution}](demo_show_plots.png)
