@@ -4,6 +4,13 @@
 
 # Configure your project parameters here
 
+# Then open an Anaconda prompt and enter:
+# conda activate Sports2D
+# ipython
+# from Sports2D import Sports2D
+# Sports2D.detect_pose('Config_demo.toml')
+# Sports2D.compute_angles('Config_demo.toml')
+
 
 [project]
 video_dir = '' # BETWEEN SINGLE QUOTES! # If empty, result dir is current dir
