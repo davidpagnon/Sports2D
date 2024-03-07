@@ -68,6 +68,7 @@ show_angles_on_img = true
 show_angles_on_vid = true
 filter = false
 show_plots = false
+flip_left_right = true # Same angles whether the participant faces left/right. Set it to false if you want timeseries to be continuous even when the participent switches their stance.
 filter_type = 'butterworth' # butterworth, gaussian, LOESS, median
    [compute_angles_advanced.butterworth]
    order = 4 
