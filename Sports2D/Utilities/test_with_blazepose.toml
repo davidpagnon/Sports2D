@@ -69,6 +69,7 @@ save_img = true
 save_vid = true
 filter = true
 show_plots = false
+flip_left_right = true
 filter_type = 'loess' # butterworth, gaussian, LOESS, median
    [compute_angles_advanced.butterworth]
    order = 4 

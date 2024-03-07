@@ -442,6 +442,33 @@ def draw_keypts_skel(X, Y, img, *pose_model):
     return img
 
 
+def rewrite_vid(video_path):
+    '''
+    Rewrite video
+    Incidentally erases rotate metadata
+    '''
+
+    cap = cv2.VideoCapture(str(video_path))
+    if (cap.isOpened()== False): 
+        print("Error opening video stream or file")
+    
+    W, H = cap.get(cv2.CAP_PROP_FRAME_WIDTH), cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    video_out_path = Path(video_path).stem + '_new.mp4'
+    fourcc = cv2.VideoWriter_fourcc('M','J','P','G')
+    writer = cv2.VideoWriter(video_out_path, fourcc, fps, (int(W), int(H)))
+        
+    while(True):
+        ret, frame = cap.read()
+        if ret == True:
+            try: writer.write(frame)
+            except: break
+        else:
+            break
+    cap.release()
+    writer.release()
+
+
 def save_imgvid_reID(video_path, video_result_path, save_vid=1, save_img=1, *pose_model):
     '''
     Displays json 2d detections overlayed on original raw images.
@@ -457,7 +484,7 @@ def save_imgvid_reID(video_path, video_result_path, save_vid=1, save_img=1, *pos
     import json_display_with_img; json_display_with_img.json_display_with_img_func(json_folder=r'<json_folder>', raw_img_folder=r'<raw_img_folder>')
     '''
             
-   # Find csv position files, prepare video and image saving paths
+    # Find csv position files, prepare video and image saving paths
     pose_model = pose_model[0]
     csv_paths = list(video_result_path.parent.glob(f'*{video_result_path.stem}*{pose_model}*points*refined*.csv'))
     if csv_paths == []:
@@ -577,6 +604,17 @@ def detect_pose_fun(config_dict, video_file):
             pass
         else:
             logging.info(f'Detecting 2D joint positions with OpenPose model {pose_model}, for {video_file}.')
+            
+            # Overwrite video if it has a rotation metadata
+            logging.info(f'Rotation metadata not supported by OpenPose: converting video...')
+            cap = cv2.VideoCapture(str(video_path))
+            rotation = cap.get(cv2.CAP_PROP_ORIENTATION_META)
+            if not rotation==0: 
+                rewrite_vid(video_path)
+                video_path_new = video_path.stem + '_new.mp4'
+                os.remove(video_path)
+                os.rename(video_path_new, video_path)
+
             json_path.mkdir(parents=True, exist_ok=True)
             openpose_path = config_dict.get('pose').get('OPENPOSE').get('openpose_path')
             os.chdir(openpose_path)

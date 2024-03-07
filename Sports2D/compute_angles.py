@@ -169,7 +169,7 @@ def points2D_to_angles(points_list):
         ux, uy = bx-ax, by-ay
         vx, vy = dx-cx, dy-cy
             
-    ang = np.array(np.degrees(np.arctan2(uy, ux) - np.arctan2(vy, vx)))
+    ang = np.array(np.degrees(np.unwrap(np.arctan2(uy, ux) - np.arctan2(vy, vx))))
     
     return ang
             
@@ -216,8 +216,10 @@ def joint_angles_series_from_points(df_points, angle_params):
     ang_series = points2D_to_angles(points_list)
     ang_series += angle_params[2]
     ang_series *= angle_params[3]
-    ang_series = np.where(ang_series>180,ang_series-360,ang_series)
-    ang_series = np.where((ang_series==0) | (ang_series==90) | (ang_series==180), +0, ang_series)
+    # ang_series = np.where(ang_series>180,ang_series-360,ang_series) # handled by np.unwrap in points2D_to_angles()
+    # ang_series = np.where((ang_series==0) | (ang_series==90) | (ang_series==180), +0, ang_series)
+    if ang_series.mean() > 180: ang_series -= 360
+    if ang_series.mean() < -180: ang_series += 360
 
     return ang_series
 
@@ -381,6 +383,7 @@ def compute_angles_fun(config_dict, video_file):
     angle_nb = len(joint_angles) + len(segment_angles)
     
     show_plots = config_dict.get('compute_angles_advanced').get('show_plots')
+    flip_left_right = config_dict.get('compute_angles_advanced').get('flip_left_right')
     do_filter = config_dict.get('compute_angles_advanced').get('filter')
     filter_type = config_dict.get('compute_angles_advanced').get('filter_type')
     butterworth_filter_order = config_dict.get('compute_angles_advanced').get('butterworth').get('order')
@@ -416,7 +419,8 @@ def compute_angles_fun(config_dict, video_file):
             time = [np.array(df_points.iloc[:,1])]
             
             # Flip along x when feet oriented to the left
-            df_points = flip_left_right_direction(df_points)
+            if flip_left_right:
+                df_points = flip_left_right_direction(df_points)
             
             # Joint angles
             joint_angle_series = []
