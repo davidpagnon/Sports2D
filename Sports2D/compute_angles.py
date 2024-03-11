@@ -169,9 +169,10 @@ def points2D_to_angles(points_list):
         ux, uy = bx-ax, by-ay
         vx, vy = dx-cx, dy-cy
             
-    ang = np.array(np.degrees(np.unwrap(np.arctan2(uy, ux) - np.arctan2(vy, vx))))
+    ang = np.arctan2(uy, ux) - np.arctan2(vy, vx)
+    ang_deg = np.array(np.degrees(np.unwrap(ang*2)/2))
     
-    return ang
+    return ang_deg
             
 
 def flip_left_right_direction(df_points):
