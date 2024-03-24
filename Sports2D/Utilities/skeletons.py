@@ -217,9 +217,17 @@ BLAZEPOSE = Node("CHip", id=None, children=[
             ]),
         ]),
     ]),
-    Node("Nose", id=0, children=[
-        Node("REye", id=5),
+    Node("Nose", id=0, children=[ 
+        Node("LEyeInner", id=1),
         Node("LEye", id=2),
+        Node("LEyeOuter", id=3),
+        Node("REyeInner", id=4),
+        Node("REye", id=5),
+        Node("REyeOuter", id=6),
+        Node("LEar", id=7),
+        Node("REar", id=8),
+        Node("LMouth", id=9),
+        Node("RMouth", id=10),
     ]),
     Node("RShoulder", id=12, children=[
         Node("RElbow", id=14, children=[

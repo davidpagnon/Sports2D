@@ -249,7 +249,7 @@ def segment_angles_series_from_points(df_points, angle_params, segment):
     ang_series = points2D_to_angles(points_list)
     ang_series += angle_params[2]
     ang_series *= angle_params[3]
-    ang_series = np.where(ang_series>180,ang_series-360,ang_series)
+    # ang_series = np.where(ang_series>180,ang_series-360,ang_series)
     
     # For trunk: mean between angles RHip-RShoulder and LHip-LShoulder
     if segment == 'Trunk':
@@ -264,7 +264,10 @@ def segment_angles_series_from_points(df_points, angle_params, segment):
         ang_series += angle_params[2]
         ang_series *= angle_params[3]
         ang_series = np.mean((ang_seriesR, ang_series), axis=0)
-        ang_series = np.where(ang_series>180,ang_series-360,ang_series)
+        # ang_series = np.where(ang_series>180,ang_series-360,ang_series)
+
+    if ang_series.mean() > 180: ang_series -= 360
+    if ang_series.mean() < -180: ang_series += 360
         
     return ang_series
     

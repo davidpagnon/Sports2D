@@ -213,7 +213,10 @@ def min_with_single_indices(L, T):
     - T_minL: list of tuples associated with smallest values of L
     '''
 
-    minL = [np.min(L)]
+    try:
+        minL = [np.min(L)]
+    except:
+        return [], [], []
     argminL = [np.argmin(L)]
     T_minL = [T[argminL[0]]]
     
@@ -492,9 +495,13 @@ def save_imgvid_reID(video_path, video_result_path, save_vid=1, save_img=1, *pos
         
     # Open csv files
     coords = []
-    for c in csv_paths:
-        with open(c) as c_f:
-            coords += [pd.read_csv(c_f, header=[0,1,2,3])]
+    try:
+        for c in csv_paths:
+            with open(c) as c_f:
+                coords += [pd.read_csv(c_f, header=[0,1,2,3])]
+    except:
+        logging.warning('No csv files found.')
+        return
 
     # Open video frame by frame
     cap = cv2.VideoCapture(str(video_path))
@@ -535,7 +542,8 @@ def save_imgvid_reID(video_path, video_result_path, save_vid=1, save_img=1, *pos
             break
         f += 1
     cap.release()
-    writer.release()
+    if save_vid:
+        writer.release()
 
 
 def detect_pose_fun(config_dict, video_file):
@@ -625,21 +633,29 @@ def detect_pose_fun(config_dict, video_file):
             elif platform == "linux" or platform=="linux2":
                 run_openpose_linux(video_path, json_path, pose_model)
             os.chdir(root_dir)
-        
-    # Sort people and save to csv, optionally display plot
-        json_to_csv(json_path, frame_rate, pose_model, interp_gap_smaller_than, filter_options, show_plots)
-        
-    # Save images and files after reindentification
-        if save_img and save_vid:
-            logging.info(f'Saving images and video in {result_dir}.')
-        if save_img and not save_vid:
-            logging.info(f'Saving images in {result_dir}.')
-        if not save_img and save_vid:
-            logging.info(f'Saving video in {result_dir}.')
-        if save_vid or save_img:
-            save_imgvid_reID(video_path, video_result_path, save_vid, save_img, pose_model)
-   
+
      
     elif pose_algo == 'BLAZEPOSE':
+        pose_model = pose_algo
+        json_path = result_dir / '_'.join((video_file_stem,pose_algo,'json'))
         model_complexity = config_dict.get('pose').get('BLAZEPOSE').get('model_complexity')
-        Blazepose_runsave.blazepose_detec_func(input_file=video_path, save_images=save_img, to_json=True, save_video=save_vid, to_csv=True, output_folder=result_dir, model_complexity=model_complexity)
+        Blazepose_runsave.blazepose_detec_func(input_file=video_path, save_images=False, to_json=True, save_video=False, to_csv=False, output_folder=result_dir, model_complexity=model_complexity)
+
+    # Sort people and save to csv, optionally display plot
+    try:
+        json_to_csv(json_path, frame_rate, pose_model, interp_gap_smaller_than, filter_options, show_plots)
+    except:
+        logging.warning('No person detected or persons could not be associated across frames.')
+        return
+        
+    # Save images and files after reindentification
+    if save_img and save_vid:
+        logging.info(f'Saving images and video in {result_dir}.')
+    if save_img and not save_vid:
+        logging.info(f'Saving images in {result_dir}.')
+    if not save_img and save_vid:
+        logging.info(f'Saving video in {result_dir}.')
+    if save_vid or save_img:
+        save_imgvid_reID(video_path, video_result_path, save_vid, save_img, pose_model)
+   
+
