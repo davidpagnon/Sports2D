@@ -80,7 +80,7 @@ Segment angles are measured anticlockwise between the horizontal and the segment
 
 The user of `Sports2D` should be aware of the following limitations:
 
-* Results are acceptable only if the participants move in the 2D plane, from right to left or from left to right. If you need research-grade markerless joint kinematics, consider using several cameras, and constraining angles to a biomechanically accurate model. See `Pose2Sim` [@Pagnon_2022a] for example.
+* Results are acceptable only if the participants move in the 2D plane, either in the frontal plane or in the sagittal one. If you need research-grade markerless joint kinematics, consider using several cameras, and constraining angles to a biomechanically accurate model. See `Pose2Sim` [@Pagnon_2022a] for example.
 * Angle estimation is only as good as the pose estimation algorithm, i.e., it is not perfect [@Wade_2022], especially if motion blur is significant such as on some broadcast videos.
 * Google Colab does not follow the European GDPR requirements regarding data privacy [@Minssen_2020]. Install locally if this matters.
 
