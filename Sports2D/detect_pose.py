@@ -637,7 +637,7 @@ def detect_pose_fun(config_dict, video_file):
     
     elif pose_algo == 'BLAZEPOSE':
         pose_model = pose_algo
-        json_path = result_dir / '_'.join((video_file_stem,pose_algo,'json'))
+        json_path = result_dir / '_'.join((video_file_stem,'json'))
         model_complexity = config_dict.get('pose').get('BLAZEPOSE').get('model_complexity')
         Blazepose_runsave.blazepose_detec_func(input_file=video_path, save_images=False, to_json=True, save_video=False, to_csv=False, output_folder=result_dir, model_complexity=model_complexity)
 
