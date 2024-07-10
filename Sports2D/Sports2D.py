@@ -138,9 +138,9 @@ def base_params(config_dict):
     if video_dir == '': video_dir = os.getcwd()
     video_files = config_dict.get('project').get('video_files')
     if isinstance(video_files, str):
-        video_files = [Path(os.getcwd()) / video_files]
+        video_files = [Path(video_files)]
     else: 
-        video_files = [Path(os.getcwd()) / v for v in video_files]
+        video_files = [Path(v) for v in video_files]
     result_dir = Path(config_dict.get('project').get('result_dir')).resolve()
     if result_dir == '': result_dir = os.getcwd()
     
