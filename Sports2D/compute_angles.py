@@ -402,7 +402,7 @@ def compute_angles_fun(config_dict, video_file):
     
     # Find csv position files in video_dir, search pose_model and video_file.stem
     logging.info(f'Retrieving csv position files in {result_dir}...')
-    csv_paths = list(result_dir.glob(f'*{video_file.stem}_{pose_model}_*points*.csv'))
+    csv_paths = list(result_dir.glob(f'*{video_file.stem}_*points*.csv'))
     logging.info(f'{len(csv_paths)} persons found.')
 
     # Compute angles
@@ -476,9 +476,9 @@ def compute_angles_fun(config_dict, video_file):
     # Add angles to vid and img
     if show_angles_img or show_angles_vid:
         video_base = Path(video_dir / video_file)
-        img_pose = result_dir / (video_base.stem + '_' + pose_model + '_img')
-        video_pose = result_dir / (video_base.stem + '_' + pose_model + '.mp4')
-        video_pose2 = result_dir / (video_base.stem + '_' + pose_model + '2.mp4')
+        img_pose = result_dir / (video_base.stem + '_img')
+        video_pose = result_dir / (video_base.stem + '.mp4')
+        video_pose2 = result_dir / (video_base.stem + '2.mp4')
         
         if show_angles_vid:
             logging.info(f'Saving video in {str(video_pose)}.')
@@ -514,7 +514,7 @@ def compute_angles_fun(config_dict, video_file):
                     frame = overlay_angles(frame, df_angles_list_frame)
                     if show_angles_img:
                         if frame_nb==0: img_pose.mkdir(parents=True, exist_ok=True)
-                        cv2.imwrite(str(img_pose / (video_base.stem + '_' + pose_model + '.' + str(frame_nb).zfill(5)+'.png')), frame)
+                        cv2.imwrite(str(img_pose / (video_base.stem + '_' + '.' + str(frame_nb).zfill(5)+'.png')), frame)
                     if show_angles_vid:
                         writer.write(frame)
                     frame_nb+=1

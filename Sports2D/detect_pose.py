@@ -286,7 +286,6 @@ def json_to_csv(json_path, frame_rate, pose_model, interp_gap_smaller_than, filt
     model = eval(pose_model)
     keypoints_ids = [node.id for _, _, node in RenderTree(model) if node.id!=None]
     keypoints_names = [node.name for _, _, node in RenderTree(model) if node.id!=None]
-    keypoints_names_rearranged = [y for x,y in sorted(zip(keypoints_ids,keypoints_names))]
     keypoints_nb = len(keypoints_ids)
 
     # Retrieve coordinates
@@ -300,7 +299,8 @@ def json_to_csv(json_path, frame_rate, pose_model, interp_gap_smaller_than, filt
             keypt = []
             # Retrieve coords for this frame 
             for ppl in range(len(json_file['people'])):  # for each detected person
-                keypt += [np.asarray(json_file['people'][ppl]['pose_keypoints_2d']).reshape(-1,3)]
+                keypt_all = np.asarray(json_file['people'][ppl]['pose_keypoints_2d']).reshape(-1,3)[keypoints_ids]
+                keypt += [keypt_all]
             keypt = np.array(keypt)
             # Make sure keypt is as large as the number of persons that need to be detected
             if len(keypt) < nb_persons_to_detect:
@@ -321,7 +321,7 @@ def json_to_csv(json_path, frame_rate, pose_model, interp_gap_smaller_than, filt
         # Prepare csv header
         scorer = ['DavidPagnon']*(keypoints_nb*3+1)
         individuals = [f'person{i}']*(keypoints_nb*3+1)
-        bodyparts = [[p]*3 for p in keypoints_names_rearranged]
+        bodyparts = [[p]*3 for p in keypoints_names]
         bodyparts = ['Time']+[item for sublist in bodyparts for item in sublist]
         coords = ['seconds']+['x', 'y', 'likelihood']*keypoints_nb
         tuples = list(zip(scorer, individuals, bodyparts, coords))
@@ -604,7 +604,7 @@ def detect_pose_fun(config_dict, video_file):
 
     if pose_algo == 'OPENPOSE':
         pose_model = config_dict.get('pose').get('OPENPOSE').get('openpose_model')
-        json_path = result_dir / '_'.join((video_file_stem,pose_model,'json'))
+        json_path = result_dir / '_'.join((video_file_stem,'json'))
 
         # Pose detection skipped if load existing json files
         if load_pose and len(list(json_path.glob('*')))>0:
@@ -633,8 +633,8 @@ def detect_pose_fun(config_dict, video_file):
             elif platform == "linux" or platform=="linux2":
                 run_openpose_linux(video_path, json_path, pose_model)
             os.chdir(root_dir)
-
-     
+    
+    
     elif pose_algo == 'BLAZEPOSE':
         pose_model = pose_algo
         json_path = result_dir / '_'.join((video_file_stem,pose_algo,'json'))
