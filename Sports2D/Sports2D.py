@@ -164,8 +164,6 @@ def detect_pose(config='Config_demo.toml'):
     Optionally interpolates missing data, filters them, and displays figures.
     '''
 
-    from Sports2D.detect_pose import detect_pose_fun
-    
     config_dict = read_config_file(config)
     _, video_files, result_dir, _ = base_params(config_dict)
         
@@ -173,16 +171,22 @@ def detect_pose(config='Config_demo.toml'):
     logging.basicConfig(format='%(message)s', level=logging.INFO, force=True, 
         handlers = [logging.handlers.TimedRotatingFileHandler(result_dir / 'logs.txt', when='D', interval=7), logging.StreamHandler()]) 
     
-    for video_file in video_files:
-        logging.info("\n\n---------------------------------------------------------------------")
-        logging.info(f"Detecting pose for video {video_file}")
-        logging.info("---------------------------------------------------------------------")
-        start = time.time()
-        
-        detect_pose_fun(config_dict, video_file)
-        
-        end = time.time()
-        logging.info(f'Pose detection took {end-start:.2f} s.')
+    pose_algo = config_dict.get('pose').get('pose_algo')
+    
+    if pose_algo == 'RTMPOSE':
+        rtm_estimator(config_dict)
+    else:
+        from Sports2D.detect_pose import detect_pose_fun
+        for video_file in video_files:
+            logging.info("\n\n---------------------------------------------------------------------")
+            logging.info(f"Detecting pose for video {video_file}")
+            logging.info("---------------------------------------------------------------------")
+            start = time.time()
+            
+            detect_pose_fun(config_dict, video_file)
+            
+            end = time.time()
+            logging.info(f'Pose detection took {end-start:.2f} s.')
     
     
 def compute_angles(config='Config_demo.toml'):
@@ -216,3 +220,25 @@ def compute_angles(config='Config_demo.toml'):
         
         end = time.time()
         logging.info(f'Joint and segment computation took {end-start:.2f} s.')
+        
+ 
+def run_rtmpose(config='Config_demo.toml'):
+    '''
+    Run RTMPose for pose estimation and angle computation.
+    '''
+    config_dict = read_config_file(config)
+    _, video_files, result_dir, _ = base_params(config_dict)
+    
+    with open(result_dir / 'logs.txt', 'a+') as log_f: pass
+    logging.basicConfig(format='%(message)s', level=logging.INFO, force=True, 
+        handlers = [logging.handlers.TimedRotatingFileHandler(result_dir / 'logs.txt', when='D', interval=7), logging.StreamHandler()])
+    
+    logging.info("\n\n---------------------------------------------------------------------")
+    logging.info("Running RTMPose for pose estimation and angle computation")
+    logging.info("---------------------------------------------------------------------")
+    start = time.time()
+    
+    rtm_estimator(config_dict)
+    
+    end = time.time()
+    logging.info(f'RTMPose estimation and angle computation took {end-start:.2f} s.')

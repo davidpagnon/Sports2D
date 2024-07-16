@@ -57,10 +57,12 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 import cv2
+import math
 import matplotlib.pyplot as plt
 from Sports2D.Sports2D import base_params
 from Sports2D.Utilities import filter, common
 from Sports2D.Utilities.skeletons import *
+
 
 
 ## AUTHORSHIP INFORMATION
@@ -150,28 +152,30 @@ def points2D_to_angles(points_list):
     If parameters are float, returns a float between 0.0 and 360.0
     If parameters are arrays, returns an array of floats between 0.0 and 360.0
     '''
+    if len(points_list) < 2:
+        return None
     
     ax, ay = points_list[0]
     bx, by = points_list[1]
     
-    if len(points_list)==2:
-        ux, uy = bx-ax, by-ay
-        vx, vy = 1,0
+    if len(points_list) == 2:
+        ux, uy = bx - ax, by - ay
+        vx, vy = 1, 0
 
-    if len(points_list)==3:
+    elif len(points_list) == 3:
         cx, cy = points_list[2]
-        ux, uy = ax-bx, ay-by
-        vx, vy = cx-bx, cy-by
-    
-    if len(points_list)==4:
+        ux, uy = ax - bx, ay - by
+        vx, vy = cx - bx, cy - by
+
+    elif len(points_list) == 4:
         cx, cy = points_list[2]
         dx, dy = points_list[3]
-        ux, uy = bx-ax, by-ay
-        vx, vy = dx-cx, dy-cy
-            
+        ux, uy = bx - ax, by - ay
+        vx, vy = dx - cx, dy - cy
+
     ang = np.arctan2(uy, ux) - np.arctan2(vy, vx)
-    ang_deg = np.array(np.degrees(np.unwrap(ang*2)/2))
-    
+    ang_deg = np.array(np.degrees(np.unwrap(ang * 2) / 2))
+
     return ang_deg
             
 
@@ -195,7 +199,7 @@ def flip_left_right_direction(df_points):
     return df_points
             
 
-def joint_angles_series_from_points(df_points, angle_params):
+def joint_angles_series_from_points(df_points, angle_params, kpt_thr):
     '''
     Obtain joint angle series from point series.
     
@@ -210,22 +214,28 @@ def joint_angles_series_from_points(df_points, angle_params):
     # Retrieve points
     keypt_series = []
     for k in angle_params[0]:
-        keypt_series += [df_points.iloc[:,df_points.columns.get_level_values(2)==k].iloc[:,:2]]
+        if df_points[f"{k}_score"].values[0] >= kpt_thr:
+            keypt_series.append(df_points[[f"{k}_x", f"{k}_y"]])
+        else:
+            return None
 
-    # Compute angles
     points_list = [k.values.T for k in keypt_series]
     ang_series = points2D_to_angles(points_list)
+    if ang_series is None:
+        return None
+    
     ang_series += angle_params[2]
     ang_series *= angle_params[3]
-    # ang_series = np.where(ang_series>180,ang_series-360,ang_series) # handled by np.unwrap in points2D_to_angles()
-    # ang_series = np.where((ang_series==0) | (ang_series==90) | (ang_series==180), +0, ang_series)
     if ang_series.mean() > 180: ang_series -= 360
     if ang_series.mean() < -180: ang_series += 360
+    
+    # abs value of angle
+    ang_series = np.abs(ang_series)
 
     return ang_series
 
 
-def segment_angles_series_from_points(df_points, angle_params, segment):
+def segment_angles_series_from_points(df_points, angle_params, segment, kpt_thr):
     '''
     Obtain segment angle series w/r horizontal from point series.
     For trunk segment: mean of the angles between RHip-RShoulder and LHip-LShoulder
@@ -242,96 +252,205 @@ def segment_angles_series_from_points(df_points, angle_params, segment):
     # Retrieve points
     keypt_series = []
     for k in angle_params[0]:
-        keypt_series += [df_points.iloc[:,df_points.columns.get_level_values(2)==k].iloc[:,:2]]
+        if df_points[f"{k}_score"].values[0] >= kpt_thr:
+            keypt_series.append(df_points[[f"{k}_x", f"{k}_y"]])
+        else:
+            return None
+
     points_list = [k.values.T for k in keypt_series]
-    
-    # Compute angles
     ang_series = points2D_to_angles(points_list)
+    if ang_series is None:
+        return None
+
     ang_series += angle_params[2]
     ang_series *= angle_params[3]
-    # ang_series = np.where(ang_series>180,ang_series-360,ang_series)
     
-    # For trunk: mean between angles RHip-RShoulder and LHip-LShoulder
     if segment == 'Trunk':
         ang_seriesR = ang_series
         angle_params[0] = [a.replace('R','L') for a in angle_params[0]]
         keypt_series = []
         for k in angle_params[0]:
-            keypt_series += [df_points.iloc[:,df_points.columns.get_level_values(2)==k].iloc[:,:2]]
-        # Compute angles
+            if df_points[f"{k}_score"].values[0] >= kpt_thr:
+                keypt_series.append(df_points[[f"{k}_x", f"{k}_y"]])
+            else:
+                return None
+
         points_list = [k.values.T for k in keypt_series]
         ang_series = points2D_to_angles(points_list)
         ang_series += angle_params[2]
         ang_series *= angle_params[3]
         ang_series = np.mean((ang_seriesR, ang_series), axis=0)
-        # ang_series = np.where(ang_series>180,ang_series-360,ang_series)
 
     if ang_series.mean() > 180: ang_series -= 360
     if ang_series.mean() < -180: ang_series += 360
         
+    # abs value of angle
+    ang_series = np.abs(ang_series)
+
     return ang_series
+
+def adjust_text_scale(frame, base_scale=0.25, base_thickness=1):
+    height, width, _ = frame.shape
+    scale = base_scale * (width / 640)
+    thickness = int(base_thickness * (width / 640))
+    return scale, thickness
+
+def draw_joint_angle(frame, joint, angle, keypoints, scores, kpt_thr):
+    # print(f"Debug: draw_joint_angle called for {joint} with angle {angle}")
+    joint_to_keypoints = {
+        "Right ankle": [14, 16, 21],  # knee, ankle, big_toe
+        "Left ankle": [13, 15, 20],   # knee, ankle, big_toe
+        "Right knee": [12, 14, 16],   # hip, knee, ankle
+        "Left knee": [11, 13, 15],    # hip, knee, ankle
+        "Right hip": [19, 12, 14],    # hip center, hip, knee
+        "Left hip": [19, 11, 13],     # hip center, hip, knee
+        "Right shoulder": [18, 6, 8], # neck, shoulder, elbow
+        "Left shoulder": [18, 5, 7],  # neck, shoulder, elbow
+        "Right elbow": [6, 8, 10],    # shoulder, elbow, wrist
+        "Left elbow": [5, 7, 9],      # shoulder, elbow, wrist
+    }
+
+    if joint in joint_to_keypoints:
+        pts = [keypoints[i] for i in joint_to_keypoints[joint]]
+        scores_pts = [scores[i] for i in joint_to_keypoints[joint]]
+        if all(score >= kpt_thr for score in scores_pts):
+            pt1, pt2, pt3 = pts
+            draw_angle_arc(frame, joint, pt1, pt2, pt3, angle)
+
+def draw_angle_arc(frame, joint, pt1, pt2, pt3, angle):
+    # Convert points to integer tuples
+    pt1 = tuple(map(int, pt1))
+    pt2 = tuple(map(int, pt2))
+    pt3 = tuple(map(int, pt3))
     
+    # Calculate vectors
+    v1 = np.array(pt1) - np.array(pt2)
+    v2 = np.array(pt3) - np.array(pt2)
     
-def overlay_angles(frame, df_angles_list_frame):
-    '''
-    Overlays a text box for each detected person with joint and segment angles
+    # Calculate angle
+    cosine_angle = np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
+    angle_rad = np.arccos(np.clip(cosine_angle, -1.0, 1.0))
+    angle_deg = np.degrees(angle_rad)
     
-    INPUT:
-    - frame: a frame opened with OpenCV
-    - df_angles_list_frame: list of one frame for all angles
-    '''
+    # Determine the direction of the angle
+    cross_product = np.cross(v1, v2)
     
+    # Calculate start and end angles
+    start_angle = np.degrees(np.arctan2(v1[1], v1[0]))
+    end_angle = np.degrees(np.arctan2(v2[1], v2[0]))
+    
+    # Ensure the smaller angle is always drawn
+    if abs(end_angle - start_angle) > 180:
+        if end_angle > start_angle:
+            end_angle -= 360
+        else:
+            start_angle -= 360
+    
+    # Calculate radius (adjust based on the length of the limb)
+    limb_length = min(np.linalg.norm(v1), np.linalg.norm(v2))
+    radius = int(limb_length * 0.15)
+    
+    # Determine the direction to draw the arc
+    if cross_product < 0:
+        start_angle, end_angle = end_angle, start_angle
+    
+    # Draw the arc
+    cv2.ellipse(frame, pt2, (radius, radius), 0, start_angle, end_angle, (0, 255, 0), 2)
+    
+    # Add text for angle
+    text_pos = (pt2[0] + int(radius * 1.2), pt2[1] - int(radius * 0.2))
+    cv2.putText(frame, f"{angle:.1f}", text_pos, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
+
+    # Draw lines to connect points
+    cv2.line(frame, pt1, pt2, (0, 255, 0), 2)
+    cv2.line(frame, pt2, pt3, (0, 255, 0), 2)
+
+def draw_segment_angle(frame, segment, angle, keypoints, scores, kpt_thr):
+    thickness = 2
+    length = 40
+    color = (255, 0, 0)  # blue 
+
+    segment_to_keypoints = {
+        "Right foot": [22, 20],
+        "Left foot": [19, 17],
+        "Right shank": [14, 16],
+        "Left shank": [13, 15],
+        "Right thigh": [12, 14],
+        "Left thigh": [11, 13],
+        "Trunk": [6, 12],
+        "Right arm": [6, 8],
+        "Left arm": [5, 7],
+        "Right forearm": [8, 10],
+        "Left forearm": [7, 9],
+    }
+
+    if segment in segment_to_keypoints:
+        pt1, pt2 = [keypoints[i] for i in segment_to_keypoints[segment]]
+        score1, score2 = [scores[i] for i in segment_to_keypoints[segment]]
+        if score1 >= kpt_thr and score2 >= kpt_thr:
+            draw_angle_line(frame, pt1, pt2, angle, thickness, length, color)
+
+def draw_angle_line(frame, pt1, pt2, angle, thickness, length, color):
+    pt1 = tuple(map(int, pt1))
+    pt2 = tuple(map(int, pt2))
+
+    end_point = (int(pt1[0] + length), pt1[1])
+    cv2.line(frame, pt1, end_point, color, thickness)
+    
+    segment_end = (int(pt1[0] + length * math.cos(math.radians(angle))), int(pt1[1] + length * math.sin(math.radians(angle))))
+    cv2.line(frame, pt1, segment_end, color, thickness)
+
+def overlay_angles(frame, df_angles_list_frame, keypoints, scores, kpt_thr):
+    # print("Debug: overlay_angles function called")
     cmap = plt.cm.hsv
     font = cv2.FONT_HERSHEY_SIMPLEX
-    for i, angles_frame_person in enumerate(df_angles_list_frame):
-        for ang_nb in range(len(angles_frame_person)):
-            # Angle label
-            cv2.putText(frame, 
-                angles_frame_person.index[ang_nb][2] + ':',
-                (10+250*i, 15+15*ang_nb), 
-                font, 0.5, 
-                (0,0,0), 
-                2, 
-                cv2.LINE_4)
-            frame = cv2.putText(frame, 
-                angles_frame_person.index[ang_nb][2] + ':',
-                (10+250*i, 15+15*ang_nb), 
-                font, 0.5, 
-                (np.array(cmap((i+1)/len(df_angles_list_frame)))*255).tolist(), 
-                1, 
-                cv2.LINE_4)
-            # Angle value
-            cv2.putText(frame, 
-                str(round(angles_frame_person.iloc[ang_nb],1)),
-                (150+250*i, 15+15*ang_nb), 
-                font, 0.5, 
-                (0,0,0), 
-                2, 
-                cv2.LINE_4)
-            frame = cv2.putText(frame, 
-                str(round(angles_frame_person.iloc[ang_nb],1)),
-                (150+250*i, 15+15*ang_nb), 
-                font, 0.5, 
-                (np.array(cmap((i+1)/len(df_angles_list_frame)))*255).tolist(), 
-                1, 
-                cv2.LINE_4)
-            # Progress bar
-            x_ang = int(angles_frame_person.iloc[ang_nb]*50/180)
-            if x_ang > 0:
-                sub_frame = frame[ 1+15*ang_nb : 16+15*ang_nb , 170+250*i : 170+250*i+x_ang ]
-                if sub_frame.size>0:
-                    white_rect = np.ones(sub_frame.shape, dtype=np.uint8) * 255
-                    res = cv2.addWeighted(sub_frame, 0.6, white_rect, 0.4, 1.0)
-                    frame[ 1+15*ang_nb : 16+15*ang_nb , 170+250*i : 170+250*i+x_ang ] = res
-            elif x_ang < 0:
-                sub_frame = frame[ 1+15*ang_nb : 16+15*ang_nb , 170+250*i+x_ang : 170+250*i ]
-                if sub_frame.size>0:
-                    white_rect = np.ones(sub_frame.shape, dtype=np.uint8) * 255
-                    res = cv2.addWeighted(sub_frame, 0.6, white_rect, 0.4, 1.0)
-                    frame[ 1+15*ang_nb : 16+15*ang_nb , 170+250*i+x_ang : 170+250*i ] = res
-        
-    return frame
     
+    height, width, _ = frame.shape
+    scale, thickness = adjust_text_scale(frame)
+    
+    base_y = int(0.03 * height)  # 3% from the top
+    y_step = int(0.05 * height)  # Step size for each line
+    
+    for i, (angles_frame_person, person_keypoints, person_scores) in enumerate(zip(df_angles_list_frame, keypoints, scores)):
+        # print(f"Debug: Processing person {i}")
+        for ang_nb, (angle_name, angle_value) in enumerate(angles_frame_person.items()):
+            try:
+                if isinstance(angle_value, pd.Series):
+                    angle_value = angle_value.iloc[0]
+                
+                angle_value = float(angle_value)
+                
+                # print(f"Debug: Processing angle {ang_nb}: {angle_name} = {angle_value}")
+                
+                angle_label = str(angle_name)
+                text = f"{angle_label}: {angle_value:.1f}"
+                
+                text = text.encode('utf-8').decode('utf-8')
+                
+                # Text color based on joint type
+                if "ankle" in angle_name.lower() or "knee" in angle_name.lower() or "hip" in angle_name.lower() or "shoulder" in angle_name.lower() or "elbow" in angle_name.lower():
+                    text_color = (0, 255, 0)  # green
+                else:
+                    text_color = (255, 0, 0)  # blue    
+                
+                # Draw text
+                text_x = 10 + (width // 3) * i
+                text_y = base_y + y_step * ang_nb
+                
+                cv2.putText(frame, text, (text_x, text_y), font, scale, (0,0,0), thickness+1, cv2.LINE_AA)
+                frame = cv2.putText(frame, text, (text_x, text_y), font, scale, text_color, thickness, cv2.LINE_AA)
+                
+                # Draw joint or segment angle
+                if "ankle" in angle_name.lower() or "knee" in angle_name.lower() or "hip" in angle_name.lower() or "shoulder" in angle_name.lower() or "elbow" in angle_name.lower():
+                    draw_joint_angle(frame, angle_name, angle_value, person_keypoints, person_scores, kpt_thr)
+                else:
+                    draw_segment_angle(frame, angle_name, angle_value, person_keypoints, person_scores, kpt_thr)
+                
+            except Exception as e:
+                print(f"Warning: Unable to process angle {ang_nb} for person {i}: {str(e)}")
+                continue
+    
+    return frame
     
 def compute_angles_fun(config_dict, video_file):
     '''

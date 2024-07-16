@@ -19,7 +19,7 @@ result_dir = '' # BETWEEN SINGLE QUOTES! # If empty, project dir is current dir
 
 
 [pose]
-pose_algo = 'BLAZEPOSE' # 'OPENPOSE' or 'BLAZEPOSE' 
+pose_algo = 'RTMPOSE' # 'OPENPOSE' or 'BLAZEPOSE' 
 # OpenPose is more accurate and supports multi-person detection, but needs to be installed separately	
 # Coming soon: 'deeplabcut', 'alphapose'
 	
@@ -35,6 +35,22 @@ pose_algo = 'BLAZEPOSE' # 'OPENPOSE' or 'BLAZEPOSE'
 	
 	# Installation path of openpose (between single quotes) 
 	openpose_path = 'D:\softs\openpose-1.6.0-binaries-win64-gpu-flir-3d_recommended\openpose'
+	
+[pose_demo]
+data_type = "webcam"
+video_path = "path/to/your/video.mp4"
+device = "cpu"
+backend = "openvino"
+det_frequency = 1
+mode = "balanced"
+tracking = false
+to_openpose = false
+save_video = true
+save_images = true
+display_detection = true
+frame_range = []
+output_format = "openpose"
+
 	
 
 [compute_angles]
