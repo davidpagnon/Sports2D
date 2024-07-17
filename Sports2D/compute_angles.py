@@ -158,20 +158,20 @@ def points2D_to_angles(points_list):
     ax, ay = points_list[0]
     bx, by = points_list[1]
     
-    if len(points_list) == 2:
-        ux, uy = bx - ax, by - ay
-        vx, vy = 1, 0
+    if len(points_list)==2:
+        ux, uy = bx-ax, by-ay
+        vx, vy = 1,0
 
     elif len(points_list) == 3:
         cx, cy = points_list[2]
-        ux, uy = ax - bx, ay - by
-        vx, vy = cx - bx, cy - by
+        ux, uy = ax-bx, ay-by
+        vx, vy = cx-bx, cy-by
 
     elif len(points_list) == 4:
         cx, cy = points_list[2]
         dx, dy = points_list[3]
-        ux, uy = bx - ax, by - ay
-        vx, vy = dx - cx, dy - cy
+        ux, uy = bx-ax, by-ay
+        vx, vy = dx-cx, dy-cy
 
     ang = np.arctan2(uy, ux) - np.arctan2(vy, vx)
     ang_deg = np.array(np.degrees(np.unwrap(ang * 2) / 2))
@@ -219,6 +219,7 @@ def joint_angles_series_from_points(df_points, angle_params, kpt_thr):
         else:
             return None
 
+    # Compute angles
     points_list = [k.values.T for k in keypt_series]
     ang_series = points2D_to_angles(points_list)
     if ang_series is None:
@@ -226,6 +227,8 @@ def joint_angles_series_from_points(df_points, angle_params, kpt_thr):
     
     ang_series += angle_params[2]
     ang_series *= angle_params[3]
+    # ang_series = np.where(ang_series>180,ang_series-360,ang_series) # handled by np.unwrap in points2D_to_angles()
+    # ang_series = np.where((ang_series==0) | (ang_series==90) | (ang_series==180), +0, ang_series)
     if ang_series.mean() > 180: ang_series -= 360
     if ang_series.mean() < -180: ang_series += 360
     
@@ -264,7 +267,9 @@ def segment_angles_series_from_points(df_points, angle_params, segment, kpt_thr)
 
     ang_series += angle_params[2]
     ang_series *= angle_params[3]
-    
+    # ang_series = np.where(ang_series>180,ang_series-360,ang_series)
+
+    # For trunk: mean between angles RHip-RShoulder and LHip-LShoulder
     if segment == 'Trunk':
         ang_seriesR = ang_series
         angle_params[0] = [a.replace('R','L') for a in angle_params[0]]
@@ -280,7 +285,8 @@ def segment_angles_series_from_points(df_points, angle_params, segment, kpt_thr)
         ang_series += angle_params[2]
         ang_series *= angle_params[3]
         ang_series = np.mean((ang_seriesR, ang_series), axis=0)
-
+        # ang_series = np.where(ang_series>180,ang_series-360,ang_series)
+        
     if ang_series.mean() > 180: ang_series -= 360
     if ang_series.mean() < -180: ang_series += 360
         
