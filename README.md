@@ -204,11 +204,16 @@ If a person suddenly faces the other way, this change of direction is taken into
 Resulting angles can be filtered in the same way as point coordinates, and they can also be plotted.
 
 **Joint angle conventions:**
-- Ankle dorsiflexion: Between heel and big toe, and ankle and knee
-- Knee flexion: Between hip, knee, and ankle 
-- Hip flexion: Between knee, hip, and shoulder
-- Shoulder flexion: Between hip, shoulder, and elbow
-- Elbow flexion: Between wrist, elbow, and shoulder
+- Ankle dorsiflexion: Between heel and big toe, and ankle and knee.\
+  *-90° when the foot is aligned with the shank.*
+- Knee flexion: Between hip, knee, and ankle.\
+  *0° when the shank is aligned with the thigh.*
+- Hip flexion: Between knee, hip, and shoulder.\
+  *0° when the trunk is aligned with the thigh.* 
+- Shoulder flexion: Between hip, shoulder, and elbow.\
+  *180° when the arm is aligned with the trunk.*
+- Elbow flexion: Between wrist, elbow, and shoulder.\
+  *0° when the forearm is aligned with the arm.*
 
 **Segment angle conventions:**\
 Angles are measured anticlockwise between the horizontal and the segment.
@@ -218,6 +223,9 @@ Angles are measured anticlockwise between the horizontal and the segment.
 - Arm: Between shoulder and elbow
 - Forearm: Between elbow and wrist
 - Trunk: Between shoulder midpoint and hip midpoint
+
+<img src="Content/joint_convention.png" width="380">
+
 
 ## How to cite and how to contribute
 
