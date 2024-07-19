@@ -227,38 +227,19 @@ def flip_left_right_direction_webcam(df_points):
         if col not in df_points.columns:
             raise ValueError(f"Required column {col} is missing from the dataframe")
     
-    # Left foot 관련 정보 출력
-    left_foot_keypoints = ['left_big_toe', 'left_small_toe', 'left_heel', 'left_ankle']
-    print("\nLeft Foot Keypoint Information:")
-    for kp in left_foot_keypoints:
-        x = df_points[f'{kp}_x'].values[0]
-        y = df_points[f'{kp}_y'].values[0]
-        score = df_points[f'{kp}_score'].values[0] if f'{kp}_score' in df_points.columns else 'N/A'
-        print(f"{kp}: x={x:.2f}, y={y:.2f}, score={score}")
+    # Calculate orientation
+    right_orientation = df_points['right_big_toe_x'] - df_points['right_heel_x']
+    left_orientation = df_points['left_big_toe_x'] - df_points['left_heel_x']
+    orientation = right_orientation + left_orientation
     
-    right_direction = df_points['right_big_toe_x'] - df_points['right_heel_x']
-    left_direction = df_points['left_big_toe_x'] - df_points['left_heel_x']
+    # Flip X coordinates based on orientation
+    x_columns = [col for col in df_points.columns if col.endswith('_x')]
+    df_points[x_columns] = df_points[x_columns] * np.where(orientation >= 0, 1, -1).reshape(-1, 1)
     
-    print(f"\nRight foot direction: {right_direction.values[0]:.2f}")
-    print(f"Left foot direction: {left_direction.values[0]:.2f}")
-    
-    # 방향 결정 로직
-    if right_direction.values[0] < 0:
-        overall_direction = -1
-    elif left_direction.values[0] > 0:
-        overall_direction = 1
+    if (orientation < 0).any():
+        print("Some coordinates flipped")
     else:
-        overall_direction = 0
-    
-    print(f"Overall direction: {overall_direction}")
-    
-    # 좌표 반전 로직
-    if overall_direction < 0:
-        x_columns = [col for col in df_points.columns if col.endswith('_x')]
-        df_points[x_columns] = -df_points[x_columns]
-        print("Coordinates flipped")
-    else:
-        print("Coordinates not flipped")
+        print("No coordinates flipped")
     
     return df_points
 
@@ -279,16 +260,25 @@ def joint_angles_series_from_points(df_points, angle_params, kpt_thr):
     # print(f"Keypoints to use: {angle_params[0]}")
     
     keypt_series = []
-    print(f"df_points_c : {df_points.columns}")
+    # print(f"df_points columns: {df_points.columns}")
     
     for k in angle_params[0]:
-        if f"{k}_x" in df_points.columns and f"{k}_y" in df_points.columns:
-            keypt = df_points[[f"{k}_x", f"{k}_y"]]
-            # print(f"Keypoint {k} added: {keypt.values[0]}")
-            keypt_series.append(keypt)
+        if f"{k}_x" in df_points.columns and f"{k}_y" in df_points.columns and f"{k}_score" in df_points.columns:
+            score = df_points[f"{k}_score"].values[0]
+            if score >= kpt_thr:
+                keypt = df_points[[f"{k}_x", f"{k}_y"]]
+                # print(f"Keypoint {k} added: {keypt.values[0]}, score: {score}")
+                keypt_series.append(keypt)
+            else:
+                # print(f"Keypoint {k} skipped due to low score: {score}")
+                return None
         else:
-            print(f"Error: Keypoint {k} not found in dataframe")
+            print(f"Error: Keypoint {k} or its score not found in dataframe")
             return None
+
+    if len(keypt_series) != len(angle_params[0]):
+        print(f"Error: Not all required keypoints were found or passed the threshold")
+        return None
 
     # Compute angles
     points_list = [k.values.T for k in keypt_series]
@@ -303,6 +293,7 @@ def joint_angles_series_from_points(df_points, angle_params, kpt_thr):
     if ang_series.mean() > 180: ang_series -= 360
     if ang_series.mean() < -180: ang_series += 360
 
+    # print(f"Final angle for {angle_params[1]}: {ang_series}")
     return ang_series
 
 
@@ -378,7 +369,7 @@ def joint_angles_series_from_csv(df_points, angle_params, kpt_thr):
         try:
             score_series = df_points.xs((k, 'score'), level=[2, 3], axis=1)
         except KeyError:
-            print(f"Key 'score' not found for keypoint '{k}'.")
+            # print(f"Key 'score' not found for keypoint '{k}'.")
             continue
         
         if score_series.max().max() >= kpt_thr:
@@ -429,7 +420,7 @@ def segment_angles_series_from_csv(df_points, angle_params, segment, kpt_thr):
         try:
             score_series = df_points.xs((k, 'score'), level=[2, 3], axis=1)
         except KeyError:
-            print(f"Key 'score' not found for keypoint '{k}'.")
+            # print(f"Key 'score' not found for keypoint '{k}'.")
             continue
         
         if score_series.max().max() >= kpt_thr:
@@ -459,7 +450,7 @@ def segment_angles_series_from_csv(df_points, angle_params, segment, kpt_thr):
             try:
                 score_series = df_points.xs((k, 'score'), level=[2, 3], axis=1)
             except KeyError:
-                print(f"Key 'score' not found for keypoint '{k}'.")
+                # print(f"Key 'score' not found for keypoint '{k}'.")
                 continue
             
             if score_series.max().max() >= kpt_thr:
@@ -477,9 +468,9 @@ def segment_angles_series_from_csv(df_points, angle_params, segment, kpt_thr):
         if ang_series is None:
             return None
         
-        print(f"offset : {angle_params[2]}")
+        # print(f"offset : {angle_params[2]}")
         ang_series += angle_params[2]
-        print(f"direction : {angle_params[3]}")
+        # print(f"direction : {angle_params[3]}")
         ang_series *= angle_params[3]
         ang_series = np.mean((ang_seriesR, ang_series), axis=0)
         
@@ -498,113 +489,73 @@ def adjust_text_scale(frame, base_scale=0.25, base_thickness=1):
     return scale, thickness
 
 def draw_joint_angle(frame, joint, angle, keypoints, scores, kpt_thr):
-    # print(f"Debug: draw_joint_angle called for {joint} with angle {angle}")
     joint_to_keypoints = {
-        "Right ankle": [25, 21, 16, 14],  # heel, big_toe, ankle, knee
-        "Left ankle": [24, 20, 15, 13],   # heel, big_toe, ankle, knee
-        "Right knee": [12, 14, 16],       # hip, knee, ankle
-        "Left knee": [11, 13, 15],        # hip, knee, ankle
-        "Right hip": [14, 12, 6],         # knee, hip, shoulder
-        "Left hip": [13, 11, 5],          # knee, hip, shoulder
-        "Right shoulder": [12, 6, 8],     # hip, shoulder, elbow
-        "Left shoulder": [11, 5, 7],      # hip, shoulder, elbow
-        "Right elbow": [10, 8, 6],        # wrist, elbow, shoulder
-        "Left elbow": [9, 7, 5],          # wrist, elbow, shoulder
+        "Right ankle": [14, 16, 21],  # knee, ankle, big_toe
+        "Left ankle": [13, 15, 20],   # knee, ankle, big_toe
+        "Right knee": [12, 14, 16],   # hip, knee, ankle
+        "Left knee": [11, 13, 15],    # hip, knee, ankle
+        "Right hip": [19, 12, 14],    # hip center, hip, knee
+        "Left hip": [19, 11, 13],     # hip center, hip, knee
+        "Right shoulder": [18, 6, 8], # neck, shoulder, elbow
+        "Left shoulder": [18, 5, 7],  # neck, shoulder, elbow
+        "Right elbow": [6, 8, 10],    # shoulder, elbow, wrist
+        "Left elbow": [5, 7, 9],      # shoulder, elbow, wrist
     }
 
     if joint in joint_to_keypoints:
         pts = [keypoints[i] for i in joint_to_keypoints[joint]]
         scores_pts = [scores[i] for i in joint_to_keypoints[joint]]
         if all(score >= kpt_thr for score in scores_pts):
-            if len(pts) == 4:  # ankle case
-                draw_angle_arc(frame, joint, pts[0], pts[1], pts[2], pts[3], angle)
-            elif len(pts) == 3:  # other joints
-                draw_angle_arc(frame, joint, pts[0], pts[1], pts[2], None, angle)
+            pt1, pt2, pt3 = pts
+            draw_angle_arc(frame, joint, pt1, pt2, pt3, angle)
 
-def draw_angle_arc(frame, joint, pt1, pt2, pt3, pt4, angle):
-    # Convert points to integer tuples
+def draw_angle_arc(frame, joint, pt1, pt2, pt3, angle):
     pt1 = tuple(map(int, pt1))
     pt2 = tuple(map(int, pt2))
     pt3 = tuple(map(int, pt3))
     
-    if pt4 is not None:  # ankle case
-        pt4 = tuple(map(int, pt4))
-        # Calculate vectors for foot and shank
-        v_foot = np.array(pt2) - np.array(pt1)  # big_toe - heel
-        v_shank = np.array(pt4) - np.array(pt3)  # knee - ankle
-        
-        # Calculate angle between foot and shank
-        cosine_angle = np.dot(v_foot, v_shank) / (np.linalg.norm(v_foot) * np.linalg.norm(v_shank))
-        angle_rad = np.arccos(np.clip(cosine_angle, -1.0, 1.0))
-        angle_deg = np.degrees(angle_rad)
-        
-        # Adjust angle based on the dorsiflexion definition
-        angle_deg = 90 - angle_deg  # So that dorsiflexion is positive
-        
-        # Draw lines to connect points
-        # cv2.line(frame, pt1, pt2, (0, 255, 0), 2)  # foot
-        # cv2.line(frame, pt3, pt4, (0, 255, 0), 2)  # shank
-        
-        # Calculate midpoints for arc drawing
-        mid_foot = tuple(map(int, (np.array(pt1) + np.array(pt2)) / 2))
-        mid_shank = tuple(map(int, (np.array(pt3) + np.array(pt4)) / 2))
-        
-        # Draw the arc
-        radius = int(np.linalg.norm(np.array(mid_foot) - np.array(mid_shank)) * 0.3)
-        start_angle = np.degrees(np.arctan2(v_foot[1], v_foot[0]))
-        end_angle = np.degrees(np.arctan2(v_shank[1], v_shank[0]))
-        cv2.ellipse(frame, pt3, (radius, radius), 0, start_angle, end_angle, (0, 255, 0), 2)
-        
-        # Add text for angle
-        text_pos = (pt3[0] + int(radius * 1.2), pt3[1] - int(radius * 0.2))
-        cv2.putText(frame, f"{angle_deg:.1f}", text_pos, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
+    # calculate vectors
+    v1 = np.array(pt1) - np.array(pt2)
+    v2 = np.array(pt3) - np.array(pt2)
     
-    else:  # other joints (original logic)
-        # Calculate vectors
-        v1 = np.array(pt1) - np.array(pt2)
-        v2 = np.array(pt3) - np.array(pt2)
-        
-        # Calculate angle
-        cosine_angle = np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
-        angle_rad = np.arccos(np.clip(cosine_angle, -1.0, 1.0))
-        angle_deg = np.degrees(angle_rad)
-        
-        # Determine the direction of the angle
-        cross_product = np.cross(v1, v2)
-        
-        # Calculate start and end angles
-        start_angle = np.degrees(np.arctan2(v1[1], v1[0]))
-        end_angle = np.degrees(np.arctan2(v2[1], v2[0]))
-        
-        # Ensure the smaller angle is always drawn
-        if abs(end_angle - start_angle) > 180:
-            if end_angle > start_angle:
-                end_angle -= 360
-            else:
-                start_angle -= 360
-        
-        # Calculate radius (adjust based on the length of the limb)
-        limb_length = min(np.linalg.norm(v1), np.linalg.norm(v2))
-        radius = int(limb_length * 0.15)
-        
-        # Determine the direction to draw the arc
-        if cross_product < 0:
-            start_angle, end_angle = end_angle, start_angle
-        
-        # Draw the arc
-        cv2.ellipse(frame, pt2, (radius, radius), 0, start_angle, end_angle, (0, 255, 0), 2)
-        
-        # Add text for angle
-        text_pos = (pt2[0] + int(radius * 1.2), pt2[1] - int(radius * 0.2))
-        cv2.putText(frame, f"{angle:.1f}", text_pos, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
+    # 시작 각도와 끝 각도 계산
+    start_angle = np.degrees(np.arctan2(v1[1], v1[0]))
+    end_angle = np.degrees(np.arctan2(v2[1], v2[0]))
+    
+    # 항상 작은 각을 그리도록 조정
+    if abs(end_angle - start_angle) > 180:
+        if end_angle > start_angle:
+            start_angle += 360
+        else:
+            end_angle += 360
+    
+    # 시작 각도가 항상 작은 값이 되도록 조정
+    if start_angle > end_angle:
+        start_angle, end_angle = end_angle, start_angle
+    
+    # 반지름 계산 (벡터 길이의 평균의 20%)
+    radius = int(0.2 * (np.linalg.norm(v1) + np.linalg.norm(v2)) / 2)
+    
+    # 각도 그리기
+    cv2.ellipse(frame, pt2, (radius, radius), 0, start_angle, end_angle, (0, 255, 0), 2)
+    
+    # 텍스트 위치 계산
+    text_angle = np.radians((start_angle + end_angle) / 2)
+    text_pos = (
+        int(pt2[0] + (radius + 20) * np.cos(text_angle)),
+        int(pt2[1] + (radius + 20) * np.sin(text_angle))
+    )
+    
+    # 각도 텍스트 추가
+    cv2.putText(frame, f"{angle:.1f}", text_pos, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
 
-        # Draw lines to connect points
-        cv2.line(frame, pt1, pt2, (0, 255, 0), 2)
-        cv2.line(frame, pt2, pt3, (0, 255, 0), 2)
+    # 선 그리기
+    cv2.line(frame, pt1, pt2, (0, 255, 0), 2)
+    cv2.line(frame, pt2, pt3, (0, 255, 0), 2)
 
 def draw_segment_angle(frame, segment, angle, keypoints, scores, kpt_thr):
     thickness = 2
-    length = 40
+    length = 20
     color = (255, 0, 0)  # blue 
 
     segment_to_keypoints = {
@@ -614,7 +565,7 @@ def draw_segment_angle(frame, segment, angle, keypoints, scores, kpt_thr):
         "Left shank": [13, 15],
         "Right thigh": [12, 14],
         "Left thigh": [11, 13],
-        "Trunk": [6, 12],
+        "Trunk": [19, 18],
         "Right arm": [6, 8],
         "Left arm": [5, 7],
         "Right forearm": [8, 10],
@@ -856,9 +807,9 @@ def save_imgvid_reID(video_path, video_result_path, df_angles_list, pose_model, 
     # Find csv position files, prepare video and image saving paths
     pose_model = pose_model[0]
     csv_dir = video_result_path.parent / 'pose'
-    print(f"csv_dir: {csv_dir}")
+    # print(f"csv_dir: {csv_dir}")
     csv_paths = list(csv_dir.glob(f'{video_result_path.stem}_person*_angles.csv'))
-    print(f"csv_paths: {csv_paths}")
+    # print(f"csv_paths: {csv_paths}")
     
     if not csv_paths:
         logging.error("No CSV files found in the specified directory.")
@@ -1183,7 +1134,7 @@ def compute_angles_fun(config_dict, video_file):
 
     # Add angles to vid and img
     if show_angles_img or show_angles_vid:
-        print(f"Debug: show_angles_img: {show_angles_img}, show_angles_vid: {show_angles_vid}")
+        # print(f"Debug: show_angles_img: {show_angles_img}, show_angles_vid: {show_angles_vid}")
         video_base = Path(video_dir / video_file)
         video_pose = result_dir / (video_base.stem + '.mp4')
         

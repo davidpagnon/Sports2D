@@ -274,7 +274,7 @@ def json_to_csv(json_path, frame_rate, interp_gap_smaller_than, filter_options, 
     # Retrieve coordinates
     logging.info('Sorting people across frames.')
     json_fnames = sorted(list(json_path.glob('*.json')))
-    print(f"nb json files: {len(json_fnames)}")
+    # print(f"nb json files: {len(json_fnames)}")
     nb_persons_to_detect = max([len(json.load(open(json_fname))['people']) for json_fname in json_fnames])
     Coords = [np.array([]).reshape(0,keypoints_nb*3)] * nb_persons_to_detect
     for json_fname in json_fnames:    # for each frame
@@ -482,6 +482,25 @@ def process_video(video_path, pose_tracker, tracking, output_format, save_video,
     if display_detection:
         cv2.destroyAllWindows()
 
+def get_supported_resolutions(cap):
+    standard_resolutions = [
+        (3840, 2160), (2560, 1440), (1920, 1080), 
+        (1600, 900), (1280, 720), (1024, 576), 
+        (800, 600), (640, 480), (320, 240), (160, 120),
+        (1080, 1920)
+    ]
+    supported_resolutions = []
+    
+    for width, height in standard_resolutions:
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+        actual_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        actual_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        if actual_width == width and actual_height == height:
+            supported_resolutions.append((width, height))
+    
+    return supported_resolutions
+
 # if input is a webcam
 def process_webcam(pose_tracker, openpose_skeleton, joint_angles, segment_angles, save_video, save_images, interp_gap_smaller_than, filter_options, show_plots, flip_left_right):
     cap = cv2.VideoCapture(0)
@@ -489,16 +508,27 @@ def process_webcam(pose_tracker, openpose_skeleton, joint_angles, segment_angles
         print("Error: Could not open webcam.")
         return
 
-    # Set webcam resolution 
-    width = 1280
-    height = 720
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
-
+    # 지원되는 해상도 가져오기
+    supported_resolutions = get_supported_resolutions(cap)
+    
+    if supported_resolutions:
+        # 최고 해상도 선택
+        highest_resolution = max(supported_resolutions, key=lambda res: res[0] * res[1])
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, highest_resolution[0])
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, highest_resolution[1])
+        print(f"최고 해상도로 설정되었습니다: {highest_resolution[0]}x{highest_resolution[1]}")
+    else:
+        print("지원되는 해상도를 찾을 수 없습니다. 기본 해상도로 설정합니다.")
+        # 기본 해상도 설정
+        width = 1280
+        height = 720
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+    
+    # 설정된 해상도 확인
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-
-    print(f"Set resolution to: {width}x{height}")
+    print(f"설정된 해상도: {width}x{height}")
 
     cv2.namedWindow("Real-time Pose Estimation", cv2.WINDOW_NORMAL)
     kpt_thr = 0.3
@@ -553,7 +583,7 @@ def process_webcam(pose_tracker, openpose_skeleton, joint_angles, segment_angles
 
             df_angles_list_frame = []
             for person_idx, (person_keypoints, person_scores) in enumerate(zip(keypoints, scores)):
-                if np.sum(person_scores >= kpt_thr) < len(person_keypoints) * 0.3:
+                if np.sum(person_scores >= kpt_thr) < len(person_keypoints) * 0.4:
                     continue  
 
                 df_points = common.convert_keypoints_to_dataframe(person_keypoints, person_scores)
@@ -760,7 +790,7 @@ def detect_pose_fun(config_dict, video_file):
     elif data_type == 'webcam':
         # Define necessary parameters for webcam processing
         joint_angles = config_dict.get('compute_angles').get('joint_angles', [])
-        print(f" joint_angles form config : {joint_angles}")
+        # print(f" joint_angles form config : {joint_angles}")
         segment_angles = config_dict.get('compute_angles').get('segment_angles', [])
 
         # Process webcam feed
