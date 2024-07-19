@@ -17,9 +17,13 @@
 ## INIT
 import sys
 import numpy as np
+import pandas as pd
+import re
+from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget, QTabWidget, QVBoxLayout
+from PyQt5.QtCore import Qt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
-from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget, QTabWidget, QVBoxLayout
+import matplotlib.pyplot as plt
 from scipy import interpolate
 
 
@@ -49,11 +53,11 @@ class plotWindow():
     plt.plot(x2, y2)
     pw.addPlot("2", f)
     '''
-
     def __init__(self, parent=None):
-        self.app = QApplication(sys.argv)
+        self.app = QApplication.instance()
+        if not self.app:
+            self.app = QApplication(sys.argv)
         self.MainWindow = QMainWindow()
-        self.MainWindow.__init__()
         self.MainWindow.setWindowTitle("Multitabs figure")
         self.canvases = []
         self.figure_handles = []
@@ -84,8 +88,7 @@ class plotWindow():
         self.tab_handles.append(new_tab)
 
     def show(self):
-        self.app.exec_() 
-        
+        self.app.exec_()
         
 ## FUNCTIONS
 def interpolate_zeros_nans(col, *args):
@@ -133,3 +136,54 @@ def interpolate_zeros_nans(col, *args):
         col_interp = col.copy()
     
     return col_interp
+
+def natural_sort_key(s):
+    return [int(c) if c.isdigit() else c.lower() for c in re.split(r'(\d+)', s)]
+
+def adjust_text_scale(frame, base_scale=0.25, base_thickness=1):
+    height, width, _ = frame.shape
+    scale = base_scale * (width / 640)
+    thickness = int(base_thickness * (width / 640))
+    return scale, thickness
+
+
+# It should be followed halpe26 foramt
+def convert_keypoints_to_dataframe(keypoints, scores):   
+    data = []
+    for kp, score in zip(keypoints, scores):
+        data.extend([kp[0], kp[1], score])
+    
+    keypoint_names = [
+        "nose",
+          "left_eye",
+            "right_eye", 
+            "left_ear", 
+            "right_ear",
+        "left_shoulder",
+          "right_shoulder",
+            "left_elbow",
+              "right_elbow",
+        "left_wrist",
+          "right_wrist",
+            "left_hip",
+              "right_hip",
+        "left_knee",
+          "right_knee",
+            "left_ankle",
+              "right_ankle",
+        "head",
+          "neck",
+            "hip",
+        "left_big_toe",
+          "right_big_toe",
+            "left_small_toe",
+        "right_small_toe",
+          "left_heel", 
+        "right_heel"
+    ]
+    
+    columns = []
+    for name in keypoint_names:
+        columns.extend([f"{name}_x", f"{name}_y", f"{name}_score"])
+    
+    return pd.DataFrame([data], columns=columns)

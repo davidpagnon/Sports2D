@@ -164,6 +164,8 @@ def detect_pose(config='Config_demo.toml'):
     Optionally interpolates missing data, filters them, and displays figures.
     '''
 
+    from Sports2D.detect_pose import detect_pose_fun
+    
     config_dict = read_config_file(config)
     _, video_files, result_dir, _ = base_params(config_dict)
         
@@ -171,22 +173,16 @@ def detect_pose(config='Config_demo.toml'):
     logging.basicConfig(format='%(message)s', level=logging.INFO, force=True, 
         handlers = [logging.handlers.TimedRotatingFileHandler(result_dir / 'logs.txt', when='D', interval=7), logging.StreamHandler()]) 
     
-    pose_algo = config_dict.get('pose').get('pose_algo')
-    
-    if pose_algo == 'RTMPOSE':
-        rtm_estimator(config_dict)
-    else:
-        from Sports2D.detect_pose import detect_pose_fun
-        for video_file in video_files:
-            logging.info("\n\n---------------------------------------------------------------------")
-            logging.info(f"Detecting pose for video {video_file}")
-            logging.info("---------------------------------------------------------------------")
-            start = time.time()
-            
-            detect_pose_fun(config_dict, video_file)
-            
-            end = time.time()
-            logging.info(f'Pose detection took {end-start:.2f} s.')
+    for video_file in video_files:
+        logging.info("\n\n---------------------------------------------------------------------")
+        logging.info(f"Detecting pose for video {video_file}")
+        logging.info("---------------------------------------------------------------------")
+        start = time.time()
+        
+        detect_pose_fun(config_dict, video_file)
+        
+        end = time.time()
+        logging.info(f'Pose detection took {end-start:.2f} s.')
     
     
 def compute_angles(config='Config_demo.toml'):

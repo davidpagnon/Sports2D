@@ -19,37 +19,15 @@ result_dir = '' # BETWEEN SINGLE QUOTES! # If empty, project dir is current dir
 
 
 [pose]
-pose_algo = 'RTMPOSE' # 'OPENPOSE' or 'BLAZEPOSE' 
-# OpenPose is more accurate and supports multi-person detection, but needs to be installed separately	
-# Coming soon: 'deeplabcut', 'alphapose'
-	
-	[pose.BLAZEPOSE]
-	# 0,1,2. 2 is slightly slower but more accurate
-	model_complexity = 2 
-		
-	[pose.OPENPOSE]
-	# Install OpenPose from https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/installation/0_index.md
-	# BODY_25 is standard, BODY_25B is more accurate but requires downloading the model from 
-	# https://github.com/CMU-Perceptual-Computing-Lab/openpose_train/blob/master/experimental_models/README.md
-	openpose_model = 'BODY_25' 
-	
-	# Installation path of openpose (between single quotes) 
-	openpose_path = 'D:\softs\openpose-1.6.0-binaries-win64-gpu-flir-3d_recommended\openpose'
-	
-[pose_demo]
 data_type = "webcam"
 video_path = "path/to/your/video.mp4"
-device = "cpu"
-backend = "openvino"
 det_frequency = 1
-mode = "balanced"
+mode = "performance"
+keypoints_threshold = 0.3
 tracking = false
 to_openpose = false
-save_video = true
-save_images = true
 display_detection = true
 frame_range = []
-output_format = "openpose"
 
 	
 
@@ -72,7 +50,7 @@ overwrite_pose = false # If false, don't run openpose again if json pose files a
 save_vid = true
 save_img = true
 interp_gap_smaller_than = 5 # do not interpolate bigger gaps
-filter = true
+filter = false
 show_plots = false
 filter_type = 'butterworth' # butterworth, gaussian, LOESS, median
    [pose_advanced.butterworth]
@@ -89,8 +67,8 @@ filter_type = 'butterworth' # butterworth, gaussian, LOESS, median
 [compute_angles_advanced] # for OPENPOSE and BLAZEPOSE
 show_angles_on_img = true
 show_angles_on_vid = true
-filter = false
-show_plots = false
+filter = true
+show_plots = true
 flip_left_right = true # Same angles whether the participant faces left/right. Set it to false if you want timeseries to be continuous even when the participent switches their stance.
 filter_type = 'butterworth' # butterworth, gaussian, LOESS, median
    [compute_angles_advanced.butterworth]

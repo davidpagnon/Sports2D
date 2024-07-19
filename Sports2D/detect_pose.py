@@ -52,9 +52,22 @@ import pandas as pd
 import cv2
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+import re
+from tqdm import tqdm
+import torch
+import onnxruntime as ort
+from datetime import datetime
 from Sports2D.Sports2D import base_params
-from Sports2D.Utilities import Blazepose_runsave, filter, common
-from Sports2D.Utilities.skeletons import *
+from Sports2D.compute_angles import (
+    get_joint_angle_params,
+    get_segment_angle_params, 
+    joint_angles_series_from_points, 
+    segment_angles_series_from_points, 
+    overlay_angles,
+    flip_left_right_direction_webcam)
+from Sports2D.Utilities import filter, common
+from Sports2D.Utilities.skeletons import halpe26_rtm
+from rtmlib import PoseTracker, BodyWithFeet, draw_skeleton
 
 
 ## AUTHORSHIP INFORMATION
@@ -66,6 +79,7 @@ __version__ = "0.3.0"
 __maintainer__ = "David Pagnon"
 __email__ = "contact@david-pagnon.com"
 __status__ = "Development"
+
 
 
 # FUNCTIONS
@@ -104,65 +118,6 @@ def display_figures_fun(df_list):
         pw.addPlot(keypoint, f)
     
     pw.show()
-    
-
-def run_openpose_windows(video_path, json_path, pose_model):
-    '''
-    Use a subprocess to run OpenPoseDemo.exe, and saves json coordinate files.
-     
-    INPUTS:
-    - video_path: Path of the video to analyze
-    - json_path: Path of the directory where to save json files
-    - pose_model: string. "BODY_25B", "BODY_25", or others.
-          
-    OUTPUTS:
-    - json files in json_path
-    '''
-
-    subprocess.run(["bin\OpenPoseDemo.exe", "--video", video_path, \
-    "--model_pose", pose_model, \
-    "--write_json", json_path, \
-    "--render_pose", "0", "--display", "0"])
-
-
-def run_openpose_linux(video_path, json_path, pose_model):
-    '''
-    Use a subprocess to run openpose.bin, and saves json coordinate files.
-     
-    INPUTS:
-    - video_path: Path of the video to analyze
-    - json_path: Path of the directory where to save json files
-    - pose_model: string. "BODY_25B", "BODY_25", or others.
-          
-    OUTPUTS:
-    - json files in json_path
-    '''
-    
-    subprocess.run(["./build/examples/openpose/openpose.bin", "--video", video_path, \
-    "--model_pose", pose_model, \
-    "--write_json", json_path, \
-    "--render_pose", "0", "--display", "0"])
-
-
-def run_openpose_mac(video_path, json_path, pose_model):
-    '''
-    Use a subprocess to run openpose.bin, and saves json coordinate files.
-    WARNING: not tested.
-     
-    INPUTS:
-    - video_path: Path of the video to analyze
-    - json_path: Path of the directory where to save json files
-    - pose_model: string. "BODY_25B", "BODY_25", or others.
-          
-    OUTPUTS:
-    - json files in json_path
-    '''
-
-    subprocess.run(["./build/examples/openpose/openpose.bin", "--video", video_path, \
-    "--model_pose", pose_model, \
-    "--write_json", json_path, \
-    "--render_pose", "0", "--display", "0"])
-    
     
 def euclidean_distance(q1, q2):
     '''
@@ -265,8 +220,35 @@ def sort_people(keyptpre, keypt, nb_persons_to_detect):
     
     return keypt
 
+def save_to_openpose(json_file_path, keypoints, scores):
+    nb_detections = len(keypoints)
+    detections = []
+    for i in range(nb_detections):
+        keypoints_with_confidence_i = []
+        for kp, score in zip(keypoints[i], scores[i]):
+            keypoints_with_confidence_i.extend([kp[0].item(), kp[1].item(), score.item()])
+        detections.append({
+            "person_id": [-1],
+            "pose_keypoints_2d": keypoints_with_confidence_i,
+            "face_keypoints_2d": [],
+            "hand_left_keypoints_2d": [],
+            "hand_right_keypoints_2d": [],
+            "pose_keypoints_3d": [],
+            "face_keypoints_3d": [],
+            "hand_left_keypoints_3d": [],
+            "hand_right_keypoints_3d": []
+        })
+    
+    json_output = {"version": 1.3, "people": detections}
+    
+    json_output_dir = os.path.abspath(os.path.join(json_file_path, '..'))
+    if not os.path.isdir(json_output_dir): 
+        os.makedirs(json_output_dir)
+    with open(json_file_path, 'w') as json_file:
+        json.dump(json_output, json_file)
 
-def json_to_csv(json_path, frame_rate, pose_model, interp_gap_smaller_than, filter_options, show_plots):
+
+def json_to_csv(json_path, frame_rate, interp_gap_smaller_than, filter_options, show_plots):
     '''
     Converts frame-by-frame json coordinate files 
     to one csv files per detected person
@@ -283,14 +265,16 @@ def json_to_csv(json_path, frame_rate, pose_model, interp_gap_smaller_than, filt
     '''
         
     # Retrieve keypoint names from model
-    model = eval(pose_model)
-    keypoints_ids = [node.id for _, _, node in RenderTree(model) if node.id!=None]
-    keypoints_names = [node.name for _, _, node in RenderTree(model) if node.id!=None]
+    model = halpe26_rtm
+    keypoints_info = model['keypoint_info']
+    keypoints_ids = [kp['id'] for kp in keypoints_info.values()]
+    keypoints_names = [kp['name'] for kp in keypoints_info.values()]
     keypoints_nb = len(keypoints_ids)
 
     # Retrieve coordinates
     logging.info('Sorting people across frames.')
     json_fnames = sorted(list(json_path.glob('*.json')))
+    print(f"nb json files: {len(json_fnames)}")
     nb_persons_to_detect = max([len(json.load(open(json_fname))['people']) for json_fname in json_fnames])
     Coords = [np.array([]).reshape(0,keypoints_nb*3)] * nb_persons_to_detect
     for json_fname in json_fnames:    # for each frame
@@ -323,7 +307,7 @@ def json_to_csv(json_path, frame_rate, pose_model, interp_gap_smaller_than, filt
         individuals = [f'person{i}']*(keypoints_nb*3+1)
         bodyparts = [[p]*3 for p in keypoints_names]
         bodyparts = ['Time']+[item for sublist in bodyparts for item in sublist]
-        coords = ['seconds']+['x', 'y', 'likelihood']*keypoints_nb
+        coords = ['seconds']+['x', 'y', 'score']*keypoints_nb
         tuples = list(zip(scorer, individuals, bodyparts, coords))
         index_csv = pd.MultiIndex.from_tuples(tuples, names=['scorer', 'individuals', 'bodyparts', 'coords'])
 
@@ -365,84 +349,6 @@ def json_to_csv(json_path, frame_rate, pose_model, interp_gap_smaller_than, filt
             display_figures_fun(df_list)
             
 
-def draw_bounding_box(X, Y, img):
-    '''
-    Draw bounding boxes and person ID
-    around list of lists of X and Y coordinates
-    
-    INPUTS:
-    - X: list of list of x coordinates
-    - Y: list of list of y coordinates
-    - img: opencv image
-    
-    OUTPUT:
-    - img: image with rectangles and person IDs
-    '''
-    
-    cmap = plt.cm.hsv
-    
-    # Draw rectangles
-    [cv2.rectangle(img, 
-        (np.nanmin(x).astype(int)-25, np.nanmin(y).astype(int)-25), 
-        (np.nanmax(x).astype(int)+25, np.nanmax(y).astype(int)+25), 
-        (np.array(cmap((i+1)/len(X)))*255).tolist(), 
-        2) 
-        for i,(x,y) in enumerate(zip(X,Y)) if not np.isnan(x).all()]
- 
-    # Write person ID
-    [cv2.putText(img, str(i),
-        (np.nanmin(x).astype(int), np.nanmin(y).astype(int)), 
-        cv2.FONT_HERSHEY_SIMPLEX, 1,
-        (np.array(cmap((i+1)/len(X)))*255).tolist(),
-        2, cv2.LINE_AA) 
-        for i,(x,y) in enumerate(zip(X,Y)) if not np.isnan(x).all()]
-    
-    return img
-
-
-def draw_keypts_skel(X, Y, img, *pose_model):
-    '''
-    Draws keypoints and optionally skeleton for each person
-
-    INPUTS:
-    - X: list of list of x coordinates
-    - Y: list of list of y coordinates
-    - img: opencv image
-    
-    OUTPUT:
-    - img: image with keypoints and skeleton
-    '''
-    
-    model = eval(pose_model[0])
-    cmap = plt.cm.hsv
-    
-    # Draw keypoints (same color for same keypoint)
-    for (x,y) in zip(X,Y):
-        [cv2.circle(img, (int(x[i]), int(y[i])), 5,
-            (255,255,255),
-            -1)
-            for i in range(len(x))
-            if not (np.isnan(x[i]) or np.isnan(y[i]))]
-    
-    # Draw skeleton
-    if pose_model != None:
-        eval(pose_model[0])
-        # Get (unique) pairs between which to draw a line
-        node_pairs = []
-        for data_i in PreOrderIter(model.root, filter_=lambda node: node.is_leaf):
-            node_branches = [node_i.id for node_i in data_i.path[1:]]
-            node_pairs += [[node_branches[i],node_branches[i+1]] for i in range(len(node_branches)-1)]
-        node_pairs = [list(x) for x in set(tuple(x) for x in node_pairs)]
-        # Draw lines
-        for (x,y) in zip(X,Y):
-            [cv2.line(img,
-            (int(x[n[0]]), int(y[n[0]])), (int(x[n[1]]), int(y[n[1]])),
-            (np.array(cmap((i+1)/len(node_pairs)))*255).tolist(), 
-            2)
-            for i, n in enumerate(node_pairs)
-            if not (np.isnan(x[n[0]]) or np.isnan(y[n[0]]) or np.isnan(x[n[1]]) or np.isnan(y[n[1]]))]
-    
-    return img
 
 
 def rewrite_vid(video_path):
@@ -471,80 +377,265 @@ def rewrite_vid(video_path):
     cap.release()
     writer.release()
 
-
-def save_imgvid_reID(video_path, video_result_path, save_vid=1, save_img=1, *pose_model):
+# if input is a video
+def process_video(video_path, pose_tracker, tracking, output_format, save_video, save_images, display_detection, frame_range):
     '''
-    Displays json 2d detections overlayed on original raw images.
-    High confidence keypoints are green, low confidence ones are red.
-     
-    Note: See 'json_display_without_img.py' if you only want to display the
-    json coordinates on an animated graph or if don't have the original raw
-    images.
+    Estimate pose from a video file
     
-    Usage: 
-    json_display_with_img -j "<json_folder>" -i "<raw_img_folder>"
-    json_display_with_img -j "<json_folder>" -i "<raw_img_folder>" -o "<output_img_folder>" -d True -s True
-    import json_display_with_img; json_display_with_img.json_display_with_img_func(json_folder=r'<json_folder>', raw_img_folder=r'<raw_img_folder>')
+    INPUTS:
+    - video_path: str. Path to the input video file
+    - pose_tracker: PoseTracker. Initialized pose tracker object from RTMLib
+    - tracking: bool. Whether to give consistent person ID across frames
+    - output_format: str. Output format for the pose estimation results ('openpose', 'mmpose', 'deeplabcut')
+    - save_video: bool. Whether to save the output video
+    - save_images: bool. Whether to save the output images
+    - display_detection: bool. Whether to show real-time visualization
+    - frame_range: list. Range of frames to process
+
+    OUTPUTS:
+    - JSON files with the detected keypoints and confidence scores in the OpenPose format
+    - if save_video: Video file with the detected keypoints and confidence scores drawn on the frames
+    - if save_images: Image files with the detected keypoints and confidence scores drawn on the frames
     '''
-            
-    # Find csv position files, prepare video and image saving paths
-    pose_model = pose_model[0]
-    csv_paths = list(video_result_path.parent.glob(f'*{video_result_path.stem}*{pose_model}*points*refined*.csv'))
-    if csv_paths == []:
-        csv_paths = list(video_result_path.parent.glob(f'*{video_result_path.stem}*{pose_model}*points*.csv'))
-        
-    # Open csv files
-    coords = []
+
     try:
-        for c in csv_paths:
-            with open(c) as c_f:
-                coords += [pd.read_csv(c_f, header=[0,1,2,3])]
+        cap = cv2.VideoCapture(video_path)
+        cap.read()
+        if cap.read()[0] == False:
+            raise
     except:
-        logging.warning('No csv files found.')
+        raise NameError(f"{video_path} is not a video. Images must be put in one subdirectory per camera.")
+    
+    pose_dir = os.path.abspath(os.path.join(video_path, '..', 'pose'))
+    if not os.path.isdir(pose_dir): os.makedirs(pose_dir)
+    video_name_wo_ext = os.path.splitext(os.path.basename(video_path))[0]
+    json_output_dir = os.path.join(pose_dir, f'{video_name_wo_ext}_json')
+    output_video_path = os.path.join(pose_dir, f'{video_name_wo_ext}_pose.mp4')
+    img_output_dir = os.path.join(pose_dir, f'{video_name_wo_ext}_img')
+    
+    if save_video: # Set up video writer
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v') # Codec for the output video
+        fps = cap.get(cv2.CAP_PROP_FPS) # Get the frame rate from the raw video
+        W, H = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) # Get the width and height from the raw video
+        out = cv2.VideoWriter(output_video_path, fourcc, fps, (W, H)) # Create the output video file
+        
+    if display_detection:
+        cv2.namedWindow(f"Pose Estimation {os.path.basename(video_path)}", cv2.WINDOW_NORMAL + cv2.WINDOW_KEEPRATIO)
+
+    frame_idx = 0
+    cap = cv2.VideoCapture(video_path)
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    f_range = [[total_frames] if frame_range==[] else frame_range][0]
+    with tqdm(total=total_frames, desc=f'Processing {os.path.basename(video_path)}') as pbar:
+        while cap.isOpened():
+            # print('\nFrame ', frame_idx)
+            success, frame = cap.read()
+            if not success:
+                break
+            
+            if frame_idx in range(*f_range):
+                # Perform pose estimation on the frame
+                keypoints, scores = pose_tracker(frame)
+
+                # Reorder keypoints, scores
+                if tracking:
+                    max_id = max(pose_tracker.track_ids_last_frame)
+                    num_frames, num_points, num_coordinates = keypoints.shape
+                    keypoints_filled = np.zeros((max_id+1, num_points, num_coordinates))
+                    scores_filled = np.zeros((max_id+1, num_points))
+                    keypoints_filled[pose_tracker.track_ids_last_frame] = keypoints
+                    scores_filled[pose_tracker.track_ids_last_frame] = scores
+                    keypoints = keypoints_filled
+                    scores = scores_filled
+
+                # Save to json
+                if 'openpose' in output_format:
+                    json_file_path = os.path.join(json_output_dir, f'{video_name_wo_ext}_{frame_idx:06d}.json')
+                    save_to_openpose(json_file_path, keypoints, scores)
+
+                # Draw skeleton on the frame
+                if display_detection or save_video or save_images:
+                    img_show = frame.copy()
+                    img_show = draw_skeleton(img_show, keypoints, scores, kpt_thr=0.1) # maybe change this value if 0.1 is too low
+                
+                if display_detection:
+                    cv2.imshow(f"Pose Estimation {os.path.basename(video_path)}", img_show)
+                    if cv2.waitKey(1) & 0xFF == ord('q'):
+                        break
+
+                if save_video:
+                    out.write(img_show)
+
+                if save_images:
+                    if not os.path.isdir(img_output_dir): os.makedirs(img_output_dir)
+                    cv2.imwrite(os.path.join(img_output_dir, f'{video_name_wo_ext}_{frame_idx:06d}.png'), img_show)
+
+            frame_idx += 1
+            pbar.update(1)
+
+    cap.release()
+    if save_video:
+        out.release()
+        logging.info(f"--> Output video saved to {output_video_path}.")
+    if save_images:
+        logging.info(f"--> Output images saved to {img_output_dir}.")
+    if display_detection:
+        cv2.destroyAllWindows()
+
+# if input is a webcam
+def process_webcam(pose_tracker, openpose_skeleton, joint_angles, segment_angles, save_video, save_images, interp_gap_smaller_than, filter_options, show_plots, flip_left_right):
+    cap = cv2.VideoCapture(0)
+    if not cap.isOpened():
+        print("Error: Could not open webcam.")
         return
 
-    # Open video frame by frame
-    cap = cv2.VideoCapture(str(video_path))
-    W, H = cap.get(cv2.CAP_PROP_FRAME_WIDTH), cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    if (cap.isOpened()== False): 
-        print("Error opening video stream or file")
-    if save_vid:
-        video_pose_path = video_result_path.parent / (video_result_path.stem + '_' + pose_model + '.mp4')
+    # Set webcam resolution 
+    width = 1280
+    height = 720
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+    print(f"Set resolution to: {width}x{height}")
+
+    cv2.namedWindow("Real-time Pose Estimation", cv2.WINDOW_NORMAL)
+    kpt_thr = 0.3
+
+    frame_rate = cap.get(cv2.CAP_PROP_FPS)
+    if frame_rate == 0 or frame_rate is None:
+        frame_rate = 30
+    print(f"Webcam frame rate: {frame_rate}")
+
+    current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_dir = Path(os.path.join(os.getcwd(), f'realtime_pose_output_{current_time}'))
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    json_output_dir = output_dir / 'json'
+    json_output_dir.mkdir(parents=True, exist_ok=True)
+
+    video_writer = None
+    if save_video:
+        video_output_path = str(output_dir / 'output_video.mp4')
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        writer = cv2.VideoWriter(str(video_pose_path), fourcc, fps, (int(W), int(H)))
-    if save_img:
-        img_pose_path = video_result_path.parent / (video_result_path.stem + '_' + pose_model + '_img')
-        img_pose_path.mkdir(parents=True, exist_ok=True)  
-        
-    f = 0
-    while(cap.isOpened()):
-        ret, frame = cap.read()
-        try:
-            X = [np.array(coord.iloc[f,2::3]) for coord in coords]
-            X = [np.where(x==0., np.nan, x) for x in X]
-            Y = [np.array(coord.iloc[f,3::3]) for coord in coords]
-            Y = [np.where(y==0., np.nan, y) for y in Y]
+        video_writer = cv2.VideoWriter(video_output_path, fourcc, frame_rate, (width, height))
+        if not video_writer.isOpened():
+            print("Error: Could not create video writer.")
+            save_video = False
 
-            # Draw bounding box
-            frame = draw_bounding_box(X, Y, frame)
+    if save_images:
+        img_output_dir = output_dir / 'images'
+        img_output_dir.mkdir(parents=True, exist_ok=True)
+    
+    frame_count = 0
 
-            # Draw keypoints and skeleton
-            frame = draw_keypts_skel(X, Y, frame, pose_model)
+    # Joint angles and segment angles dictionaries
+    joint_angles_data = {}
+    segment_angles_data = {}
+
+    try:
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                print("Failed to grab frame")
+                break
+
+            frame_count += 1
+            scale, thickness = common.adjust_text_scale(frame)
+            keypoints, scores = pose_tracker(frame)
             
-            # Save video and images
-            if save_vid:
-                writer.write(frame)
-            if save_img:
-                cv2.imwrite(str( img_pose_path / (video_result_path.stem+'_'+pose_model+'.'+str(f).zfill(5)+'.png' )), frame)
+            img_show = frame.copy()
+            img_show = draw_skeleton(img_show, keypoints, scores, openpose_skeleton=openpose_skeleton, kpt_thr=kpt_thr)
 
-        except: 
-            break
-        f += 1
-    cap.release()
-    if save_vid:
-        writer.release()
+            json_file_path = json_output_dir / f'frame_{frame_count:06d}.json'
+            save_to_openpose(json_file_path, keypoints, scores)
 
+            df_angles_list_frame = []
+            for person_idx, (person_keypoints, person_scores) in enumerate(zip(keypoints, scores)):
+                if np.sum(person_scores >= kpt_thr) < len(person_keypoints) * 0.3:
+                    continue  
+
+                df_points = common.convert_keypoints_to_dataframe(person_keypoints, person_scores)
+                if flip_left_right:
+                    df_points = flip_left_right_direction_webcam(df_points)
+                
+                joint_angle_values = {}
+                segment_angle_values = {}
+                
+                for joint in joint_angles:
+                    angle_params = get_joint_angle_params(joint)
+
+                    if angle_params:
+                        angle = joint_angles_series_from_points(df_points, angle_params, kpt_thr)
+                        if angle is not None:
+                            joint_angle_values[joint] = angle[0]
+                
+                for segment in segment_angles:
+                    angle_params = get_segment_angle_params(segment)
+                    if angle_params:
+                        angle = segment_angles_series_from_points(df_points, angle_params, segment, kpt_thr)
+                        if angle is not None:
+                            segment_angle_values[segment] = angle[0]
+                
+                df_angles_list_frame.append({**joint_angle_values, **segment_angle_values})
+                
+                # Add joint and segment angles to the dictionaries
+                if person_idx not in joint_angles_data:
+                    joint_angles_data[person_idx] = []
+                if person_idx not in segment_angles_data:
+                    segment_angles_data[person_idx] = []
+                
+                joint_angles_data[person_idx].append(joint_angle_values)
+                segment_angles_data[person_idx].append(segment_angle_values)
+
+            img_show = overlay_angles(img_show, df_angles_list_frame, keypoints, scores, kpt_thr)
+
+            cv2.imshow("Real-time Pose Estimation", img_show)
+            
+            if save_video and video_writer is not None:
+                video_writer.write(img_show)
+
+            if save_images:
+                cv2.imwrite(str(img_output_dir / f'frame_{frame_count:06d}.png'), img_show)
+            
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+
+            print(f"Processed frame {frame_count}", end='\r')
+
+    except KeyboardInterrupt:
+        print("\nInterrupted by user")
+    finally:
+        cap.release()
+        if video_writer is not None:
+            video_writer.release()
+        cv2.destroyAllWindows()
+
+    print(f"\nTotal frames processed: {frame_count}")
+
+    # Save joint angles and segment angles to CSV files for each person
+    for person_idx in joint_angles_data.keys():
+        joint_angles_df = pd.DataFrame(joint_angles_data[person_idx])
+        segment_angles_df = pd.DataFrame(segment_angles_data[person_idx])
+
+        joint_angles_df.to_csv(output_dir / f'joint_angles_person_{person_idx}.csv', index=False)
+        segment_angles_df.to_csv(output_dir / f'segment_angles_person_{person_idx}.csv', index=False)
+
+    if filter_options[0]:
+        filter_options = list(filter_options)
+        filter_options[4] = frame_rate
+        filter_options = tuple(filter_options)
+    
+    json_to_csv(json_output_dir, frame_rate, interp_gap_smaller_than, filter_options, show_plots)
+
+    print(f"Output saved to: {output_dir}")
+    print(f"JSON files: {json_output_dir}")
+    if save_video:
+        print(f"Video file: {video_output_path}")
+    if save_images:
+        print(f"Image files: {img_output_dir}")
+    print(f"CSV files: {json_output_dir.parent}")
 
 def detect_pose_fun(config_dict, video_file):
     '''
@@ -581,12 +672,24 @@ def detect_pose_fun(config_dict, video_file):
     # Retrieve parameters
     root_dir = os.getcwd()
     video_dir, video_files, result_dir, frame_rate = base_params(config_dict)
-    pose_algo = config_dict.get('pose').get('pose_algo')
-    
+
+    #pose settings
+    mode = config_dict.get('pose').get('mode')
+    data_type = config_dict.get('pose').get('data_type', 'video')  # Default to 'video' if not specified
+    frame_range = config_dict.get('pose').get('frame_range', [])
+    mode = config_dict['pose']['mode']
+    det_frequency = config_dict['pose']['det_frequency']
+    tracking = config_dict['pose']['tracking']
+    openpose_skeleton = config_dict['pose']['to_openpose']
+    display_detection = config_dict['pose']['display_detection']
+    output_format = "openpose"
+
+    # Advanced pose settings
     load_pose = not config_dict.get('pose_advanced').get('overwrite_pose')
     save_vid = config_dict.get('pose_advanced').get('save_vid')
     save_img = config_dict.get('pose_advanced').get('save_img')
     interp_gap_smaller_than = config_dict.get('pose_advanced').get('interp_gap_smaller_than')
+    flip_left_right = config_dict.get('compute_angles_advanced').get('flip_left_right')
     
     show_plots = config_dict.get('pose_advanced').get('show_plots')
     do_filter = config_dict.get('pose_advanced').get('filter')
@@ -598,64 +701,73 @@ def detect_pose_fun(config_dict, video_file):
     median_filter_kernel = config_dict.get('pose_advanced').get('median').get('kernel_size')
     filter_options = (do_filter, filter_type, butterworth_filter_order, butterworth_filter_cutoff, frame_rate, gaussian_filter_kernel, loess_filter_kernel, median_filter_kernel)
     
-    video_file_stem = video_file.stem
-    video_path = video_dir / video_file
-    video_result_path = result_dir / video_file
+    # Determine device and backend for RTMPose
+    if 'CUDAExecutionProvider' in ort.get_available_providers() and torch.cuda.is_available():
+        device = 'cuda'
+        backend = 'onnxruntime'
+        logging.info(f"\nValid CUDA installation found: using ONNXRuntime backend with GPU.")
+    elif 'MPSExecutionProvider' in ort.get_available_providers() or 'CoreMLExecutionProvider' in ort.get_available_providers():
+        device = 'mps'
+        backend = 'onnxruntime'
+        logging.info(f"\nValid MPS installation found: using ONNXRuntime backend with GPU.")
+    else:
+        device = 'cpu'
+        backend = 'openvino'
+        logging.info(f"\nNo valid CUDA installation found: using OpenVINO backend with CPU.")
 
-    if pose_algo == 'OPENPOSE':
-        pose_model = config_dict.get('pose').get('OPENPOSE').get('openpose_model')
-        json_path = result_dir / '_'.join((video_file_stem,'json'))
+    # Initialize the pose tracker with Halpe26 model
+    pose_tracker = PoseTracker(
+        BodyWithFeet,
+        det_frequency=det_frequency,
+        mode=mode,
+        backend=backend,
+        device=device,
+        tracking=tracking,  # Ensure consistent person IDs across frames
+        to_openpose=False)  # We'll handle the conversion ourselves
+
+    if data_type == 'video':
+        if video_file is None:
+            raise ValueError("Video file path is required when data_type is 'video'")
+        
+        video_file_stem = video_file.stem
+        video_path = video_dir / video_file
+        video_result_path = result_dir / video_file
+        pose_dir = result_dir / 'pose'
+        json_path = pose_dir / '_'.join((video_file_stem,'json'))
 
         # Pose detection skipped if load existing json files
-        if load_pose and len(list(json_path.glob('*')))>0:
+        if load_pose and len(list(json_path.glob('*.json')))>0:
             logging.info(f'2D joint positions have already been detected. To run the analysis over again from the beginning, set "overwrite_pose" to true in Advanced pose settings.')
-            pass
         else:
-            logging.info(f'Detecting 2D joint positions with OpenPose model {pose_model}, for {video_file}.')
+            logging.info(f'Detecting 2D joint positions with RTMPose Halpe26 model, for {video_file}.')
             
-            # Overwrite video if it has a rotation metadata
-            logging.info(f'Rotation metadata not supported by OpenPose: converting video...')
-            cap = cv2.VideoCapture(str(video_path))
-            rotation = cap.get(cv2.CAP_PROP_ORIENTATION_META)
-            if not rotation==0: 
-                rewrite_vid(video_path)
-                video_path_new = video_path.stem + '_new.mp4'
-                os.remove(video_path)
-                os.rename(video_path_new, video_path)
-
             json_path.mkdir(parents=True, exist_ok=True)
-            openpose_path = config_dict.get('pose').get('OPENPOSE').get('openpose_path')
-            os.chdir(openpose_path)
-            if platform =="win32":
-                run_openpose_windows(video_path, json_path, pose_model)
-            elif platform == "darwin":
-                run_openpose_mac(video_path, json_path, pose_model)
-            elif platform == "linux" or platform=="linux2":
-                run_openpose_linux(video_path, json_path, pose_model)
-            os.chdir(root_dir)
-    
-    
-    elif pose_algo == 'BLAZEPOSE':
-        pose_model = pose_algo
-        json_path = result_dir / '_'.join((video_file_stem,'json'))
-        model_complexity = config_dict.get('pose').get('BLAZEPOSE').get('model_complexity')
-        Blazepose_runsave.blazepose_detec_func(input_file=video_path, save_images=False, to_json=True, save_video=False, to_csv=False, output_folder=result_dir, model_complexity=model_complexity)
 
-    # Sort people and save to csv, optionally display plot
-    try:
-        json_to_csv(json_path, frame_rate, pose_model, interp_gap_smaller_than, filter_options, show_plots)
-    except:
-        logging.warning('No person detected or persons could not be associated across frames.')
-        return
-        
-    # Save images and files after reindentification
-    if save_img and save_vid:
-        logging.info(f'Saving images and video in {result_dir}.')
-    if save_img and not save_vid:
-        logging.info(f'Saving images in {result_dir}.')
-    if not save_img and save_vid:
-        logging.info(f'Saving video in {result_dir}.')
-    if save_vid or save_img:
-        save_imgvid_reID(video_path, video_result_path, save_vid, save_img, pose_model)
-   
+            # Process video with RTMPose
+            process_video(str(video_path), pose_tracker, tracking, output_format, save_vid, save_img, display_detection, frame_range)
 
+        # Sort people and save to csv, optionally display plot
+        try:
+            json_to_csv(json_path, frame_rate, interp_gap_smaller_than, filter_options, show_plots)
+        except:
+            logging.warning('No person detected or persons could not be associated across frames.')
+            return
+            
+        # Save images and files after reindentification
+        # if save_vid or save_img:
+        #     save_imgvid_reID(video_path, video_result_path, save_vid, save_img, 'HALPE_26')
+
+    elif data_type == 'webcam':
+        # Define necessary parameters for webcam processing
+        joint_angles = config_dict.get('compute_angles').get('joint_angles', [])
+        print(f" joint_angles form config : {joint_angles}")
+        segment_angles = config_dict.get('compute_angles').get('segment_angles', [])
+
+        # Process webcam feed
+        process_webcam(pose_tracker, openpose_skeleton, joint_angles, segment_angles, 
+                       save_vid, save_img, interp_gap_smaller_than, filter_options, show_plots, flip_left_right)
+
+    else:
+        raise ValueError(f"Invalid input_source: {data_type}. Must be 'video' or 'webcam'.")
+
+    logging.info("Pose detection and analysis completed.")
