@@ -63,6 +63,7 @@ from Sports2D.compute_angles import (
     get_segment_angle_params, 
     joint_angles_series_from_points, 
     segment_angles_series_from_points, 
+    draw_bounding_box,
     overlay_angles,
     flip_left_right_direction_webcam)
 from Sports2D.Utilities import filter, common
@@ -488,7 +489,7 @@ def get_supported_resolutions(cap):
         (1600, 900), (1280, 720), (1024, 576), 
         (800, 600), (640, 480), (320, 240), (160, 120),
         (1080, 1920)
-    ]
+    ] # now it is hard coding. but I should find out better way to find optimal resolutuion
     supported_resolutions = []
     
     for width, height in standard_resolutions:
@@ -502,40 +503,39 @@ def get_supported_resolutions(cap):
     return supported_resolutions
 
 # if input is a webcam
-def process_webcam(pose_tracker, openpose_skeleton, joint_angles, segment_angles, save_video, save_images, interp_gap_smaller_than, filter_options, show_plots, flip_left_right):
+def process_webcam(pose_tracker, openpose_skeleton, joint_angles, segment_angles, save_video, save_images, interp_gap_smaller_than, filter_options, show_plots, flip_left_right, kpt_thr):
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
         print("Error: Could not open webcam.")
         return
 
-    # 지원되는 해상도 가져오기
+    # find supported resolution
     supported_resolutions = get_supported_resolutions(cap)
     
     if supported_resolutions:
-        # 최고 해상도 선택
+        # select best quality of resolution among supported resolutuons
         highest_resolution = max(supported_resolutions, key=lambda res: res[0] * res[1])
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, highest_resolution[0])
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, highest_resolution[1])
-        print(f"최고 해상도로 설정되었습니다: {highest_resolution[0]}x{highest_resolution[1]}")
+        print(f"Set your webcam's resolution : {highest_resolution[0]}x{highest_resolution[1]}")
     else:
-        print("지원되는 해상도를 찾을 수 없습니다. 기본 해상도로 설정합니다.")
-        # 기본 해상도 설정
+        print("Can't find best resolution for your webcam, set the default value.")
+        # default resolution
         width = 1280
         height = 720
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
     
-    # 설정된 해상도 확인
+    # check selected resolution
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    print(f"설정된 해상도: {width}x{height}")
+    print(f"Resolution : {width}x{height}")
 
-    cv2.namedWindow("Real-time Pose Estimation", cv2.WINDOW_NORMAL)
-    kpt_thr = 0.3
+    cv2.namedWindow("Real-time Analysis", cv2.WINDOW_NORMAL)
 
     frame_rate = cap.get(cv2.CAP_PROP_FPS)
     if frame_rate == 0 or frame_rate is None:
-        frame_rate = 30
+        frame_rate = 30 # default frame rate
     print(f"Webcam frame rate: {frame_rate}")
 
     current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -702,19 +702,24 @@ def detect_pose_fun(config_dict, video_file):
     # Retrieve parameters
     root_dir = os.getcwd()
     video_dir, video_files, result_dir, frame_rate = base_params(config_dict)
+    
 
     #pose settings
+    data_type = config_dict.get('pose').get('data_type', 'webcam')  # Default to 'webcam' if not specified
     mode = config_dict.get('pose').get('mode')
-    data_type = config_dict.get('pose').get('data_type', 'video')  # Default to 'video' if not specified
-    frame_range = config_dict.get('pose').get('frame_range', [])
-    mode = config_dict['pose']['mode']
     det_frequency = config_dict['pose']['det_frequency']
+    mode = config_dict['pose']['mode']
+    kpt_thr = config_dict.get('pose').get('keypoints_threshold')
+    frame_range = config_dict.get('pose').get('frame_range', [])
+    
+    
     tracking = config_dict['pose']['tracking']
     openpose_skeleton = config_dict['pose']['to_openpose']
     display_detection = config_dict['pose']['display_detection']
     output_format = "openpose"
 
     # Advanced pose settings
+    bbox = config_dict.get('pose_advanced').get('draw_bbox') # May I set this selectively? or draw it always?
     load_pose = not config_dict.get('pose_advanced').get('overwrite_pose')
     save_vid = config_dict.get('pose_advanced').get('save_vid')
     save_img = config_dict.get('pose_advanced').get('save_img')
@@ -795,7 +800,7 @@ def detect_pose_fun(config_dict, video_file):
 
         # Process webcam feed
         process_webcam(pose_tracker, openpose_skeleton, joint_angles, segment_angles, 
-                       save_vid, save_img, interp_gap_smaller_than, filter_options, show_plots, flip_left_right)
+                       save_vid, save_img, interp_gap_smaller_than, filter_options, show_plots, flip_left_right, kpt_thr)
 
     else:
         raise ValueError(f"Invalid input_source: {data_type}. Must be 'video' or 'webcam'.")
