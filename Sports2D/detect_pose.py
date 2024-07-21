@@ -62,10 +62,13 @@ from Sports2D.compute_angles import (
     get_joint_angle_params,
     get_segment_angle_params, 
     joint_angles_series_from_points, 
-    segment_angles_series_from_points, 
+    segment_angles_series_from_points,
+    joint_angles_series_from_csv,
+    segment_angles_series_from_csv, 
     draw_bounding_box,
     overlay_angles,
-    flip_left_right_direction_webcam)
+    flip_left_right_direction,
+    display_figures_fun_ang)
 from Sports2D.Utilities import filter, common
 from Sports2D.Utilities.skeletons import halpe26_rtm
 from rtmlib import PoseTracker, BodyWithFeet, draw_skeleton
@@ -84,7 +87,7 @@ __status__ = "Development"
 
 
 # FUNCTIONS
-def display_figures_fun(df_list):
+def display_figures_fun_cords(df_list):
     '''
     Displays filtered and unfiltered data for comparison
     /!\ Crashes on the third window...
@@ -249,17 +252,18 @@ def save_to_openpose(json_file_path, keypoints, scores):
         json.dump(json_output, json_file)
 
 
-def json_to_csv(json_path, frame_rate, interp_gap_smaller_than, filter_options, show_plots):
+def json_to_csv(json_path, frame_rate, interp_gap_smaller_than, filter_options, show_plots, min_detection_time=1):
     '''
     Converts frame-by-frame json coordinate files 
     to one csv files per detected person
 
     INPUTS:
     - json_path: directory path of json files
-    - pose_model: string, to get tree from skeletons.py
+    - frame_rate: frame rate of the video
     - interp_gap_smaller_than: integer, maximum number of missing frames for conducting interpolation
     - filter_options: list, options for filtering
     - show_plots: boolean, show plots or not
+    - min_detection_time: minimum detection time in seconds (default: 1 second)
 
     OUTPUTS:
     - Creation of one csv files per detected person
@@ -275,7 +279,6 @@ def json_to_csv(json_path, frame_rate, interp_gap_smaller_than, filter_options, 
     # Retrieve coordinates
     logging.info('Sorting people across frames.')
     json_fnames = sorted(list(json_path.glob('*.json')))
-    # print(f"nb json files: {len(json_fnames)}")
     nb_persons_to_detect = max([len(json.load(open(json_fname))['people']) for json_fname in json_fnames])
     Coords = [np.array([]).reshape(0,keypoints_nb*3)] * nb_persons_to_detect
     for json_fname in json_fnames:    # for each frame
@@ -303,6 +306,15 @@ def json_to_csv(json_path, frame_rate, interp_gap_smaller_than, filter_options, 
     
     # Inject coordinates in dataframes and save
     for i in range(nb_persons_to_detect): 
+        # Calculate detection time
+        detection_mask = np.any(Coords[i] != 0, axis=1)
+        detection_time = np.sum(detection_mask) / frame_rate
+
+        # Skip if detected for less than min_detection_time
+        if detection_time < min_detection_time:
+            logging.info(f'Person {i}: Detected for less than {min_detection_time} second(s). Skipping.')
+            continue
+
         # Prepare csv header
         scorer = ['DavidPagnon']*(keypoints_nb*3+1)
         individuals = [f'person{i}']*(keypoints_nb*3+1)
@@ -347,38 +359,9 @@ def json_to_csv(json_path, frame_rate, interp_gap_smaller_than, filter_options, 
         # Display figures
         if show_plots:
             logging.info(f'Person {i}: Displaying figures.')
-            display_figures_fun(df_list)
-            
-
-
-
-def rewrite_vid(video_path):
-    '''
-    Rewrite video
-    Incidentally erases rotate metadata
-    '''
-
-    cap = cv2.VideoCapture(str(video_path))
-    if (cap.isOpened()== False): 
-        print("Error opening video stream or file")
+            display_figures_fun_cords(df_list)
     
-    W, H = cap.get(cv2.CAP_PROP_FRAME_WIDTH), cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    video_out_path = Path(video_path).stem + '_new.mp4'
-    fourcc = cv2.VideoWriter_fourcc('M','J','P','G')
-    writer = cv2.VideoWriter(video_out_path, fourcc, fps, (int(W), int(H)))
-        
-    while(True):
-        ret, frame = cap.read()
-        if ret == True:
-            try: writer.write(frame)
-            except: break
-        else:
-            break
-    cap.release()
-    writer.release()
-
-# if input is a video
+# If input is a video
 def process_video(video_path, pose_tracker, tracking, output_format, save_video, save_images, display_detection, frame_range):
     '''
     Estimate pose from a video file
@@ -483,68 +466,77 @@ def process_video(video_path, pose_tracker, tracking, output_format, save_video,
     if display_detection:
         cv2.destroyAllWindows()
 
-def get_supported_resolutions(cap):
-    standard_resolutions = [
-        (3840, 2160), (2560, 1440), (1920, 1080), 
-        (1600, 900), (1280, 720), (1024, 576), 
-        (800, 600), (640, 480), (320, 240), (160, 120),
-        (1080, 1920)
-    ] # now it is hard coding. but I should find out better way to find optimal resolutuion
-    supported_resolutions = []
-    
-    for width, height in standard_resolutions:
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
-        actual_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        actual_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        if actual_width == width and actual_height == height:
-            supported_resolutions.append((width, height))
-    
-    return supported_resolutions
+# If input is a webcam
+def process_webcam(webcam_settings, pose_tracker, tracking, joint_angles, segment_angles, save_video, save_images, interp_gap_smaller_than, 
+                   filter_options, show_plots, flip_left_right, kpt_thr, data_type):
+    """
+    Process a live webcam feed to detect poses and calculate angles.
 
-# if input is a webcam
-def process_webcam(pose_tracker, openpose_skeleton, joint_angles, segment_angles, save_video, save_images, interp_gap_smaller_than, filter_options, show_plots, flip_left_right, kpt_thr):
-    cap = cv2.VideoCapture(0)
+    This function captures video from a webcam, performs pose detection, calculates joint and segment angles,
+    and optionally saves the processed video, images, and angle data.
+
+    Parameters:
+    - webcam_settings (tuple): Webcam configuration (camera ID, width, height)
+    - pose_tracker (object): Pose detection and tracking object
+    - tracking (bool): Whether to use object tracking
+    - joint_angles (list): List of joint angles to calculate
+    - segment_angles (list): List of segment angles to calculate
+    - save_video (bool): Whether to save the processed video
+    - save_images (bool): Whether to save individual frame images
+    - interp_gap_smaller_than (int): Maximum frame gap to interpolate
+    - filter_options (tuple): Filtering options for smoothing angle data
+    - show_plots (bool): Whether to display result graphs
+    - flip_left_right (bool): Whether to apply left-right flip
+    - kpt_thr (float): Keypoint detection threshold
+    - data_type (str): Type of data processing ('webcam' in this case)
+
+    The function performs the following steps:
+    1. Set up webcam capture
+    2. Process frames in real-time, detecting poses and calculating angles
+    3. Save JSON files with pose data
+    4. Optionally save processed video and images
+    5. Convert JSON files to CSV
+    6. Recalculate angles from filtered CSV data
+    7. Apply filtering to angle data
+    8. Save final angle data as CSV
+    9. Optionally display plots of angle data
+
+    Output:
+    - Processed video file (if save_video is True)
+    - Frame images (if save_images is True)
+    - JSON files with pose data
+    - CSV files with filtered pose data
+    - CSV files with calculated and filtered angle data
+    - Plots of angle data (if show_plots is True)
+
+    Note: The function can be interrupted by pressing 'q' or using a keyboard interrupt (Ctrl+C).
+    """
+
+    # Webcam setup
+    cam_id, cam_width, cam_height = webcam_settings
+    cap = cv2.VideoCapture(cam_id)
     if not cap.isOpened():
         print("Error: Could not open webcam.")
         return
-
-    # find supported resolution
-    supported_resolutions = get_supported_resolutions(cap)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, cam_width)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, cam_height)
     
-    if supported_resolutions:
-        # select best quality of resolution among supported resolutuons
-        highest_resolution = max(supported_resolutions, key=lambda res: res[0] * res[1])
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, highest_resolution[0])
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, highest_resolution[1])
-        print(f"Set your webcam's resolution : {highest_resolution[0]}x{highest_resolution[1]}")
-    else:
-        print("Can't find best resolution for your webcam, set the default value.")
-        # default resolution
-        width = 1280
-        height = 720
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
-    
-    # check selected resolution
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    print(f"Resolution : {width}x{height}")
+    print(f"Resolution: {width}x{height}")
 
     cv2.namedWindow("Real-time Analysis", cv2.WINDOW_NORMAL)
-
-    frame_rate = cap.get(cv2.CAP_PROP_FPS)
-    if frame_rate == 0 or frame_rate is None:
-        frame_rate = 30 # default frame rate
+    frame_rate = cap.get(cv2.CAP_PROP_FPS) or 30
     print(f"Webcam frame rate: {frame_rate}")
 
+    # Output directory setup
     current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
     output_dir = Path(os.path.join(os.getcwd(), f'realtime_pose_output_{current_time}'))
     output_dir.mkdir(parents=True, exist_ok=True)
-
     json_output_dir = output_dir / 'json'
     json_output_dir.mkdir(parents=True, exist_ok=True)
 
+    # Video writer setup
     video_writer = None
     if save_video:
         video_output_path = str(output_dir / 'output_video.mp4')
@@ -554,15 +546,14 @@ def process_webcam(pose_tracker, openpose_skeleton, joint_angles, segment_angles
             print("Error: Could not create video writer.")
             save_video = False
 
+    # Image output directory setup
     if save_images:
         img_output_dir = output_dir / 'images'
         img_output_dir.mkdir(parents=True, exist_ok=True)
     
     frame_count = 0
-
-    # Joint angles and segment angles dictionaries
-    joint_angles_data = {}
-    segment_angles_data = {}
+    keypoints_data = {}
+    scores_data = {}
 
     try:
         while True:
@@ -570,37 +561,59 @@ def process_webcam(pose_tracker, openpose_skeleton, joint_angles, segment_angles
             if not ret:
                 print("Failed to grab frame")
                 break
-
+            
             frame_count += 1
-            scale, thickness = common.adjust_text_scale(frame)
             keypoints, scores = pose_tracker(frame)
             
-            img_show = frame.copy()
-            img_show = draw_skeleton(img_show, keypoints, scores, openpose_skeleton=openpose_skeleton, kpt_thr=kpt_thr)
+            if tracking:
+                max_id = max(pose_tracker.track_ids_last_frame)
+                keypoints_filled = np.zeros((max_id+1, *keypoints.shape[1:]))
+                scores_filled = np.zeros((max_id+1, scores.shape[1]))
+                keypoints_filled[pose_tracker.track_ids_last_frame] = keypoints
+                scores_filled[pose_tracker.track_ids_last_frame] = scores
+                keypoints, scores = keypoints_filled, scores_filled
 
             json_file_path = json_output_dir / f'frame_{frame_count:06d}.json'
             save_to_openpose(json_file_path, keypoints, scores)
-
+            
+            img_show = frame.copy()
             df_angles_list_frame = []
-            for person_idx, (person_keypoints, person_scores) in enumerate(zip(keypoints, scores)):
-                if np.sum(person_scores >= kpt_thr) < len(person_keypoints) * 0.4:
+
+            valid_X = []
+            valid_Y = []
+            valid_person_ids = []
+
+            for person_idx in range(len(keypoints)):
+                person_keypoints = keypoints[person_idx]
+                person_scores = scores[person_idx]
+
+                if np.sum(person_scores >= kpt_thr) < len(person_keypoints) * 0.3:
                     continue  
 
                 df_points = common.convert_keypoints_to_dataframe(person_keypoints, person_scores)
+
+                X = df_points[[col for col in df_points.columns if col.endswith('_x')]]
+                Y = df_points[[col for col in df_points.columns if col.endswith('_y')]]
+
+                valid_X.append(X.values[0])
+                valid_Y.append(Y.values[0])
+                valid_person_ids.append(person_idx)
+
+            if valid_X and valid_Y:
+                img_show = draw_bounding_box(valid_X, valid_Y, img_show, valid_person_ids)
+
                 if flip_left_right:
-                    df_points = flip_left_right_direction_webcam(df_points)
+                    df_points = flip_left_right_direction(df_points, data_type)
                 
                 joint_angle_values = {}
-                segment_angle_values = {}
-                
                 for joint in joint_angles:
                     angle_params = get_joint_angle_params(joint)
-
                     if angle_params:
                         angle = joint_angles_series_from_points(df_points, angle_params, kpt_thr)
                         if angle is not None:
                             joint_angle_values[joint] = angle[0]
                 
+                segment_angle_values = {}
                 for segment in segment_angles:
                     angle_params = get_segment_angle_params(segment)
                     if angle_params:
@@ -610,21 +623,23 @@ def process_webcam(pose_tracker, openpose_skeleton, joint_angles, segment_angles
                 
                 df_angles_list_frame.append({**joint_angle_values, **segment_angle_values})
                 
-                # Add joint and segment angles to the dictionaries
-                if person_idx not in joint_angles_data:
-                    joint_angles_data[person_idx] = []
-                if person_idx not in segment_angles_data:
-                    segment_angles_data[person_idx] = []
+                if person_idx not in keypoints_data:
+                    keypoints_data[person_idx] = []
+                    scores_data[person_idx] = []
                 
-                joint_angles_data[person_idx].append(joint_angle_values)
-                segment_angles_data[person_idx].append(segment_angle_values)
+                keypoints_data[person_idx].append(person_keypoints)
+                scores_data[person_idx].append(person_scores)
 
             img_show = overlay_angles(img_show, df_angles_list_frame, keypoints, scores, kpt_thr)
 
-            cv2.imshow("Real-time Pose Estimation", img_show)
+            window_size = cv2.getWindowImageRect("Real-time Analysis")
+            if window_size[2] > 0 and window_size[3] > 0:
+                img_show = cv2.resize(img_show, (window_size[2], window_size[3]))
+
+            cv2.imshow("Real-time Analysis", img_show)
             
             if save_video and video_writer is not None:
-                video_writer.write(img_show)
+                video_writer.write(cv2.resize(img_show, (width, height)))
 
             if save_images:
                 cv2.imwrite(str(img_output_dir / f'frame_{frame_count:06d}.png'), img_show)
@@ -632,7 +647,8 @@ def process_webcam(pose_tracker, openpose_skeleton, joint_angles, segment_angles
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
 
-            print(f"Processed frame {frame_count}", end='\r')
+            if frame_count % 100 == 0:
+                print(f"Processed frame {frame_count}")
 
     except KeyboardInterrupt:
         print("\nInterrupted by user")
@@ -644,20 +660,115 @@ def process_webcam(pose_tracker, openpose_skeleton, joint_angles, segment_angles
 
     print(f"\nTotal frames processed: {frame_count}")
 
-    # Save joint angles and segment angles to CSV files for each person
-    for person_idx in joint_angles_data.keys():
-        joint_angles_df = pd.DataFrame(joint_angles_data[person_idx])
-        segment_angles_df = pd.DataFrame(segment_angles_data[person_idx])
-
-        joint_angles_df.to_csv(output_dir / f'joint_angles_person_{person_idx}.csv', index=False)
-        segment_angles_df.to_csv(output_dir / f'segment_angles_person_{person_idx}.csv', index=False)
-
     if filter_options[0]:
         filter_options = list(filter_options)
         filter_options[4] = frame_rate
         filter_options = tuple(filter_options)
     
-    json_to_csv(json_output_dir, frame_rate, interp_gap_smaller_than, filter_options, show_plots)
+    json_to_csv(json_output_dir, frame_rate, interp_gap_smaller_than, filter_options, show_plots, min_detection_time=1)
+
+    # Recalculate angles from filtered CSV files and apply filtering
+    for person_idx in keypoints_data.keys():
+        csv_path = output_dir / f'_person{person_idx}_points.csv'
+        if os.path.exists(csv_path):
+            df_points = pd.read_csv(csv_path, header=[0,1,2,3])
+
+            joint_angle_series = []
+            for j in joint_angles:
+                try:
+                    angle_params = get_joint_angle_params(j)
+                    if angle_params:
+                        j_ang_series = joint_angles_series_from_csv(df_points, angle_params, kpt_thr)
+                        joint_angle_series.append(j_ang_series if j_ang_series is not None else np.nan)
+                    else:
+                        joint_angle_series.append(np.nan)
+                except Exception as e:
+                    logging.warning(f'Error calculating joint angle {j} for Person {person_idx}: {str(e)}')
+                    joint_angle_series.append(np.nan)
+
+            segment_angle_series = []
+            for s in segment_angles:
+                try:
+                    angle_params = get_segment_angle_params(s)
+                    if angle_params:
+                        s_ang_series = segment_angles_series_from_csv(df_points, angle_params, s, kpt_thr)
+                        segment_angle_series.append(s_ang_series if s_ang_series is not None else np.nan)
+                    else:
+                        segment_angle_series.append(np.nan)
+                except Exception as e:
+                    logging.warning(f'Error calculating segment angle {s} for Person {person_idx}: {str(e)}')
+                    segment_angle_series.append(np.nan)
+
+            time = [np.array(df_points.iloc[:,1])]
+            angle_series = time + joint_angle_series + segment_angle_series
+
+            angle_series = [series if isinstance(series, (list, np.ndarray)) else np.full_like(time[0], np.nan) for series in angle_series if series is not None]
+
+            max_length = max(len(series) for series in angle_series)
+            angle_series = [np.pad(series, (0, max_length - len(series)), 'constant', constant_values=np.nan) for series in angle_series]
+
+            scorer = ['DavidPagnon'] * (len(joint_angles) + len(segment_angles) + 1)
+            individuals = [f'person{person_idx}'] * len(scorer)
+            angs = ['Time'] + joint_angles + segment_angles
+            coords = ['seconds']
+            for j in joint_angles:
+                angle_params = get_joint_angle_params(j)
+                if angle_params:
+                    coords.append(angle_params[1])
+                else:
+                    coords.append('unknown')
+            for s in segment_angles:
+                angle_params = get_segment_angle_params(s)
+                if angle_params:
+                    coords.append(angle_params[1])
+                else:
+                    coords.append('unknown')
+            index_angs_csv = pd.MultiIndex.from_tuples(list(zip(scorer, individuals, angs, coords)), 
+                                                      names=['scorer', 'individuals', 'angs', 'coords'])
+
+
+            if len(angle_series) != len(index_angs_csv):
+                print(f"Warning: Length of angle_series ({len(angle_series)}) does not match length of index_angs_csv ({len(index_angs_csv)}).")
+                while len(angle_series) < len(index_angs_csv):
+                    angle_series.append(np.full(max_length, np.nan))
+                angle_series = angle_series[:len(index_angs_csv)]
+
+            df_angles = [pd.DataFrame(np.array(angle_series).T, columns=index_angs_csv)]
+
+            # Apply filtering to angles
+            if filter_options[0]:
+                filter_type = filter_options[1]
+                if filter_type == 'butterworth':
+                    args = f'Butterworth filter, {filter_options[2]}th order, {filter_options[3]} Hz.'
+                elif filter_type == 'gaussian':
+                    args = f'Gaussian filter, Sigma kernel {filter_options[5]}'
+                elif filter_type == 'loess':
+                    args = f'LOESS filter, window size of {filter_options[6]} frames.'
+                elif filter_type == 'median':
+                    args = f'Median filter, kernel of {filter_options[7]}.'
+                logging.info(f'Person {person_idx}: Filtering angles with {args}.')
+                df_angles[0].replace(0, np.nan, inplace=True)
+                df_angles.append(df_angles[0].copy())
+                df_angles[1] = df_angles[1].apply(filter.filter1d, axis=0, args=filter_options)
+
+            # Replace NaN with 0 in the final DataFrame
+            df_angles[-1].replace(np.nan, 0, inplace=True)
+
+            csv_angle_path = output_dir / f'_person{person_idx}_angles.csv'
+            df_angles[-1].to_csv(csv_angle_path, sep=',', index=True, lineterminator='\n')
+            
+            if os.path.exists(csv_angle_path):
+                logging.info(f'Successfully saved angles CSV for Person {person_idx}')
+            else:
+                logging.error(f'Failed to save angles CSV for Person {person_idx}')
+
+            # Display figures
+            if show_plots:
+                if not df_angles[0].empty:
+                    display_figures_fun_ang(df_angles)
+                else:
+                    logging.info(f'Person {person_idx}: No angle data to display.')
+                    plt.close('all')  # always close figures to avoid memory leak
 
     print(f"Output saved to: {output_dir}")
     print(f"JSON files: {json_output_dir}")
@@ -665,7 +776,7 @@ def process_webcam(pose_tracker, openpose_skeleton, joint_angles, segment_angles
         print(f"Video file: {video_output_path}")
     if save_images:
         print(f"Image files: {img_output_dir}")
-    print(f"CSV files: {json_output_dir.parent}")
+    print(f"CSV files: {output_dir}")
 
 def detect_pose_fun(config_dict, video_file):
     '''
@@ -702,7 +813,6 @@ def detect_pose_fun(config_dict, video_file):
     # Retrieve parameters
     root_dir = os.getcwd()
     video_dir, video_files, result_dir, frame_rate = base_params(config_dict)
-    
 
     #pose settings
     data_type = config_dict.get('pose').get('data_type', 'webcam')  # Default to 'webcam' if not specified
@@ -711,12 +821,16 @@ def detect_pose_fun(config_dict, video_file):
     mode = config_dict['pose']['mode']
     kpt_thr = config_dict.get('pose').get('keypoints_threshold')
     frame_range = config_dict.get('pose').get('frame_range', [])
-    
-    
     tracking = config_dict['pose']['tracking']
     openpose_skeleton = config_dict['pose']['to_openpose']
     display_detection = config_dict['pose']['display_detection']
     output_format = "openpose"
+
+    # webcam settings
+    cam_id =  config_dict.get('webcam').get('cam_id')
+    width = config_dict.get('webcam').get('width')
+    height = config_dict.get('webcam').get('height')
+    webcam_settings = (cam_id, width, height)
 
     # Advanced pose settings
     bbox = config_dict.get('pose_advanced').get('draw_bbox') # May I set this selectively? or draw it always?
@@ -726,6 +840,7 @@ def detect_pose_fun(config_dict, video_file):
     interp_gap_smaller_than = config_dict.get('pose_advanced').get('interp_gap_smaller_than')
     flip_left_right = config_dict.get('compute_angles_advanced').get('flip_left_right')
     
+    # filter settings
     show_plots = config_dict.get('pose_advanced').get('show_plots')
     do_filter = config_dict.get('pose_advanced').get('filter')
     filter_type = config_dict.get('pose_advanced').get('filter_type')
@@ -757,8 +872,8 @@ def detect_pose_fun(config_dict, video_file):
         mode=mode,
         backend=backend,
         device=device,
-        tracking=tracking,  # Ensure consistent person IDs across frames
-        to_openpose=False)  # We'll handle the conversion ourselves
+        tracking=tracking,
+        to_openpose=False)
 
     if data_type == 'video':
         if video_file is None:
@@ -783,24 +898,19 @@ def detect_pose_fun(config_dict, video_file):
 
         # Sort people and save to csv, optionally display plot
         try:
-            json_to_csv(json_path, frame_rate, interp_gap_smaller_than, filter_options, show_plots)
+            json_to_csv(json_path, frame_rate, interp_gap_smaller_than, filter_options, show_plots, min_detection_time=1)
         except:
             logging.warning('No person detected or persons could not be associated across frames.')
             return
-            
-        # Save images and files after reindentification
-        # if save_vid or save_img:
-        #     save_imgvid_reID(video_path, video_result_path, save_vid, save_img, 'HALPE_26')
 
     elif data_type == 'webcam':
         # Define necessary parameters for webcam processing
         joint_angles = config_dict.get('compute_angles').get('joint_angles', [])
-        # print(f" joint_angles form config : {joint_angles}")
         segment_angles = config_dict.get('compute_angles').get('segment_angles', [])
 
         # Process webcam feed
-        process_webcam(pose_tracker, openpose_skeleton, joint_angles, segment_angles, 
-                       save_vid, save_img, interp_gap_smaller_than, filter_options, show_plots, flip_left_right, kpt_thr)
+        process_webcam(webcam_settings, pose_tracker, openpose_skeleton, joint_angles, segment_angles, 
+                       save_vid, save_img, interp_gap_smaller_than, filter_options, show_plots, flip_left_right, kpt_thr, data_type)
 
     else:
         raise ValueError(f"Invalid input_source: {data_type}. Must be 'video' or 'webcam'.")

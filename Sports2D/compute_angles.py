@@ -81,7 +81,17 @@ __status__ = "Development"
 # CONSTANTS
 # dict: name: points, extra, offset, invert. 
 # Most angles are multiplied by -1 because the OpenCV y axis points down.
+# define joint angle parameters
 def get_joint_angle_params(joint):
+    """
+    Returns parameters for joint angle calculations.
+    
+    Args:
+    joint (str): Name of the joint
+
+    Returns:
+    list: Parameters for angle calculation [keypoints, type, offset, invert]
+    """
     joint_angle_dict = {
         'Right ankle': [['right_heel', 'right_big_toe', 'right_ankle', 'right_knee'], 'dorsiflexion', -90, -1],
         'Left ankle': [['left_heel', 'left_big_toe', 'left_ankle', 'left_knee'], 'dorsiflexion', -90, -1],
@@ -98,6 +108,15 @@ def get_joint_angle_params(joint):
 
 # Define segment angle parameters
 def get_segment_angle_params(segment):
+    """
+    Returns parameters for segment angle calculations.
+    
+    Args:
+    segment (str): Name of the segment
+
+    Returns:
+    list: Parameters for angle calculation [keypoints, type, offset, invert]
+    """
     segment_angle_dict = {
         'Right foot': [['right_heel', 'right_big_toe'], 'horizontal', 0, -1],
         'Left foot': [['left_heel', 'left_big_toe'], 'horizontal', 0, -1],
@@ -114,7 +133,7 @@ def get_segment_angle_params(segment):
     return segment_angle_dict.get(segment)
 
 # FUNCTIONS
-def display_figures_fun(df_list):
+def display_figures_fun_ang(df_list):
     '''
     Displays filtered and unfiltered data for comparison
     /!\ Crashes on the third window...
@@ -156,10 +175,7 @@ def points2D_to_angles(points_list):
     If parameters are float, returns a float between 0.0 and 360.0
     If parameters are arrays, returns an array of floats between 0.0 and 360.0
     '''
-    # print(f"points2D_to_angles received points_list: {points_list}")
-    # print(f"Number of points: {len(points_list)}")
-
-    if len(points_list) < 2:
+    if len(points_list) < 2: # if not enough points, return None
         return None
     
     ax, ay = points_list[0]
@@ -184,49 +200,47 @@ def points2D_to_angles(points_list):
 
     return ang_deg
 
-def flip_left_right_direction(df_points):
+def flip_left_right_direction(df_points, data_type):
     '''
     Inverts X coordinates to get consistent angles when person changes direction and goes to the left.
     The person is deemed to go to the left when their toes are to the left of their heels.
     
     INPUT:
     - df_points: dataframe of pose detection
+    - data_type: 'video' or 'webcam'
     
     OUTPUT:
     - df_points: dataframe of pose detection with flipped X coordinates
     '''
-    # print(f"dataframe columns: {df_points.columns}")
-    righ_orientation = df_points.iloc[:,df_points.columns.get_level_values(2)=='right_big_toe'].iloc[:,0] - df_points.iloc[:,df_points.columns.get_level_values(2)=='right_heel'].iloc[:,0]
-    # print(f"righ_orientation: {righ_orientation}")
-    left_orientation = df_points.iloc[:,df_points.columns.get_level_values(2)=='left_big_toe'].iloc[:,0] - df_points.iloc[:,df_points.columns.get_level_values(2)=='left_heel'].iloc[:,0]
-    # print(f"left_orientation: {left_orientation}")
-    orientation = righ_orientation + left_orientation
-    # print(f"orientation: {orientation}")
-    df_points.iloc[:,2::3] = df_points.iloc[:,2::3] * np.where(orientation>=0, 1, -1).reshape(-1,1)
-
-    # print("successfully flipped left/right direction")
-    return df_points
-
-def flip_left_right_direction_webcam(df_points):
-    required_columns = ['right_big_toe_x', 'right_heel_x', 'left_big_toe_x', 'left_heel_x']
-    for col in required_columns:
-        if col not in df_points.columns:
-            raise ValueError(f"Required column {col} is missing from the dataframe")
     
-    # Calculate orientation
-    right_orientation = df_points['right_big_toe_x'] - df_points['right_heel_x']
-    left_orientation = df_points['left_big_toe_x'] - df_points['left_heel_x']
+    if data_type not in ['video', 'webcam']:
+        raise ValueError("data_type must be either 'video' or 'webcam'")
+    
+    if data_type == 'video':
+        right_toe = df_points.iloc[:,df_points.columns.get_level_values(2)=='right_big_toe'].iloc[:,0]
+        right_heel = df_points.iloc[:,df_points.columns.get_level_values(2)=='right_heel'].iloc[:,0]
+        left_toe = df_points.iloc[:,df_points.columns.get_level_values(2)=='left_big_toe'].iloc[:,0]
+        left_heel = df_points.iloc[:,df_points.columns.get_level_values(2)=='left_heel'].iloc[:,0]
+    else:  # webcam
+        required_columns = ['right_big_toe_x', 'right_heel_x', 'left_big_toe_x', 'left_heel_x']
+        for col in required_columns:
+            if col not in df_points.columns:
+                raise ValueError(f"Required column {col} is missing from the dataframe")
+        right_toe = df_points['right_big_toe_x']
+        right_heel = df_points['right_heel_x']
+        left_toe = df_points['left_big_toe_x']
+        left_heel = df_points['left_heel_x']
+    
+    right_orientation = right_toe - right_heel
+    left_orientation = left_toe - left_heel
     orientation = right_orientation + left_orientation
     
-    # Flip X coordinates based on orientation
-    x_columns = [col for col in df_points.columns if col.endswith('_x')]
-    df_points[x_columns] = df_points[x_columns] * np.where(orientation >= 0, 1, -1).reshape(-1, 1)
-    
-    if (orientation < 0).any():
-        print("Some coordinates flipped")
-    else:
-        print("No coordinates flipped")
-    
+    if data_type == 'video':
+        df_points.iloc[:,2::3] = df_points.iloc[:,2::3] * np.where(orientation>=0, 1, -1).reshape(-1,1)
+    else:  # webcam
+        x_columns = [col for col in df_points.columns if col.endswith('_x')]
+        df_points[x_columns] = df_points[x_columns] * np.where(orientation >= 0, 1, -1).reshape(-1, 1)
+
     return df_points
 
 def joint_angles_series_from_points(df_points, angle_params, kpt_thr):
@@ -243,17 +257,13 @@ def joint_angles_series_from_points(df_points, angle_params, kpt_thr):
     
     # Retrieve points
     keypt_series = []
-    # print(f"df_points columns: {df_points.columns}")
-    
     for k in angle_params[0]:
         if f"{k}_x" in df_points.columns and f"{k}_y" in df_points.columns and f"{k}_score" in df_points.columns:
             score = df_points[f"{k}_score"].values[0]
             if score >= kpt_thr:
                 keypt = df_points[[f"{k}_x", f"{k}_y"]]
-                # print(f"Keypoint {k} added: {keypt.values[0]}, score: {score}")
                 keypt_series.append(keypt)
             else:
-                # print(f"Keypoint {k} skipped due to low score: {score}")
                 return None
         else:
             print(f"Error: Keypoint {k} or its score not found in dataframe")
@@ -276,7 +286,6 @@ def joint_angles_series_from_points(df_points, angle_params, kpt_thr):
     if ang_series.mean() > 180: ang_series -= 360
     if ang_series.mean() < -180: ang_series += 360
 
-    # print(f"Final angle for {angle_params[1]}: {ang_series}")
     return ang_series
 
 
@@ -454,12 +463,51 @@ def segment_angles_series_from_csv(df_points, angle_params, segment, kpt_thr):
     return ang_series
 
 def adjust_text_scale(frame, base_scale=0.25, base_thickness=1):
+    """
+    Adjusts the text scale and thickness based on the frame size.
+
+    This function calculates appropriate text scale and thickness for overlay text
+    on a given frame. It scales the text properties relative to a base frame width
+    of 640 pixels, ensuring that text appears proportional on different frame sizes.
+
+    Args:
+        frame (numpy.ndarray): The input frame (image) on which text will be drawn.
+                               Expected to be a 3-dimensional array (height, width, channels).
+        base_scale (float, optional): The base scale factor for text. Defaults to 0.25.
+        base_thickness (int, optional): The base thickness for text. Defaults to 1.
+
+    Returns:
+        tuple: A tuple containing two elements:
+               - scale (float): The adjusted scale factor for text.
+               - thickness (int): The adjusted thickness for text.
+    """
     height, width, _ = frame.shape
     scale = base_scale * (width / 640)
     thickness = int(base_thickness * (width / 640))
     return scale, thickness
 
 def draw_joint_angle(frame, joint, angle, keypoints, scores, kpt_thr):
+    """
+    Draws the joint angle on the given frame.
+
+    This function identifies the keypoints for a specific joint and draws the angle
+    between them if their scores are above the threshold.
+
+    Args:
+        frame (numpy.ndarray): The image frame to draw on.
+        joint (str): The name of the joint (e.g., "Right knee", "Left elbow").
+        angle (float): The angle to be displayed.
+        keypoints (list): List of keypoint coordinates for the entire pose.
+        scores (list): List of confidence scores for each keypoint.
+        kpt_thr (float): Threshold for keypoint confidence scores.
+
+    Returns:
+        None: The function modifies the input frame in-place.
+
+    Note:
+        The function uses a predefined mapping of joints to keypoint indices.
+        It only draws the angle if all relevant keypoint scores are above the threshold.
+    """
     joint_to_keypoints = {
         "Right ankle": [14, 16, 21],  # knee, ankle, big_toe
         "Left ankle": [13, 15, 20],   # knee, ankle, big_toe
@@ -481,6 +529,28 @@ def draw_joint_angle(frame, joint, angle, keypoints, scores, kpt_thr):
             draw_angle_arc(frame, joint, pt1, pt2, pt3, angle)
 
 def draw_angle_arc(frame, joint, pt1, pt2, pt3, angle):
+    """
+    Draws an arc representing the angle between three points on the frame.
+
+    This function calculates and draws an arc representing the angle formed by
+    three points, typically representing a joint angle. It also adds text showing
+    the angle value.
+
+    Args:
+        frame (numpy.ndarray): The image frame to draw on.
+        joint (str): The name of the joint (unused in this function, but kept for potential future use).
+        pt1 (tuple): Coordinates of the first point.
+        pt2 (tuple): Coordinates of the second point (vertex of the angle).
+        pt3 (tuple): Coordinates of the third point.
+        angle (float): The angle to be displayed.
+
+    Returns:
+        None: The function modifies the input frame in-place.
+
+    Note:
+        The function draws an arc, the angle value, and lines connecting the points.
+        The radius of the arc is calculated as 20% of the average length of the two vectors.
+    """
     pt1 = tuple(map(int, pt1))
     pt2 = tuple(map(int, pt2))
     pt3 = tuple(map(int, pt3))
@@ -525,6 +595,27 @@ def draw_angle_arc(frame, joint, pt1, pt2, pt3, angle):
     cv2.line(frame, pt2, pt3, (0, 255, 0), 2)
 
 def draw_segment_angle(frame, segment, angle, keypoints, scores, kpt_thr):
+    """
+    Draws the segment angle on the given frame.
+
+    This function identifies the keypoints for a specific body segment and draws the angle
+    between the segment and the horizontal axis if the keypoint scores are above the threshold.
+
+    Args:
+        frame (numpy.ndarray): The image frame to draw on.
+        segment (str): The name of the body segment (e.g., "Right thigh", "Left arm").
+        angle (float): The angle to be displayed.
+        keypoints (list): List of keypoint coordinates for the entire pose.
+        scores (list): List of confidence scores for each keypoint.
+        kpt_thr (float): Threshold for keypoint confidence scores.
+
+    Returns:
+        None: The function modifies the input frame in-place.
+
+    Note:
+        The function uses a predefined mapping of segments to keypoint indices.
+        It only draws the angle if both relevant keypoint scores are above the threshold.
+    """
     thickness = 2
     length = 20
     color = (255, 0, 0)  # blue 
@@ -550,6 +641,28 @@ def draw_segment_angle(frame, segment, angle, keypoints, scores, kpt_thr):
             draw_angle_line(frame, pt1, pt2, angle, thickness, length, color)
 
 def draw_angle_line(frame, pt1, pt2, angle, thickness, length, color):
+    """
+    Draws a line representing the segment angle on the frame.
+
+    This function draws a horizontal reference line and an angled line representing
+    the segment, along with the angle between them.
+
+    Args:
+        frame (numpy.ndarray): The image frame to draw on.
+        pt1 (tuple): Coordinates of the first point of the segment.
+        pt2 (tuple): Coordinates of the second point of the segment (unused in this function).
+        angle (float): The angle to be displayed.
+        thickness (int): Thickness of the lines to be drawn.
+        length (int): Length of the lines to be drawn.
+        color (tuple): RGB color of the lines.
+
+    Returns:
+        None: The function modifies the input frame in-place.
+
+    Note:
+        The function draws a horizontal reference line and an angled line from the first point (pt1).
+        The second point (pt2) is not used in the current implementation but kept for potential future use.
+    """
     pt1 = tuple(map(int, pt1))
     pt2 = tuple(map(int, pt2))
 
@@ -560,50 +673,93 @@ def draw_angle_line(frame, pt1, pt2, angle, thickness, length, color):
     cv2.line(frame, pt1, segment_end, color, thickness)
 
 def overlay_angles(frame, df_angles_list_frame, keypoints, scores, kpt_thr):
-    # print("Debug: overlay_angles function called")
+    """
+    Overlays angle information on the frame for each detected person, including text and progress bars.
+
+    This function draws angle labels, values, and a progress bar for each angle
+    on the frame. It also visualizes joint and segment angles using appropriate
+    drawing functions.
+
+    Args:
+        frame (numpy.ndarray): The image frame to draw on.
+        df_angles_list_frame (list): List of DataFrames containing angle information for each person.
+        keypoints (list): List of keypoint coordinates for each person.
+        scores (list): List of confidence scores for each person's keypoints.
+        kpt_thr (float): Threshold for keypoint confidence scores.
+
+    Returns:
+        numpy.ndarray: The frame with overlaid angle information.
+
+    Note:
+        - The function uses a color map to assign different colors to different persons.
+        - Angle labels and values are displayed in separate columns.
+        - A progress bar is drawn to visually represent the angle value.
+        - The function distinguishes between joint angles and segment angles for visualization.
+    """
     cmap = plt.cm.hsv
     font = cv2.FONT_HERSHEY_SIMPLEX
     
-    height, width, _ = frame.shape
-    scale, thickness = adjust_text_scale(frame)
-    
-    base_y = int(0.03 * height)  # 3% from the top
-    y_step = int(0.05 * height)  # Step size for each line
-    
     for i, (angles_frame_person, person_keypoints, person_scores) in enumerate(zip(df_angles_list_frame, keypoints, scores)):
-        # print(f"Debug: Processing person {i}")
         for ang_nb, (angle_name, angle_value) in enumerate(angles_frame_person.items()):
             try:
+                if angle_name == 'Time':  # Skip the 'Time' column
+                    continue
+
                 if isinstance(angle_value, pd.Series):
                     angle_value = angle_value.iloc[0]
                 
                 angle_value = float(angle_value)
                 
-                # print(f"Debug: Processing angle {ang_nb}: {angle_name} = {angle_value}")
-                
                 angle_label = str(angle_name)
-                text = f"{angle_label}: {angle_value:.1f}"
+                if isinstance(angle_name, tuple):
+                    angle_label = angle_name[2]  # Use the third element of the tuple for the label
                 
-                text = text.encode('utf-8').decode('utf-8')
+                # Draw angle label
+                cv2.putText(frame, 
+                    angle_label + ':',
+                    (10+250*i, 15+15*ang_nb), 
+                    font, 0.5, 
+                    (0,0,0), 
+                    2, 
+                    cv2.LINE_4)
+                frame = cv2.putText(frame, 
+                    angle_label + ':',
+                    (10+250*i, 15+15*ang_nb), 
+                    font, 0.5, 
+                    (np.array(cmap((i+1)/len(df_angles_list_frame)))*255).tolist(), 
+                    1, 
+                    cv2.LINE_4)
                 
-                # Text color based on joint type
-                if "ankle" in angle_name.lower() or "knee" in angle_name.lower() or "hip" in angle_name.lower() or "shoulder" in angle_name.lower() or "elbow" in angle_name.lower():
-                    text_color = (0, 255, 0)  # green
-                else:
-                    text_color = (255, 0, 0)  # blue    
+                # Draw angle value
+                cv2.putText(frame, 
+                    f"{angle_value:.1f}",
+                    (150+250*i, 15+15*ang_nb), 
+                    font, 0.5, 
+                    (0,0,0), 
+                    2, 
+                    cv2.LINE_4)
+                frame = cv2.putText(frame, 
+                    f"{angle_value:.1f}",
+                    (150+250*i, 15+15*ang_nb), 
+                    font, 0.5, 
+                    (np.array(cmap((i+1)/len(df_angles_list_frame)))*255).tolist(), 
+                    1, 
+                    cv2.LINE_4)
                 
-                # Draw text
-                text_x = 10 + (width // 3) * i
-                text_y = base_y + y_step * ang_nb
-                
-                cv2.putText(frame, text, (text_x, text_y), font, scale, (0,0,0), thickness+1, cv2.LINE_AA)
-                frame = cv2.putText(frame, text, (text_x, text_y), font, scale, text_color, thickness, cv2.LINE_AA)
-                
+                # Draw progress bar
+                x_ang = int(angle_value*50/180)
+                if x_ang != 0:
+                    sub_frame = frame[1+15*ang_nb : 16+15*ang_nb, 170+250*i + min(0,x_ang) : 170+250*i + max(0,x_ang)]
+                    if sub_frame.size > 0:
+                        white_rect = np.ones(sub_frame.shape, dtype=np.uint8) * 255
+                        res = cv2.addWeighted(sub_frame, 0.6, white_rect, 0.4, 1.0)
+                        frame[1+15*ang_nb : 16+15*ang_nb, 170+250*i + min(0,x_ang) : 170+250*i + max(0,x_ang)] = res
+
                 # Draw joint or segment angle
-                if "ankle" in angle_name.lower() or "knee" in angle_name.lower() or "hip" in angle_name.lower() or "shoulder" in angle_name.lower() or "elbow" in angle_name.lower():
-                    draw_joint_angle(frame, angle_name, angle_value, person_keypoints, person_scores, kpt_thr)
+                if any(joint in angle_label.lower() for joint in ["ankle", "knee", "hip", "shoulder", "elbow"]):
+                    draw_joint_angle(frame, angle_label, angle_value, person_keypoints, person_scores, kpt_thr)
                 else:
-                    draw_segment_angle(frame, angle_name, angle_value, person_keypoints, person_scores, kpt_thr)
+                    draw_segment_angle(frame, angle_label, angle_value, person_keypoints, person_scores, kpt_thr)
                 
             except Exception as e:
                 print(f"Warning: Unable to process angle {ang_nb} for person {i}: {str(e)}")
@@ -612,13 +768,29 @@ def overlay_angles(frame, df_angles_list_frame, keypoints, scores, kpt_thr):
     return frame
 
 def overlay_angles_video(frame, df_angles_list_frame, keypoints, scores, kpt_thr):
-    '''
-    Overlays a text box for each detected person with joint and segment angles
-    
-    INPUT:
-    - frame: a frame opened with OpenCV
-    - df_angles_list_frame: list of one frame for all angles
-    '''
+    """
+    Overlays angle information on a video frame for each detected person.
+
+    This function draws angle labels, values, and a progress bar for each angle
+    on the frame. It also visualizes joint and segment angles using appropriate
+    drawing functions.
+
+    Args:
+        frame (numpy.ndarray): The video frame to draw on.
+        df_angles_list_frame (list): List of DataFrames containing angle information for each person.
+        keypoints (list): List of keypoint coordinates for each person.
+        scores (list): List of confidence scores for each person's keypoints.
+        kpt_thr (float): Threshold for keypoint confidence scores.
+
+    Returns:
+        numpy.ndarray: The frame with overlaid angle information.
+
+    Note:
+        - The function uses a color map to assign different colors to different persons.
+        - Angle labels and values are displayed in separate columns.
+        - A progress bar is drawn to visually represent the angle value.
+        - The function distinguishes between joint angles and segment angles for visualization.
+    """
     cmap = plt.cm.hsv
     font = cv2.FONT_HERSHEY_SIMPLEX
     for i, (angles_frame_person, person_keypoints, person_scores) in enumerate(zip(df_angles_list_frame, keypoints, scores)):
@@ -626,13 +798,9 @@ def overlay_angles_video(frame, df_angles_list_frame, keypoints, scores, kpt_thr
             if angle_name == 'Time':  # Skip the 'Time' column
                 continue
 
-            # 각도 이름과 값을 추출
-            # print(f" Debug: angle_name: {angle_name}")
             angle_label = angle_name[2]  # make sure it's a joint or segment name
-            # print(f"Debug: angle label: {angle_label}")
             angle_value = float(angle_value)
 
-                
             # Ensure angle_name is a string
             if isinstance(angle_name, tuple):
                 angle_name = angle_name[0]  # Use the first element of the tuple
@@ -695,7 +863,7 @@ def overlay_angles_video(frame, df_angles_list_frame, keypoints, scores, kpt_thr
     return frame
 
 
-def draw_bounding_box(X, Y, img):
+def draw_bounding_box(X, Y, img, person_ids=None):
     '''
     Draw bounding boxes and person ID
     around list of lists of X and Y coordinates
@@ -704,6 +872,7 @@ def draw_bounding_box(X, Y, img):
     - X: list of list of x coordinates
     - Y: list of list of y coordinates
     - img: opencv image
+    - person_ids: list of person IDs (optional)
     
     OUTPUT:
     - img: image with rectangles and person IDs
@@ -711,21 +880,24 @@ def draw_bounding_box(X, Y, img):
     
     cmap = plt.cm.hsv
     
+    if person_ids is None:
+        person_ids = range(len(X))
+    
     # Draw rectangles
-    [cv2.rectangle(img, 
-        (np.nanmin(x).astype(int)-25, np.nanmin(y).astype(int)-25), 
-        (np.nanmax(x).astype(int)+25, np.nanmax(y).astype(int)+25), 
-        (np.array(cmap((i+1)/len(X)))*255).tolist(), 
-        2) 
-        for i,(x,y) in enumerate(zip(X,Y)) if not np.isnan(x).all()]
- 
-    # Write person ID
-    [cv2.putText(img, str(i),
-        (np.nanmin(x).astype(int), np.nanmin(y).astype(int)), 
-        cv2.FONT_HERSHEY_SIMPLEX, 1,
-        (np.array(cmap((i+1)/len(X)))*255).tolist(),
-        2, cv2.LINE_AA) 
-        for i,(x,y) in enumerate(zip(X,Y)) if not np.isnan(x).all()]
+    for i, (x, y, person_id) in enumerate(zip(X, Y, person_ids)):
+        if np.isnan(x).all():
+            continue
+        color = (np.array(cmap((i+1)/len(X)))*255).tolist()
+        x_min, y_min = np.nanmin(x).astype(int)-25, np.nanmin(y).astype(int)-25
+        x_max, y_max = np.nanmax(x).astype(int)+25, np.nanmax(y).astype(int)+25
+        cv2.rectangle(img, (x_min, y_min), (x_max, y_max), color, 2)
+        
+        # Write person ID
+        cv2.putText(img, str(person_id),
+            (x_min, y_min), 
+            cv2.FONT_HERSHEY_SIMPLEX, 1,
+            color,
+            2, cv2.LINE_AA)
     
     return img
 
@@ -771,9 +943,6 @@ def draw_keypts_skel(X, Y, img, pose_model):
     return img
 
 def save_imgvid_reID(video_path, video_result_path, df_angles_list, pose_model, save_vid, save_img):
-    # print(f"Starting save_imgvid_reID with video_path: {video_path}, video_result_path: {video_result_path}")
-    # print(f"save_vid: {save_vid}, save_img: {save_img}")
-    # print(f"Number of dataframes in df_angles_list: {len(df_angles_list)}")
 
     csv_dir = video_result_path.parent / 'pose'
     csv_paths = list(csv_dir.glob(f'{video_result_path.stem}_person*_angles.csv'))
@@ -802,27 +971,21 @@ def save_imgvid_reID(video_path, video_result_path, df_angles_list, pose_model, 
 
     W, H = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = cap.get(cv2.CAP_PROP_FPS)
-    # print(f"Video properties: Width={W}, Height={H}, FPS={fps}")
 
     if save_vid:
         video_pose_path = video_result_path.parent / (video_result_path.stem + '_' + pose_model + '.mp4')
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         writer = cv2.VideoWriter(str(video_pose_path), fourcc, fps, (int(W), int(H)))
-        # print(f"Video writer created: {video_pose_path}")
 
     if save_img:
         img_pose_path = video_result_path.parent / (video_result_path.stem + '_' + pose_model + '_img')
         img_pose_path.mkdir(parents=True, exist_ok=True)
-        # print(f"Image directory created: {img_pose_path}")
         
     f = 0
     while(cap.isOpened()):
         ret, frame = cap.read()
         if not ret:
-            # print(f"Finished reading video after {f} frames")
             break
-        
-        # print(f"Processing frame {f}")
         
         frame_keypoints = []
         frame_scores = []
@@ -831,7 +994,6 @@ def save_imgvid_reID(video_path, video_result_path, df_angles_list, pose_model, 
                 X = np.array(coord.iloc[f, 0::3])
                 Y = np.array(coord.iloc[f, 1::3])
                 S = np.array(coord.iloc[f, 2::3])
-                # print(f"Frame {f}: X values: {X}, Y values: {Y}, S values: {S}")
                 
                 person_keypoints = np.column_stack((X, Y))
                 frame_keypoints.append(person_keypoints)
@@ -847,13 +1009,8 @@ def save_imgvid_reID(video_path, video_result_path, df_angles_list, pose_model, 
         frame_keypoints = np.array(frame_keypoints)
         frame_scores = np.array(frame_scores)
 
-        # print(f"Frame {f}: keypoints shape {frame_keypoints.shape}, scores shape {frame_scores.shape}")
-
         if frame_keypoints.size > 0 and frame_scores.size > 0:
-            # print(f"Frame {f}: Drawing bounding box")
             frame = draw_bounding_box(frame_keypoints[:,:,0], frame_keypoints[:,:,1], frame)
-
-            # print(f"Frame {f}: Drawing skeleton")
             frame = draw_keypts_skel(frame_keypoints[:,:,0], frame_keypoints[:,:,1], frame, pose_model)
 
             df_angles_list_frame = []
@@ -862,24 +1019,17 @@ def save_imgvid_reID(video_path, video_result_path, df_angles_list, pose_model, 
                     df_angles_list_frame.append(df.iloc[f,:])
                 else:
                     df_angles_list_frame.append(df.iloc[-1,:])
-            # print(f"Frame {f}: Overlaying angles")
-            # print(f"df_angles_list_frame: {df_angles_list_frame}")
             frame = overlay_angles_video(frame, df_angles_list_frame, frame_keypoints, frame_scores, kpt_thr=0.2)
 
         if save_vid:
             writer.write(frame)
-            # print(f"Frame {f}: Saved to video")
         if save_img:
             cv2.imwrite(str(img_pose_path / f"{video_result_path.stem}_{pose_model}.{f:05d}.png"), frame)
-            # print(f"Frame {f}: Saved as image")
-
         f += 1
 
     cap.release()
     if save_vid:
         writer.release()
-    # print("Finished processing video and saving results")
-
     
 def compute_angles_fun(config_dict, video_file):
     '''
@@ -939,10 +1089,12 @@ def compute_angles_fun(config_dict, video_file):
     loess_filter_kernel = config_dict.get('compute_angles_advanced').get('loess').get('nb_values_used')
     median_filter_kernel = config_dict.get('compute_angles_advanced').get('median').get('kernel_size')
     filter_options = (do_filter, filter_type, butterworth_filter_order, butterworth_filter_cutoff, frame_rate, gaussian_filter_kernel, loess_filter_kernel, median_filter_kernel)
-    
+
+    # save
     show_angles_img = config_dict.get('compute_angles_advanced').get('show_angles_on_img')
     show_angles_vid = config_dict.get('compute_angles_advanced').get('show_angles_on_vid')
 
+    data_type = config_dict.get('pose').get('data_type')
     kpt_thr = config_dict.get('pose').get('keypoints_threshold')
     
     # Find csv position files in video_dir, search pose_model and video_file.stem
@@ -978,23 +1130,15 @@ def compute_angles_fun(config_dict, video_file):
 
             # Compute angles for each person, for each angle, with each required keypoint position
             with open(c) as c_f:
-                        df_points = pd.read_csv(c_f, header=[0,1,2,3])
-
-                        # replace 0 with NaN
-                        # df_points = df_points.replace(0, np.nan)
-                        
-                        # Remove rows with too many NaN values
-                        # df_points = df_points.dropna(axis=0, thresh=len(df_points)*0.8)
-                        
+                        df_points = pd.read_csv(c_f, header=[0,1,2,3])      
                         if df_points.empty: # if no valid data after removing rows with too many NaN values
                             logging.warning(f'Person {i}: No valid data after removing rows with too many NaN values')
                             continue
-
                         time = [np.array(df_points.iloc[:,1])]
                         
                         # Flip along x when feet oriented to the left
                         if flip_left_right:
-                            df_points = flip_left_right_direction(df_points)
+                            df_points = flip_left_right_direction(df_points, data_type)
                         
             # Joint angles
             joint_angle_series = []
@@ -1042,6 +1186,7 @@ def compute_angles_fun(config_dict, video_file):
                 angle_series = angle_series[:len(index_angs_csv)]
             df_angles = [pd.DataFrame(np.array(angle_series).T, columns=index_angs_csv)]
             
+            # already filtered in coords.csv, we need filtering again?
             # Filter
             if filter_options[0]:
                     filter_type = filter_options[1]
@@ -1057,8 +1202,10 @@ def compute_angles_fun(config_dict, video_file):
                     df_angles[0].replace(0, np.nan, inplace=True)
                     df_angles += [df_angles[0].copy()]
                     df_angles[1] = df_angles[1].apply(filter.filter1d, axis=0, args=filter_options)
+
+            # replace NaN with 0
             df_angles[-1].replace(np.nan, 0, inplace=True)
-                
+
             # Creation of the csv files
             csv_angle_path = c.parent / (c.stem.replace('points', 'angles') + '.csv')
             df_angles[-1].to_csv(csv_angle_path, sep=',', index=True, lineterminator='\n')
@@ -1071,7 +1218,7 @@ def compute_angles_fun(config_dict, video_file):
             # Display figures
             if show_plots:
                 if not df_angles[0].empty:
-                    display_figures_fun(df_angles)
+                    display_figures_fun_ang(df_angles)
                 else:
                     logging.info(f'Person {i}: No angle data to display.')
                 plt.close('all')  # always close figures to avoid memory leak
@@ -1083,7 +1230,6 @@ def compute_angles_fun(config_dict, video_file):
 
     # Add angles to vid and img
     if show_angles_img or show_angles_vid:
-        # print(f"Debug: show_angles_img: {show_angles_img}, show_angles_vid: {show_angles_vid}")
         video_base = Path(video_dir / video_file)
         video_pose = result_dir / (video_base.stem + '.mp4')
         save_imgvid_reID(video_base, video_pose, df_angles_list, 'halpe26_rtm', save_vid=show_angles_vid, save_img=show_angles_img)
