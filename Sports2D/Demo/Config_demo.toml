@@ -22,12 +22,17 @@ result_dir = '' # BETWEEN SINGLE QUOTES! # If empty, project dir is current dir
 data_type = "webcam"
 video_path = "path/to/your/video.mp4"
 det_frequency = 1
-mode = "balanced"
-keypoints_threshold = 0.4
-tracking = false
+mode = "lightweight"
+keypoints_threshold = 0.1
+tracking = true
 to_openpose = false
 display_detection = true
 frame_range = []
+
+[webcam] 
+cam_id = 1 # 0 is default, it will use your first webcam.
+width = 1280 # high resolution would be better pose estimation, but low fps
+height = 720 # high resolution would be better pose estimation, but low fps
 
 	
 
@@ -46,12 +51,12 @@ segment_angles = ['Right foot', 'Left foot', 'Right shank', 'Left shank', 'Right
 # ADVANCED CONFIGURATION
 	
 [pose_advanced] # only for OPENPOSE
-overwrite_pose = false # If false, don't run openpose again if json pose files are found. 
+overwrite_pose = true # If false, don't run openpose again if json pose files are found.
 save_vid = true
 save_img = true
 interp_gap_smaller_than = 5 # do not interpolate bigger gaps
-filter = false
-show_plots = false
+filter = true
+show_plots = true
 filter_type = 'butterworth' # butterworth, gaussian, LOESS, median
    [pose_advanced.butterworth]
    order = 4 
