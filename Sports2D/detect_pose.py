@@ -408,7 +408,7 @@ def process_video(video_path, video_result_path,pose_tracker, tracking, output_f
     except:
         raise NameError(f"{video_path} is not a video. Images must be put in one subdirectory per camera.")
     
-    pose_dir = os.path.abspath(os.path.join(video_result_path, '..', 'pose'))
+    pose_dir = os.path.abspath(os.path.join(video_result_path, '..', 'video_results'))
     print(f"pose_dir: {pose_dir}")
     if not os.path.isdir(pose_dir): os.makedirs(pose_dir)
     video_name_wo_ext = os.path.splitext(os.path.basename(video_path))[0]
@@ -487,7 +487,7 @@ def process_video(video_path, video_result_path,pose_tracker, tracking, output_f
 
 # If input is a webcam
 def process_webcam(webcam_settings, pose_tracker, tracking, joint_angles, segment_angles, save_video, save_images, interp_gap_smaller_than, 
-                   filter_options, show_plots, flip_left_right, kpt_thr, data_type):
+                   filter_options, show_plots, flip_left_right, kpt_thr, data_type, do_filter_angles, min_detection_time):
     """
     Process a live webcam feed to detect poses and calculate angles.
 
@@ -550,7 +550,7 @@ def process_webcam(webcam_settings, pose_tracker, tracking, joint_angles, segmen
 
     # Output directory setup
     current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_dir = Path(os.path.join(os.getcwd(), f'realtime_pose_output_{current_time}'))
+    output_dir = Path(os.path.join(os.getcwd(), f'webcam_results_{current_time}'))
     output_dir.mkdir(parents=True, exist_ok=True)
     json_output_dir = output_dir / 'json'
     json_output_dir.mkdir(parents=True, exist_ok=True)
@@ -558,7 +558,7 @@ def process_webcam(webcam_settings, pose_tracker, tracking, joint_angles, segmen
     # Video writer setup
     video_writer = None
     if save_video:
-        video_output_path = str(output_dir / 'output_video.mp4')
+        video_output_path = str(output_dir / 'webcam_video.mp4')
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         video_writer = cv2.VideoWriter(video_output_path, fourcc, frame_rate, (width, height))
         if not video_writer.isOpened():
@@ -567,7 +567,7 @@ def process_webcam(webcam_settings, pose_tracker, tracking, joint_angles, segmen
 
     # Image output directory setup
     if save_images:
-        img_output_dir = output_dir / 'images'
+        img_output_dir = output_dir / 'webcam_images'
         img_output_dir.mkdir(parents=True, exist_ok=True)
     
     frame_count = 0
@@ -684,7 +684,7 @@ def process_webcam(webcam_settings, pose_tracker, tracking, joint_angles, segmen
         filter_options[4] = frame_rate
         filter_options = tuple(filter_options)
     
-    json_to_csv(json_output_dir, frame_rate, interp_gap_smaller_than, filter_options, show_plots, min_detection_time=1)
+    json_to_csv(json_output_dir, frame_rate, interp_gap_smaller_than, filter_options, show_plots, min_detection_time)
 
     # Recalculate angles from filtered CSV files and apply filtering
     for person_idx in keypoints_data.keys():
@@ -755,7 +755,7 @@ def process_webcam(webcam_settings, pose_tracker, tracking, joint_angles, segmen
             df_angles = [pd.DataFrame(np.array(angle_series).T, columns=index_angs_csv)]
 
             # Apply filtering to angles
-            if filter_options[0]:
+            if do_filter_angles:
                 filter_type = filter_options[1]
                 if filter_type == 'butterworth':
                     args = f'Butterworth filter, {filter_options[2]}th order, {filter_options[3]} Hz.'
@@ -838,9 +838,11 @@ def detect_pose_fun(config_dict, video_file):
     mode = config_dict.get('pose').get('mode')
     det_frequency = config_dict['pose']['det_frequency']
     mode = config_dict['pose']['mode']
-    kpt_thr = config_dict.get('pose').get('keypoints_threshold')
+    kpt_thr = config_dict.get('pose').get('keypoints_threshold') # If only part of a person is on screen, increase this number to ensure that only correctly detected keypoints are used.
     frame_range = config_dict.get('pose').get('frame_range', [])
     tracking = config_dict['pose']['tracking']
+    min_detection_time = config_dict.get('pose').get('min_detection_time') # If lower than this, person will be ignored 
+                                                                            #For webcams, it is possible to detect the wrong person if the person is only partially detected (usually less than a second).
     openpose_skeleton = config_dict['pose']['to_openpose']
     display_detection = config_dict['pose']['display_detection']
     output_format = "openpose"
@@ -862,6 +864,7 @@ def detect_pose_fun(config_dict, video_file):
     # filter settings
     show_plots = config_dict.get('pose_advanced').get('show_plots')
     do_filter = config_dict.get('pose_advanced').get('filter')
+    do_filter_angles = config_dict.get('compute_angles_advanced').get('filter')
     filter_type = config_dict.get('pose_advanced').get('filter_type')
     butterworth_filter_order = config_dict.get('pose_advanced').get('butterworth').get('order')
     butterworth_filter_cutoff = config_dict.get('pose_advanced').get('butterworth').get('cut_off_frequency')
@@ -901,9 +904,7 @@ def detect_pose_fun(config_dict, video_file):
         video_file_stem = video_file.stem
         video_path = video_dir / video_file
         video_result_path = result_dir / video_file
-        print(f" result_path : {result_dir}")
-        print(f" video_result_path: {video_result_path}")
-        pose_dir = result_dir / 'pose'
+        pose_dir = result_dir / 'video_results'
         json_path = pose_dir / '_'.join((video_file_stem,'json'))
 
         # Pose detection skipped if load existing json files
@@ -919,7 +920,7 @@ def detect_pose_fun(config_dict, video_file):
 
         # Sort people and save to csv, optionally display plot
         try:
-            json_to_csv(json_path, frame_rate, interp_gap_smaller_than, filter_options, show_plots, min_detection_time=1)
+            json_to_csv(json_path, frame_rate, interp_gap_smaller_than, filter_options, show_plots, min_detection_time)
         except:
             logging.warning('No person detected or persons could not be associated across frames.')
             return
@@ -931,7 +932,7 @@ def detect_pose_fun(config_dict, video_file):
 
         # Process webcam feed
         process_webcam(webcam_settings, pose_tracker, openpose_skeleton, joint_angles, segment_angles, 
-                       save_vid, save_img, interp_gap_smaller_than, filter_options, show_plots, flip_left_right, kpt_thr, data_type)
+                       save_vid, save_img, interp_gap_smaller_than, filter_options, show_plots, flip_left_right, kpt_thr, data_type, do_filter_angles, min_detection_time)
 
     else:
         raise ValueError(f"Invalid input_source: {data_type}. Must be 'video' or 'webcam'.")

@@ -23,14 +23,16 @@ data_type = "webcam"
 video_path = "path/to/your/video.mp4"
 det_frequency = 1
 mode = "lightweight"
-keypoints_threshold = 0.1
+keypoints_threshold = 0.1 #If only part of a person is on screen, increase this number to ensure that only correctly detected keypoints are used.
 tracking = true
+min_detection_time = 1 # If lower than this, person will be ignored
+						#For webcams, it is possible to detect the wrong person if the person is only partially detected (usually less than a second).
 to_openpose = false
 display_detection = true
 frame_range = []
 
 [webcam] 
-cam_id = 1 # 0 is default, it will use your first webcam.
+cam_id = 0 # 0 is default, it will use your first webcam.
 width = 1280 # high resolution would be better pose estimation, but low fps
 height = 720 # high resolution would be better pose estimation, but low fps
 
@@ -72,7 +74,7 @@ filter_type = 'butterworth' # butterworth, gaussian, LOESS, median
 [compute_angles_advanced] # for OPENPOSE and BLAZEPOSE
 show_angles_on_img = true
 show_angles_on_vid = true
-filter = true
+filter = false
 show_plots = true
 flip_left_right = true # Same angles whether the participant faces left/right. Set it to false if you want timeseries to be continuous even when the participent switches their stance.
 filter_type = 'butterworth' # butterworth, gaussian, LOESS, median

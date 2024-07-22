@@ -944,7 +944,7 @@ def draw_keypts_skel(X, Y, img, pose_model):
 
 def save_imgvid_reID(video_path, video_result_path, df_angles_list, pose_model, save_vid, save_img):
 
-    csv_dir = video_result_path.parent / 'pose'
+    csv_dir = video_result_path.parent / 'video_results'
     csv_paths = list(csv_dir.glob(f'{video_result_path.stem}_person*_angles.csv'))
     
     if not csv_paths:
@@ -1103,7 +1103,7 @@ def compute_angles_fun(config_dict, video_file):
     kpt_thr = config_dict.get('pose').get('keypoints_threshold')
     
     # Find csv position files in video_dir, search pose_model and video_file.stem
-    csv_dir = result_dir / 'pose' # csv files are in the pose directory
+    csv_dir = result_dir / 'video_results' # csv files are in the pose directory
     video_file_name = video_file.stem
     csv_paths = list(csv_dir.glob(f'{video_file_name}_person*_points*.csv'))
 
