@@ -57,6 +57,9 @@ from tqdm import tqdm
 import torch
 import onnxruntime as ort
 from datetime import datetime
+import sys
+from IPython.display import clear_output
+
 from Sports2D.Sports2D import base_params
 from Sports2D.compute_angles import (
     get_joint_angle_params,
@@ -360,6 +363,21 @@ def json_to_csv(json_path, frame_rate, interp_gap_smaller_than, filter_options, 
         if show_plots:
             logging.info(f'Person {i}: Displaying figures.')
             display_figures_fun_cords(df_list)
+
+def show_image(img, title):
+    if 'google.colab' in sys.modules:
+        # Colab
+        from google.colab.patches import cv2_imshow
+        cv2_imshow(img)
+        clear_output(wait=True)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            return False
+    else:
+        # Local
+        cv2.imshow(title, img)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            return False
+    return True
     
 # If input is a video
 def process_video(video_path, pose_tracker, tracking, output_format, save_video, save_images, display_detection, frame_range):
@@ -404,7 +422,8 @@ def process_video(video_path, pose_tracker, tracking, output_format, save_video,
         out = cv2.VideoWriter(output_video_path, fourcc, fps, (W, H)) # Create the output video file
         
     if display_detection:
-        cv2.namedWindow(f"Pose Estimation {os.path.basename(video_path)}", cv2.WINDOW_NORMAL + cv2.WINDOW_KEEPRATIO)
+        if 'google.colab' not in sys.modules:
+            cv2.namedWindow(f"Pose Estimation {os.path.basename(video_path)}", cv2.WINDOW_NORMAL + cv2.WINDOW_KEEPRATIO)
 
     frame_idx = 0
     cap = cv2.VideoCapture(video_path)
@@ -443,8 +462,7 @@ def process_video(video_path, pose_tracker, tracking, output_format, save_video,
                     img_show = draw_skeleton(img_show, keypoints, scores, kpt_thr=0.1) # maybe change this value if 0.1 is too low
                 
                 if display_detection:
-                    cv2.imshow(f"Pose Estimation {os.path.basename(video_path)}", img_show)
-                    if cv2.waitKey(1) & 0xFF == ord('q'):
+                    if not show_image(img_show, f"Pose Estimation {os.path.basename(video_path)}"):
                         break
 
                 if save_video:
@@ -463,7 +481,7 @@ def process_video(video_path, pose_tracker, tracking, output_format, save_video,
         logging.info(f"--> Output video saved to {output_video_path}.")
     if save_images:
         logging.info(f"--> Output images saved to {img_output_dir}.")
-    if display_detection:
+    if display_detection and 'google.colab' not in sys.modules:
         cv2.destroyAllWindows()
 
 # If input is a webcam
