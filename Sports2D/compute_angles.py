@@ -923,7 +923,7 @@ def draw_keypts_skel(X, Y, img, pose_model):
          if not (np.isnan(x[i]) or np.isnan(y[i]))]
     
     # Draw skeleton
-    if pose_model == 'halpe26_rtm':
+    if pose_model == 'RTMPose':
         keypoint_id_to_index = {kp['id']: i for i, kp in halpe26_rtm['keypoint_info'].items()}
         for link_info in halpe26_rtm['skeleton_info'].values():
             start_name, end_name = link_info['link']
@@ -978,12 +978,12 @@ def save_imgvid_reID(video_path, video_result_path, df_angles_list, pose_model, 
     fps = cap.get(cv2.CAP_PROP_FPS)
 
     if save_vid:
-        video_pose_path = video_result_path.parent / (video_result_path.stem + '_' + pose_model + '.mp4')
+        video_pose_path = csv_dir / (video_result_path.stem + '_' + pose_model + '.mp4')
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         writer = cv2.VideoWriter(str(video_pose_path), fourcc, fps, (int(W), int(H)))
 
     if save_img:
-        img_pose_path = video_result_path.parent / (video_result_path.stem + '_' + pose_model + '_img')
+        img_pose_path = csv_dir / (video_result_path.stem + '_' + pose_model + '_img')
         img_pose_path.mkdir(parents=True, exist_ok=True)
         
     f = 0
@@ -1237,4 +1237,4 @@ def compute_angles_fun(config_dict, video_file):
     if show_angles_img or show_angles_vid:
         video_base = Path(video_dir / video_file)
         video_pose = result_dir / (video_base.stem + '.mp4')
-        save_imgvid_reID(video_base, video_pose, df_angles_list, 'halpe26_rtm', save_vid=show_angles_vid, save_img=show_angles_img)
+        save_imgvid_reID(video_base, video_pose, df_angles_list, 'RTMPose', save_vid=show_angles_vid, save_img=show_angles_img)
