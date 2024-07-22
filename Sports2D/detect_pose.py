@@ -421,10 +421,6 @@ def process_video(video_path, video_result_path,pose_tracker, tracking, output_f
         fps = cap.get(cv2.CAP_PROP_FPS) # Get the frame rate from the raw video
         W, H = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) # Get the width and height from the raw video
         out = cv2.VideoWriter(output_video_path, fourcc, fps, (W, H)) # Create the output video file
-        
-    if display_detection:
-        if 'google.colab' not in sys.modules:
-            cv2.namedWindow(f"Pose Estimation {os.path.basename(video_path)}", cv2.WINDOW_NORMAL + cv2.WINDOW_KEEPRATIO)
 
     frame_idx = 0
     cap = cv2.VideoCapture(video_path)
@@ -531,22 +527,14 @@ def process_webcam(webcam_settings, pose_tracker, tracking, joint_angles, segmen
     Note: The function can be interrupted by pressing 'q' or using a keyboard interrupt (Ctrl+C).
     """
 
-    # Webcam setup
-    cam_id, cam_width, cam_height = webcam_settings
-    cap = cv2.VideoCapture(cam_id)
-    if not cap.isOpened():
-        print("Error: Could not open webcam.")
-        return
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, cam_width)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, cam_height)
-    
-    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    print(f"Resolution: {width}x{height}")
-
-    cv2.namedWindow("Real-time Analysis", cv2.WINDOW_NORMAL)
-    frame_rate = cap.get(cv2.CAP_PROP_FPS) or 30
-    print(f"Webcam frame rate: {frame_rate}")
+    is_colab = 'google.colab' in sys.modules
+    if is_colab:
+        from IPython.display import display, Javascript, clear_output
+        from google.colab.output import eval_js
+        from base64 import b64decode
+        import matplotlib.pyplot as plt
+        import PIL.Image
+        import io
 
     # Output directory setup
     current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -555,12 +543,88 @@ def process_webcam(webcam_settings, pose_tracker, tracking, joint_angles, segmen
     json_output_dir = output_dir / 'json'
     json_output_dir.mkdir(parents=True, exist_ok=True)
 
+    if is_colab:
+        cam_id, cam_width, cam_height = webcam_settings
+        frame_rate = 30  # Hardcoded fps
+
+        # Colab webcam setup
+        js = Javascript('''
+        async function setupWebcam() {
+          const video = document.createElement('video');
+          video.style.display = 'none';
+          const stream = await navigator.mediaDevices.getUserMedia({video: true});
+          video.srcObject = stream;
+          await video.play();
+          
+          const canvas = document.createElement('canvas');
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          const ctx = canvas.getContext('2d');
+          
+          return {video, canvas, ctx, stream, width: video.videoWidth, height: video.videoHeight};
+        }
+        
+        async function captureFrame(video, canvas, ctx) {
+          ctx.drawImage(video, 0, 0);
+          return canvas.toDataURL('image/jpeg');
+        }
+        
+        var webCamSetup = null;
+        
+        window.startWebcam = async function() {
+          if (!webCamSetup) {
+            webCamSetup = await setupWebcam();
+          }
+          const frame = await captureFrame(webCamSetup.video, webCamSetup.canvas, webCamSetup.ctx);
+          return {frame: frame, width: webCamSetup.width, height: webCamSetup.height};
+        }
+        
+        window.stopWebcam = function() {
+          if (webCamSetup && webCamSetup.stream) {
+            webCamSetup.stream.getTracks().forEach(track => track.stop());
+            webCamSetup = null;
+          }
+        }
+        ''')
+        display(js)
+        
+        webcam_data = eval_js('startWebcam()')
+        actual_width = webcam_data['width']
+        actual_height = webcam_data['height']
+        
+        print(f"Actual webcam resolution: {actual_width}x{actual_height}")
+        print(f"Target resolution: {cam_width}x{cam_height}")
+        print(f"Webcam frame rate: {frame_rate}")
+
+        display(PIL.Image.fromarray(np.zeros((cam_height, cam_width, 3), dtype=np.uint8)), display_id='video_feed')
+        plt.figure(figsize=(10, 8))
+        img_display = plt.imshow(np.zeros((cam_height, cam_width, 3), dtype=np.uint8))
+        plt.axis('off')
+        display(plt.gcf())
+    else:
+        # Local webcam setup
+        cam_id, cam_width, cam_height = webcam_settings
+        cap = cv2.VideoCapture(cam_id)
+        if not cap.isOpened():
+            print("Error: Could not open webcam.")
+            return
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, cam_width)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, cam_height)
+        
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        frame_rate = cap.get(cv2.CAP_PROP_FPS) or 30
+        print(f"Resolution: {width}x{height}")
+        print(f"Webcam frame rate: {frame_rate}")
+
+        cv2.namedWindow("Real-time Analysis", cv2.WINDOW_NORMAL)
+
     # Video writer setup
     video_writer = None
     if save_video:
         video_output_path = str(output_dir / 'webcam_video.mp4')
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        video_writer = cv2.VideoWriter(video_output_path, fourcc, frame_rate, (width, height))
+        video_writer = cv2.VideoWriter(video_output_path, fourcc, frame_rate, (cam_width, cam_height))
         if not video_writer.isOpened():
             print("Error: Could not create video writer.")
             save_video = False
@@ -576,11 +640,16 @@ def process_webcam(webcam_settings, pose_tracker, tracking, joint_angles, segmen
 
     try:
         while True:
-            ret, frame = cap.read()
-            if not ret:
-                print("Failed to grab frame")
-                break
-            
+            if is_colab:
+                webcam_data = eval_js('startWebcam()')
+                frame = np.frombuffer(b64decode(webcam_data['frame'].split(',')[1]), dtype=np.uint8)
+                frame = cv2.imdecode(frame, cv2.IMREAD_COLOR)
+            else:
+                ret, frame = cap.read()
+                if not ret:
+                    print("Failed to grab frame")
+                    break
+
             frame_count += 1
             keypoints, scores = pose_tracker(frame)
             
@@ -651,19 +720,24 @@ def process_webcam(webcam_settings, pose_tracker, tracking, joint_angles, segmen
 
             img_show = overlay_angles(img_show, df_angles_list_frame, keypoints, scores, kpt_thr)
 
-            window_size = cv2.getWindowImageRect("Real-time Analysis")
-            if window_size[2] > 0 and window_size[3] > 0:
-                img_show = cv2.resize(img_show, (window_size[2], window_size[3]))
-
-            cv2.imshow("Real-time Analysis", img_show)
+            if is_colab:
+                img_byte_arr = io.BytesIO()
+                PIL.Image.fromarray(cv2.cvtColor(img_show, cv2.COLOR_BGR2RGB)).save(img_byte_arr, format='JPEG')
+                clear_output(wait=True)
+                display(PIL.Image.open(img_byte_arr), display_id='video_feed')
+            else:
+                window_size = cv2.getWindowImageRect("Real-time Analysis")
+                if window_size[2] > 0 and window_size[3] > 0:
+                    img_show = cv2.resize(img_show, (window_size[2], window_size[3]))
+                cv2.imshow("Real-time Analysis", img_show)
             
             if save_video and video_writer is not None:
-                video_writer.write(cv2.resize(img_show, (width, height)))
+                video_writer.write(cv2.resize(img_show, (cam_width, cam_height)))
 
             if save_images:
                 cv2.imwrite(str(img_output_dir / f'frame_{frame_count:06d}.png'), img_show)
             
-            if cv2.waitKey(1) & 0xFF == ord('q'):
+            if not is_colab and cv2.waitKey(1) & 0xFF == ord('q'):
                 break
 
             if frame_count % 100 == 0:
@@ -672,7 +746,10 @@ def process_webcam(webcam_settings, pose_tracker, tracking, joint_angles, segmen
     except KeyboardInterrupt:
         print("\nInterrupted by user")
     finally:
-        cap.release()
+        if is_colab:
+            eval_js('stopWebcam()')
+        else:
+            cap.release()
         if video_writer is not None:
             video_writer.release()
         cv2.destroyAllWindows()
@@ -745,9 +822,8 @@ def process_webcam(webcam_settings, pose_tracker, tracking, joint_angles, segmen
             index_angs_csv = pd.MultiIndex.from_tuples(list(zip(scorer, individuals, angs, coords)), 
                                                       names=['scorer', 'individuals', 'angs', 'coords'])
 
-
             if len(angle_series) != len(index_angs_csv):
-                print(f"Warning: Length of angle_series ({len(angle_series)}) does not match length of index_angs_csv ({len(index_angs_csv)}).")
+                logging.warning(f"Length of angle_series ({len(angle_series)}) does not match length of index_angs_csv ({len(index_angs_csv)}).")
                 while len(angle_series) < len(index_angs_csv):
                     angle_series.append(np.full(max_length, np.nan))
                 angle_series = angle_series[:len(index_angs_csv)]
@@ -789,13 +865,17 @@ def process_webcam(webcam_settings, pose_tracker, tracking, joint_angles, segmen
                     logging.info(f'Person {person_idx}: No angle data to display.')
                     plt.close('all')  # always close figures to avoid memory leak
 
-    print(f"Output saved to: {output_dir}")
-    print(f"JSON files: {json_output_dir}")
+    logging.info(f"Output saved to: {output_dir}")
+    logging.info(f"JSON files: {json_output_dir}")
     if save_video:
-        print(f"Video file: {video_output_path}")
+        logging.info(f"Video file: {video_output_path}")
     if save_images:
-        print(f"Image files: {img_output_dir}")
-    print(f"CSV files: {output_dir}")
+        logging.info(f"Image files: {img_output_dir}")
+    logging.info(f"CSV files: {output_dir}")
+
+
+
+
 
 def detect_pose_fun(config_dict, video_file):
     '''
