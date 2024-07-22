@@ -954,6 +954,7 @@ def save_imgvid_reID(video_path, video_result_path, df_angles_list, pose_model, 
     # Load both angles and points CSV files
     angles_coords = []
     points_coords = []
+    person_ids = []
     for c in csv_paths:
         angles_file = c
         points_file = c.parent / (c.stem.replace('angles', 'points') + '.csv')
@@ -963,6 +964,10 @@ def save_imgvid_reID(video_path, video_result_path, df_angles_list, pose_model, 
             points_df = pd.read_csv(pf, header=[0,1,2,3], index_col=[0,1])
             angles_coords.append(angles_df)
             points_coords.append(points_df)
+
+            # Extract person_id from the filename
+            person_id = int(c.stem.split('_person')[1].split('_')[0])
+            person_ids.append(person_id)
 
     cap = cv2.VideoCapture(str(video_path))
     if not cap.isOpened():
@@ -1010,7 +1015,7 @@ def save_imgvid_reID(video_path, video_result_path, df_angles_list, pose_model, 
         frame_scores = np.array(frame_scores)
 
         if frame_keypoints.size > 0 and frame_scores.size > 0:
-            frame = draw_bounding_box(frame_keypoints[:,:,0], frame_keypoints[:,:,1], frame)
+            frame = draw_bounding_box(frame_keypoints[:,:,0], frame_keypoints[:,:,1], frame, person_ids)
             frame = draw_keypts_skel(frame_keypoints[:,:,0], frame_keypoints[:,:,1], frame, pose_model)
 
             df_angles_list_frame = []
