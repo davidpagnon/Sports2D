@@ -380,7 +380,7 @@ def show_image(img, title):
     return True
     
 # If input is a video
-def process_video(video_path, pose_tracker, tracking, output_format, save_video, save_images, display_detection, frame_range):
+def process_video(video_path, video_result_path,pose_tracker, tracking, output_format, save_video, save_images, display_detection, frame_range):
     '''
     Estimate pose from a video file
     
@@ -408,7 +408,8 @@ def process_video(video_path, pose_tracker, tracking, output_format, save_video,
     except:
         raise NameError(f"{video_path} is not a video. Images must be put in one subdirectory per camera.")
     
-    pose_dir = os.path.abspath(os.path.join(video_path, '..', 'pose'))
+    pose_dir = os.path.abspath(os.path.join(video_result_path, '..', 'pose'))
+    print(f"pose_dir: {pose_dir}")
     if not os.path.isdir(pose_dir): os.makedirs(pose_dir)
     video_name_wo_ext = os.path.splitext(os.path.basename(video_path))[0]
     json_output_dir = os.path.join(pose_dir, f'{video_name_wo_ext}_json')
@@ -900,6 +901,8 @@ def detect_pose_fun(config_dict, video_file):
         video_file_stem = video_file.stem
         video_path = video_dir / video_file
         video_result_path = result_dir / video_file
+        print(f" result_path : {result_dir}")
+        print(f" video_result_path: {video_result_path}")
         pose_dir = result_dir / 'pose'
         json_path = pose_dir / '_'.join((video_file_stem,'json'))
 
@@ -912,7 +915,7 @@ def detect_pose_fun(config_dict, video_file):
             json_path.mkdir(parents=True, exist_ok=True)
 
             # Process video with RTMPose
-            process_video(str(video_path), pose_tracker, tracking, output_format, save_vid, save_img, display_detection, frame_range)
+            process_video(str(video_path), video_result_path, pose_tracker, tracking, output_format, save_vid, save_img, display_detection, frame_range)
 
         # Sort people and save to csv, optionally display plot
         try:
