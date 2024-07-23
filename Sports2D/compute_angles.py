@@ -762,8 +762,11 @@ def overlay_angles(frame, df_angles_list_frame, keypoints, scores, kpt_thr):
     """
     cmap = plt.cm.hsv
     font = cv2.FONT_HERSHEY_SIMPLEX
+
+    colors = generate_colors(len(df_angles_list_frame))
     
     for i, (angles_frame_person, person_keypoints, person_scores) in enumerate(zip(df_angles_list_frame, keypoints, scores)):
+        color = colors[i]
         for ang_nb, (angle_name, angle_value) in enumerate(angles_frame_person.items()):
             try:
                 if angle_name == 'Time':  # Skip the 'Time' column
@@ -790,7 +793,7 @@ def overlay_angles(frame, df_angles_list_frame, keypoints, scores, kpt_thr):
                     angle_label + ':',
                     (10+250*i, 15+15*ang_nb), 
                     font, 0.5, 
-                    (np.array(cmap((i+1)/len(df_angles_list_frame)))*255).tolist(), 
+                    color, 
                     1, 
                     cv2.LINE_4)
                 
@@ -806,7 +809,7 @@ def overlay_angles(frame, df_angles_list_frame, keypoints, scores, kpt_thr):
                     f"{angle_value:.1f}",
                     (150+250*i, 15+15*ang_nb), 
                     font, 0.5, 
-                    (np.array(cmap((i+1)/len(df_angles_list_frame)))*255).tolist(), 
+                    color, 
                     1, 
                     cv2.LINE_4)
                 
