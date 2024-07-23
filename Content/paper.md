@@ -11,9 +11,14 @@ authors:
   - name: David Pagnon^[corresponding author] 
     orcid: 0000-0002-6891-8331
     affiliation: 1
+  - name HunMin Kim
+    orcid:
+    affiliation: 2
 affiliations:
  - name: Centre for the Analysis of Motion, Entertainment Research & Applications (CAMERA), University of Bath, Claverton Down, Bath, BA2 7AY, UK
    index: 1
+  - name Inha University, Yonghyeon Campus, 100 Inha-ro, Michuhol-gu, Incheon 22212, South Korea
+     index: 2
 date: February 14 2024
 bibliography: paper.bib
 ---
