@@ -15,16 +15,11 @@
     Optionally saves images and video with overlaid angles.
 
     Joint angle conventions:
-    - Ankle dorsiflexion: Between heel and big toe, and ankle and knee.\
-    *-90° when the foot is aligned with the shank.*
-    - Knee flexion: Between hip, knee, and ankle.\
-    *0° when the shank is aligned with the thigh.*
-    - Hip flexion: Between knee, hip, and shoulder.\
-    *0° when the trunk is aligned with the thigh.* 
-    - Shoulder flexion: Between hip, shoulder, and elbow.\
-    *180° when the arm is aligned with the trunk.*
-    - Elbow flexion: Between wrist, elbow, and shoulder.\
-    *0° when the forearm is aligned with the arm.*
+    - Ankle dorsiflexion: Between heel and big toe, and ankle and knee
+    - Knee flexion: Between hip, knee, and ankle 
+    - Hip flexion: Between knee, hip, and shoulder
+    - Shoulder flexion: Between hip, shoulder, and elbow
+    - Elbow flexion: Between wrist, elbow, and shoulder
 
     Segment angle conventions:
     Angles are measured anticlockwise between the horizontal and the segment.
@@ -514,14 +509,14 @@ def draw_joint_angle(frame, joint, angle, keypoints, scores, kpt_thr):
         It only draws the angle if all relevant keypoint scores are above the threshold.
     """
     joint_to_keypoints = {
-        "Right ankle": [14, 16, 21],  # knee, ankle, big_toe
-        "Left ankle": [13, 15, 20],   # knee, ankle, big_toe
-        "Right knee": [12, 14, 16],   # hip, knee, ankle
-        "Left knee": [11, 13, 15],    # hip, knee, ankle
-        "Right hip": [12, 12, 14],    # hip center, hip, knee
-        "Left hip": [11, 11, 13],     # hip center, hip, knee
-        "Right shoulder": [18, 6, 8], # neck, shoulder, elbow
-        "Left shoulder": [18, 5, 7],  # neck, shoulder, elbow
+        "Right ankle": [14, 16, 25, 21],  # right knee, right ankle, right heel, right big_toe
+        "Left ankle": [13, 15, 24, 20],   # left knee, left ankle, left heel, left big_toe
+        "Right knee": [12, 14, 16],   # right hip, right knee, right ankle
+        "Left knee": [11, 13, 15],    # left hip, knee, ankle
+        "Right hip": [18, 12, 14],    # neck, right hip, right knee
+        "Left hip": [18, 11, 13],     # neck, left hip, left knee
+        "Right shoulder": [19, 6, 8], # neck, shoulder, elbow
+        "Left shoulder": [19, 5, 7],  # neck, shoulder, elbow
         "Right elbow": [6, 8, 10],    # shoulder, elbow, wrist
         "Left elbow": [5, 7, 9],      # shoulder, elbow, wrist
     }
@@ -530,10 +525,19 @@ def draw_joint_angle(frame, joint, angle, keypoints, scores, kpt_thr):
         pts = [keypoints[i] for i in joint_to_keypoints[joint]]
         scores_pts = [scores[i] for i in joint_to_keypoints[joint]]
         if all(score >= kpt_thr for score in scores_pts):
-            pt1, pt2, pt3 = pts
-            draw_angle_arc(frame, joint, pt1, pt2, pt3, angle)
+            if 'ankle' in joint.lower():
+                draw_angle_arc(frame, joint, pts, angle)
+            else:
+                pt1, pt2, pt3 = pts
+                draw_angle_arc(frame, joint, [pt1, pt2, pt3], angle)
 
-def draw_angle_arc(frame, joint, pt1, pt2, pt3, angle):
+def draw_dotted_line(frame, start, direction, length, color=(0, 255, 0), gap=7, dot_length=3):
+    for i in range(0, length, gap):
+        line_start = start + direction * i
+        line_end = line_start + direction * dot_length
+        cv2.line(frame, tuple(line_start.astype(int)), tuple(line_end.astype(int)), color, 2)
+
+def draw_angle_arc(frame, joint, pts, angle):
     """
     Draws an arc representing the angle between three points on the frame.
 
@@ -555,49 +559,104 @@ def draw_angle_arc(frame, joint, pt1, pt2, pt3, angle):
     Note:
         The function draws an arc, the angle value, and lines connecting the points.
         The radius of the arc is calculated as 20% of the average length of the two vectors.
-    """
-    pt1 = tuple(map(int, pt1))
-    pt2 = tuple(map(int, pt2))
-    pt3 = tuple(map(int, pt3))
-    
-    # calculate vectors
-    v1 = np.array(pt1) - np.array(pt2)
-    v2 = np.array(pt3) - np.array(pt2)
-    
-    # calculate start and end angles
-    start_angle = np.degrees(np.arctan2(v1[1], v1[0]))
-    end_angle = np.degrees(np.arctan2(v2[1], v2[0]))
-    
-    # angles adjustment
-    if abs(end_angle - start_angle) > 180:
-        if end_angle > start_angle:
-            start_angle += 360
-        else:
-            end_angle += 360
-    
-    # start_angle is always smaller than end_angle
-    if start_angle > end_angle:
-        start_angle, end_angle = end_angle, start_angle
-    
-    # radius is 20% of the average of the two vectors
-    radius = int(0.2 * (np.linalg.norm(v1) + np.linalg.norm(v2)) / 2)
-    
-    # draw arc
-    cv2.ellipse(frame, pt2, (radius, radius), 0, start_angle, end_angle, (0, 255, 0), 2)
-    
-    # position of the text
-    text_angle = np.radians((start_angle + end_angle) / 2)
-    text_pos = (
-        int(pt2[0] + (radius + 20) * np.cos(text_angle)),
-        int(pt2[1] + (radius + 20) * np.sin(text_angle))
-    )
-    
-    # draw text
-    cv2.putText(frame, f"{angle:.1f}", text_pos, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
 
-    # draw lines
-    cv2.line(frame, pt1, pt2, (0, 255, 0), 2)
-    cv2.line(frame, pt2, pt3, (0, 255, 0), 2)
+        "Right ankle": [14, 16, 25, 21],  # right knee, right ankle, right heel, right big_toe
+        "Left ankle": [13, 15, 24, 20],   # left knee, left ankle, left heel, left big_toe
+        "Right knee": [12, 14, 16],   # right hip, right knee, right ankle
+        "Left knee": [11, 13, 15],    # left hip, knee, ankle
+        "Right hip": [18, 12, 14],    # neck, right hip, right knee
+        "Left hip": [18, 11, 13],     # neck, left hip, left knee
+        "Right shoulder": [18, 6, 8], # neck, shoulder, elbow
+        "Left shoulder": [18, 5, 7],  # neck, shoulder, elbow
+        "Right elbow": [6, 8, 10],    # shoulder, elbow, wrist
+        "Left elbow": [5, 7, 9],      # shoulder, elbow, wrist
+    """
+    start_angle = 0
+    end_angle = 0
+    ref_point = None
+    radius = 0
+
+    try:
+        if 'ankle' in joint.lower():
+            knee, ankle, heel, toe = map(np.array, pts)
+            foot_vec = toe - heel
+            perpendicular_vec = np.array([foot_vec[1], -foot_vec[0]])
+            perpendicular_vec /= np.linalg.norm(perpendicular_vec)
+
+            if perpendicular_vec[1] > 0:
+                perpendicular_vec = -perpendicular_vec
+            
+            radius = int(0.2 * np.linalg.norm(knee - ankle))
+            ref_point = ankle
+            direction = perpendicular_vec
+            other_vec = knee - ankle
+
+            start_angle = np.degrees(np.arctan2(direction[1], direction[0]))
+            end_angle = np.degrees(np.arctan2(other_vec[1], other_vec[0]))
+
+            # Draw dotted line
+            dotted_line_end = ref_point + direction * radius * 2
+            dotted_line_length = int(np.linalg.norm(dotted_line_end - ref_point))
+            draw_dotted_line(frame, ref_point, direction, dotted_line_length)
+        
+        elif 'shoulder' in joint.lower():
+            neck, shoulder, elbow = map(np.array, pts)
+            ref_vec = neck - shoulder
+            other_vec = elbow - shoulder
+
+            radius = int(0.2 * (np.linalg.norm(ref_vec) + np.linalg.norm(other_vec)) / 2)
+            ref_point = shoulder
+
+            start_angle = np.degrees(np.arctan2(ref_vec[1], ref_vec[0]))
+            end_angle = np.degrees(np.arctan2(other_vec[1], other_vec[0])) 
+
+        else:
+            pt1, pt2, pt3 = map(np.array, pts)
+            if 'knee' in joint.lower():
+                ref_vec = pt2 - pt3  # ankle to knee
+                other_vec = pt1 - pt2  # knee to hip
+            elif 'hip' in joint.lower():
+                ref_vec = pt2 - pt3  # knee to hip
+                other_vec = pt1 - pt2  # hip to neck
+            elif 'elbow' in joint.lower():
+                ref_vec = pt2 - pt1  # shoulder to elbow
+                other_vec = pt3 - pt2  # elbow to wrist
+            else:
+                raise ValueError(f"Unsupported joint type: {joint}")
+            
+            direction = ref_vec / np.linalg.norm(ref_vec)
+            radius = int(0.2 * (np.linalg.norm(pt1 - pt2) + np.linalg.norm(pt3 - pt2)) / 2)
+            ref_point = pt2
+
+            start_angle = np.degrees(np.arctan2(direction[1], direction[0]))
+            end_angle = np.degrees(np.arctan2(other_vec[1], other_vec[0]))
+
+            # Draw dotted line
+            dotted_line_end = ref_point + direction * radius * 2
+            dotted_line_length = int(np.linalg.norm(dotted_line_end - ref_point))
+            draw_dotted_line(frame, ref_point, direction, dotted_line_length)
+
+        # Ensure the arc is not greater than 180 degrees
+        if abs(end_angle - start_angle) > 180:
+            if end_angle > start_angle:
+                start_angle += 360
+            else:
+                end_angle += 360
+
+        # Draw arc
+        cv2.ellipse(frame, tuple(ref_point.astype(int)), (radius, radius), 0, start_angle, end_angle, (0, 255, 0), 2)
+        
+        # Draw text
+        text_angle = np.radians((start_angle + end_angle) / 2)
+        text_pos = (
+            int(ref_point[0] + (radius + 20) * np.cos(text_angle)),
+            int(ref_point[1] + (radius + 20) * np.sin(text_angle))
+        )
+        cv2.putText(frame, f"{angle:.1f}", text_pos, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
+
+    except Exception as e:
+        print(f"Error in draw_angle_arc for joint {joint}: {str(e)}")
+
 
 def draw_segment_angle(frame, segment, angle, keypoints, scores, kpt_thr):
     """
@@ -623,7 +682,7 @@ def draw_segment_angle(frame, segment, angle, keypoints, scores, kpt_thr):
     """
     thickness = 2
     length = 20
-    color = (255, 0, 0)  # blue 
+    color = (0, 0, 0)  # black
 
     segment_to_keypoints = {
         "Right foot": [16, 23],
@@ -867,7 +926,20 @@ def overlay_angles_video(frame, df_angles_list_frame, keypoints, scores, kpt_thr
         
     return frame
 
-
+def generate_colors(n, exclude_colors=[(0, 255, 0), (0, 0, 0)]):
+    cmap = plt.cm.hsv
+    colors = []
+    exclude_colors = set(tuple(color) for color in exclude_colors)
+    i = 0
+    while len(colors) < n:
+        color = tuple(map(int, np.array(cmap(i / n)) * 255))
+        if color not in exclude_colors:
+            colors.append(color)
+        i += 1
+        if i > n * 2:
+            break
+    
+    return colors
 def draw_bounding_box(X, Y, img, person_ids=None):
     '''
     Draw bounding boxes and person ID
@@ -883,7 +955,7 @@ def draw_bounding_box(X, Y, img, person_ids=None):
     - img: image with rectangles and person IDs
     '''
     
-    cmap = plt.cm.hsv
+    colors = generate_colors(len(X))
     
     if person_ids is None:
         person_ids = range(len(X))
@@ -892,7 +964,7 @@ def draw_bounding_box(X, Y, img, person_ids=None):
     for i, (x, y, person_id) in enumerate(zip(X, Y, person_ids)):
         if np.isnan(x).all():
             continue
-        color = (np.array(cmap((i+1)/len(X)))*255).tolist()
+        color = colors[i]
         x_min, y_min = np.nanmin(x).astype(int)-25, np.nanmin(y).astype(int)-25
         x_max, y_max = np.nanmax(x).astype(int)+25, np.nanmax(y).astype(int)+25
         cv2.rectangle(img, (x_min, y_min), (x_max, y_max), color, 2)
@@ -906,7 +978,7 @@ def draw_bounding_box(X, Y, img, person_ids=None):
     
     return img
 
-def draw_keypts_skel(X, Y, img, pose_model):
+def draw_keypts_skel(X, Y, scores, img, pose_model, kpt_thr):
     '''
     Draws keypoints and optionally skeleton for each person
     INPUTS:
@@ -920,12 +992,14 @@ def draw_keypts_skel(X, Y, img, pose_model):
     '''
     
     cmap = plt.cm.hsv
+    colors = generate_colors(len(X))
     
     # Draw keypoints
-    for (x,y) in zip(X,Y):
-        [cv2.circle(img, (int(x[i]), int(y[i])), 5, (255,255,255), -1)
+    for person_idx, (x, y, score) in enumerate(zip(X, Y, scores)):
+        color = colors[person_idx]
+        [cv2.circle(img, (int(x[i]), int(y[i])), 5, color, -1)
          for i in range(len(x))
-         if not (np.isnan(x[i]) or np.isnan(y[i]))]
+         if not (np.isnan(x[i]) or np.isnan(y[i])) and score[i] >= kpt_thr]
     
     # Draw skeleton
     if pose_model == 'RTMPose':
@@ -937,17 +1011,20 @@ def draw_keypts_skel(X, Y, img, pose_model):
             start_index = keypoint_id_to_index[start_id]
             end_index = keypoint_id_to_index[end_id]
             
-            for (x,y) in zip(X,Y):
-                if not (np.isnan(x[start_index]) or np.isnan(y[start_index]) or 
-                        np.isnan(x[end_index]) or np.isnan(y[end_index])):
+            for person_idx, (x, y, score) in enumerate(zip(X, Y, scores)):
+                if (not (np.isnan(x[start_index]) or np.isnan(y[start_index]) or 
+                         np.isnan(x[end_index]) or np.isnan(y[end_index])) and
+                    score[start_index] >= kpt_thr and
+                    score[end_index] >= kpt_thr):
+                    color = tuple(map(int, np.array(cmap(person_idx / len(X))) * 255))
                     cv2.line(img,
                         (int(x[start_index]), int(y[start_index])), 
                         (int(x[end_index]), int(y[end_index])),
-                        tuple(link_info['color']), 2)
+                        color, 1)
     
     return img
 
-def save_imgvid_reID(video_path, video_result_path, df_angles_list, pose_model, save_vid, save_img):
+def save_imgvid_reID(video_path, video_result_path, df_angles_list, pose_model, save_vid, save_img, kpt_thr):
 
     csv_dir = video_result_path.parent / 'video_results'
     csv_paths = list(csv_dir.glob(f'{video_result_path.stem}_person*_angles.csv'))
@@ -1021,7 +1098,7 @@ def save_imgvid_reID(video_path, video_result_path, df_angles_list, pose_model, 
 
         if frame_keypoints.size > 0 and frame_scores.size > 0:
             frame = draw_bounding_box(frame_keypoints[:,:,0], frame_keypoints[:,:,1], frame, person_ids)
-            frame = draw_keypts_skel(frame_keypoints[:,:,0], frame_keypoints[:,:,1], frame, pose_model)
+            frame = draw_keypts_skel(frame_keypoints[:,:,0], frame_keypoints[:,:,1], frame_scores, frame, pose_model, kpt_thr)
 
             df_angles_list_frame = []
             for df in angles_coords:
@@ -1050,16 +1127,11 @@ def compute_angles_fun(config_dict, video_file):
     Optionally displays figures.
 
     Joint angle conventions:
-    - Ankle dorsiflexion: Between heel and big toe, and ankle and knee.\
-    *-90° when the foot is aligned with the shank.*
-    - Knee flexion: Between hip, knee, and ankle.\
-    *0° when the shank is aligned with the thigh.*
-    - Hip flexion: Between knee, hip, and shoulder.\
-    *0° when the trunk is aligned with the thigh.* 
-    - Shoulder flexion: Between hip, shoulder, and elbow.\
-    *180° when the arm is aligned with the trunk.*
-    - Elbow flexion: Between wrist, elbow, and shoulder.\
-    *0° when the forearm is aligned with the arm.*
+    - Ankle dorsiflexion: Between heel and big toe, and ankle and knee
+    - Knee flexion: Between hip, knee, and ankle 
+    - Hip flexion: Between knee, hip, and shoulder
+    - Shoulder flexion: Between hip, shoulder, and elbow
+    - Elbow flexion: Between wrist, elbow, and shoulder
 
     Segment angle conventions:
     Angles are measured anticlockwise between the horizontal and the segment.
@@ -1247,4 +1319,4 @@ def compute_angles_fun(config_dict, video_file):
     if show_angles_img or show_angles_vid:
         video_base = Path(video_dir / video_file)
         video_pose = result_dir / (video_base.stem + '.mp4')
-        save_imgvid_reID(video_base, video_pose, df_angles_list, 'RTMPose', save_vid=show_angles_vid, save_img=show_angles_img)
+        save_imgvid_reID(video_base, video_pose, df_angles_list, 'RTMPose', save_vid=show_angles_vid, save_img=show_angles_img, kpt_thr=kpt_thr)

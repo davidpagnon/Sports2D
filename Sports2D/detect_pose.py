@@ -71,7 +71,8 @@ from Sports2D.compute_angles import (
     draw_bounding_box,
     overlay_angles,
     flip_left_right_direction,
-    display_figures_fun_ang)
+    display_figures_fun_ang,
+    draw_keypts_skel)
 from Sports2D.Utilities import filter, common
 from Sports2D.Utilities.skeletons import halpe26_rtm
 from rtmlib import PoseTracker, BodyWithFeet, draw_skeleton
@@ -665,10 +666,12 @@ def process_webcam(webcam_settings, pose_tracker, tracking, joint_angles, segmen
             save_to_openpose(json_file_path, keypoints, scores)
             
             img_show = frame.copy()
+            # img_show = draw_skeleton(img_show, keypoints, scores, kpt_thr=0.1)
             df_angles_list_frame = []
 
             valid_X = []
             valid_Y = []
+            valid_scores = []
             valid_person_ids = []
 
             for person_idx in range(len(keypoints)):
@@ -685,10 +688,12 @@ def process_webcam(webcam_settings, pose_tracker, tracking, joint_angles, segmen
 
                 valid_X.append(X.values[0])
                 valid_Y.append(Y.values[0])
+                valid_scores.append(person_scores)
                 valid_person_ids.append(person_idx)
 
             if valid_X and valid_Y:
                 img_show = draw_bounding_box(valid_X, valid_Y, img_show, valid_person_ids)
+                img_show = draw_keypts_skel(valid_X, valid_Y, valid_scores, img_show, 'RTMPose', kpt_thr)
 
                 if flip_left_right:
                     df_points = flip_left_right_direction(df_points, data_type)
