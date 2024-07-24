@@ -18,7 +18,7 @@ affiliations:
  - name: Centre for the Analysis of Motion, Entertainment Research & Applications (CAMERA), University of Bath, Claverton Down, Bath, BA2 7AY, UK
    index: 1
  - name: Inha University, Yonghyeon Campus, 100 Inha-ro, Michuhol-gu, Incheon 22212, South Korea
-     index: 2
+   index: 2
 date: February 14 2024
 bibliography: paper.bib
 ---
