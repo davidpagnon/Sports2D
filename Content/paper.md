@@ -11,7 +11,7 @@ authors:
   - name: David Pagnon^[corresponding author] 
     orcid: 0000-0002-6891-8331
     affiliation: 1
-  - name HunMin Kim
+  - name: HunMin Kim
     orcid:
     affiliation: 2
 affiliations:
