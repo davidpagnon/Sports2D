@@ -45,19 +45,18 @@ import logging
 from pathlib import Path
 from sys import platform
 import json
-import subprocess
 import itertools as it
 import numpy as np
 import pandas as pd
 import cv2
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-import re
 from tqdm import tqdm
 import torch
 import onnxruntime as ort
 from datetime import datetime
 import sys
+import time
 from IPython.display import clear_output
 
 from Sports2D.Sports2D import base_params
@@ -228,24 +227,35 @@ def sort_people(keyptpre, keypt, nb_persons_to_detect):
     
     return keypt
 
-def save_to_openpose(json_file_path, keypoints, scores):
+def save_to_openpose(json_file_path, keypoints, scores, kpt_thr):
+    score_threshold = kpt_thr
     nb_detections = len(keypoints)
+    print(f" number of detections: {nb_detections}")
     detections = []
+
     for i in range(nb_detections):
-        keypoints_with_confidence_i = []
-        for kp, score in zip(keypoints[i], scores[i]):
-            keypoints_with_confidence_i.extend([kp[0].item(), kp[1].item(), score.item()])
-        detections.append({
-            "person_id": [-1],
-            "pose_keypoints_2d": keypoints_with_confidence_i,
-            "face_keypoints_2d": [],
-            "hand_left_keypoints_2d": [],
-            "hand_right_keypoints_2d": [],
-            "pose_keypoints_3d": [],
-            "face_keypoints_3d": [],
-            "hand_left_keypoints_3d": [],
-            "hand_right_keypoints_3d": []
-        })
+        # 각 사람의 평균 score 계산
+        average_score = sum(score.item() for score in scores[i]) / len(scores[i])
+        
+        # 평균 score가 임계값 이상인 경우만 처리
+        if average_score >= score_threshold:
+            keypoints_with_confidence_i = []
+            for kp, score in zip(keypoints[i], scores[i]):
+                keypoints_with_confidence_i.extend([kp[0].item(), kp[1].item(), score.item()])
+            detections.append({
+                "person_id": [-1],
+                "pose_keypoints_2d": keypoints_with_confidence_i,
+                "face_keypoints_2d": [],
+                "hand_left_keypoints_2d": [],
+                "hand_right_keypoints_2d": [],
+                "pose_keypoints_3d": [],
+                "face_keypoints_3d": [],
+                "hand_left_keypoints_3d": [],
+                "hand_right_keypoints_3d": []
+            })
+            print(f"Person {i} passed the threshold. Average score: {average_score:.4f}")
+        # else:
+        #     print(f"Person {i} did not pass the threshold. Average score: {average_score:.4f}")
     
     json_output = {"version": 1.3, "people": detections}
     
@@ -279,11 +289,14 @@ def json_to_csv(json_path, frame_rate, interp_gap_smaller_than, filter_options, 
     keypoints_ids = [kp['id'] for kp in keypoints_info.values()]
     keypoints_names = [kp['name'] for kp in keypoints_info.values()]
     keypoints_nb = len(keypoints_ids)
+    print(f"keypoints_nb: {keypoints_nb}")
 
     # Retrieve coordinates
     logging.info('Sorting people across frames.')
     json_fnames = sorted(list(json_path.glob('*.json')))
+    # print(f"json_fnames: {json_fnames}")
     nb_persons_to_detect = max([len(json.load(open(json_fname))['people']) for json_fname in json_fnames])
+    print(f"nb_persons_to_detect: {nb_persons_to_detect}")
     Coords = [np.array([]).reshape(0,keypoints_nb*3)] * nb_persons_to_detect
     for json_fname in json_fnames:    # for each frame
         with open(json_fname) as json_f:
@@ -307,7 +320,7 @@ def json_to_csv(json_path, frame_rate, interp_gap_smaller_than, filter_options, 
                 Coords[i] = np.vstack([Coords[i], keypt[i].reshape(-1)])
             keyptpre = keypt
     logging.info(f'{nb_persons_to_detect} persons found.')
-    
+
     # Inject coordinates in dataframes and save
     for i in range(nb_persons_to_detect): 
         # Calculate detection time
@@ -353,12 +366,14 @@ def json_to_csv(json_path, frame_rate, interp_gap_smaller_than, filter_options, 
             df_list[0].replace(0, np.nan, inplace=True)
             df_list += [df_list[0].copy()]
             df_list[1] = df_list[1].apply(filter.filter1d, axis=0, args=filter_options)
-        df_list[-1].replace(np.nan, 0, inplace=True)
-           
+        
+        # empty values
+        df_list[-1] = df_list[-1].replace({np.nan: None, 0: None})
+        
         # Save csv
         csv_path = json_path.parent / Path(json_path.name[:-5]+f'_person{i}_points.csv')
         logging.info(f'Person {i}: Saving csv position file in {csv_path}.')
-        df_list[-1].to_csv(csv_path, sep=',', index=True, lineterminator='\n')
+        df_list[-1].to_csv(csv_path, sep=',', index=True, lineterminator='\n', na_rep='')
         
         # Display figures
         if show_plots:
@@ -381,7 +396,7 @@ def show_image(img, title):
     return True
     
 # If input is a video
-def process_video(video_path, video_result_path,pose_tracker, tracking, output_format, save_video, save_images, display_detection, frame_range):
+def process_video(video_path, video_result_path,pose_tracker, tracking, output_format, save_video, save_images, display_detection, frame_range, kpt_thr):
     '''
     Estimate pose from a video file
     
@@ -452,7 +467,7 @@ def process_video(video_path, video_result_path,pose_tracker, tracking, output_f
                 # Save to json
                 if 'openpose' in output_format:
                     json_file_path = os.path.join(json_output_dir, f'{video_name_wo_ext}_{frame_idx:06d}.json')
-                    save_to_openpose(json_file_path, keypoints, scores)
+                    save_to_openpose(json_file_path, keypoints, scores, kpt_thr)
 
                 # Draw skeleton on the frame
                 if display_detection or save_video or save_images:
@@ -482,7 +497,6 @@ def process_video(video_path, video_result_path,pose_tracker, tracking, output_f
     if display_detection and 'google.colab' not in sys.modules:
         cv2.destroyAllWindows()
 
-# If input is a webcam
 def process_webcam(webcam_settings, pose_tracker, tracking, joint_angles, segment_angles, save_video, save_images, interp_gap_smaller_than, 
                    filter_options, show_plots, flip_left_right, kpt_thr, data_type, do_filter_angles, min_detection_time):
     """
@@ -527,6 +541,8 @@ def process_webcam(webcam_settings, pose_tracker, tracking, joint_angles, segmen
 
     Note: The function can be interrupted by pressing 'q' or using a keyboard interrupt (Ctrl+C).
     """
+
+    global time
 
     is_colab = 'google.colab' in sys.modules
     if is_colab:
@@ -620,16 +636,6 @@ def process_webcam(webcam_settings, pose_tracker, tracking, joint_angles, segmen
 
         cv2.namedWindow("Real-time Analysis", cv2.WINDOW_NORMAL)
 
-    # Video writer setup
-    video_writer = None
-    if save_video:
-        video_output_path = str(output_dir / 'webcam_video.mp4')
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        video_writer = cv2.VideoWriter(video_output_path, fourcc, frame_rate, (cam_width, cam_height))
-        if not video_writer.isOpened():
-            print("Error: Could not create video writer.")
-            save_video = False
-
     # Image output directory setup
     if save_images:
         img_output_dir = output_dir / 'webcam_images'
@@ -638,6 +644,9 @@ def process_webcam(webcam_settings, pose_tracker, tracking, joint_angles, segmen
     frame_count = 0
     keypoints_data = {}
     scores_data = {}
+    processed_frames = []
+    processing_times = []
+    last_process_time = time.time()
 
     try:
         while True:
@@ -652,27 +661,27 @@ def process_webcam(webcam_settings, pose_tracker, tracking, joint_angles, segmen
                     break
 
             frame_count += 1
+            current_time = time.time()
+            elapsed_time = current_time - last_process_time
+            processing_times.append(elapsed_time)
+
             keypoints, scores = pose_tracker(frame)
             
+            # Reorder keypoints, scores
             if tracking:
                 max_id = max(pose_tracker.track_ids_last_frame)
-                keypoints_filled = np.zeros((max_id+1, *keypoints.shape[1:]))
-                scores_filled = np.zeros((max_id+1, scores.shape[1]))
+                num_frames, num_points, num_coordinates = keypoints.shape
+                keypoints_filled = np.zeros((max_id+1, num_points, num_coordinates))
+                scores_filled = np.zeros((max_id+1, num_points))
                 keypoints_filled[pose_tracker.track_ids_last_frame] = keypoints
                 scores_filled[pose_tracker.track_ids_last_frame] = scores
-                keypoints, scores = keypoints_filled, scores_filled
+                keypoints = keypoints_filled
+                scores = scores_filled
 
-            json_file_path = json_output_dir / f'frame_{frame_count:06d}.json'
-            save_to_openpose(json_file_path, keypoints, scores)
-            
-            img_show = frame.copy()
-            # img_show = draw_skeleton(img_show, keypoints, scores, kpt_thr=0.1)
+
             df_angles_list_frame = []
-
-            valid_X = []
-            valid_Y = []
-            valid_scores = []
-            valid_person_ids = []
+            valid_X, valid_Y, valid_scores, valid_person_ids = [], [], [], []
+            keypoints_flipped = keypoints.copy()
 
             for person_idx in range(len(keypoints)):
                 person_keypoints = keypoints[person_idx]
@@ -691,12 +700,29 @@ def process_webcam(webcam_settings, pose_tracker, tracking, joint_angles, segmen
                 valid_scores.append(person_scores)
                 valid_person_ids.append(person_idx)
 
-            if valid_X and valid_Y:
-                img_show = draw_bounding_box(valid_X, valid_Y, img_show, valid_person_ids)
-                img_show = draw_keypts_skel(valid_X, valid_Y, valid_scores, img_show, 'RTMPose', kpt_thr)
+                print(f"Person {person_idx} - Before flip:")
+                print(df_points[[col for col in df_points.columns if col.endswith('_x')]].head())
 
+                # 2024.07.25 fixed flip_left_right_direction function
                 if flip_left_right:
                     df_points = flip_left_right_direction(df_points, data_type)
+                    print(f"Person {person_idx} - After flip:")
+                    print(df_points[[col for col in df_points.columns if col.endswith('_x')]].head())
+
+                    # x 좌표만 업데이트
+                    x_columns = [col for col in df_points.columns if col.endswith('_x')]
+                    flipped_x = df_points[x_columns].values.flatten()
+                    keypoints_flipped[person_idx, :, 0] = flipped_x
+
+                    # x 좌표 변화 확인
+                    original_x = person_keypoints[:, 0]
+                    print(f"Person {person_idx}, frame : {frame_count} - X coordinates comparison:")
+                    print(pd.DataFrame({
+                        'Original X': original_x,
+                        'Flipped X': flipped_x,
+                        'Difference': original_x - flipped_x
+                    }).head())
+
                 
                 joint_angle_values = {}
                 for joint in joint_angles:
@@ -723,7 +749,17 @@ def process_webcam(webcam_settings, pose_tracker, tracking, joint_angles, segmen
                 keypoints_data[person_idx].append(person_keypoints)
                 scores_data[person_idx].append(person_scores)
 
+            img_show = frame.copy()
+            if valid_X and valid_Y:
+                img_show = draw_bounding_box(valid_X, valid_Y, img_show, valid_person_ids)
+                img_show = draw_keypts_skel(valid_X, valid_Y, valid_scores, img_show, 'RTMPose', kpt_thr)
+
             img_show = overlay_angles(img_show, df_angles_list_frame, keypoints, scores, kpt_thr)
+
+            processed_frames.append(img_show)
+
+            cv2.imshow("Real-time Analysis", img_show)
+
 
             if is_colab:
                 img_byte_arr = io.BytesIO()
@@ -736,14 +772,19 @@ def process_webcam(webcam_settings, pose_tracker, tracking, joint_angles, segmen
                     img_show = cv2.resize(img_show, (window_size[2], window_size[3]))
                 cv2.imshow("Real-time Analysis", img_show)
             
-            if save_video and video_writer is not None:
-                video_writer.write(cv2.resize(img_show, (cam_width, cam_height)))
-
             if save_images:
                 cv2.imwrite(str(img_output_dir / f'frame_{frame_count:06d}.png'), img_show)
             
+            json_file_path = json_output_dir / f'frame_{frame_count:06d}.json'
+            if flip_left_right:
+                save_to_openpose(json_file_path, keypoints_flipped, scores, kpt_thr)
+            else:
+                save_to_openpose(json_file_path, keypoints, scores, kpt_thr)
+            
             if not is_colab and cv2.waitKey(1) & 0xFF == ord('q'):
                 break
+
+            last_process_time = current_time
 
             if frame_count % 100 == 0:
                 print(f"Processed frame {frame_count}")
@@ -755,11 +796,23 @@ def process_webcam(webcam_settings, pose_tracker, tracking, joint_angles, segmen
             eval_js('stopWebcam()')
         else:
             cap.release()
-        if video_writer is not None:
-            video_writer.release()
         cv2.destroyAllWindows()
 
     print(f"\nTotal frames processed: {frame_count}")
+
+    # actual fps
+    actual_processing_fps = len(processed_frames) / sum(processing_times)
+    print(f"Actual processing FPS: {actual_processing_fps:.2f}")
+
+    if save_video:
+        video_path = str(output_dir / 'webcam_video.mp4')
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        writer = cv2.VideoWriter(video_path, fourcc, actual_processing_fps, (cam_width, cam_height))
+        
+        for frame in processed_frames:
+            writer.write(cv2.resize(frame, (cam_width, cam_height)))
+        
+        writer.release()
 
     if filter_options[0]:
         filter_options = list(filter_options)
@@ -768,7 +821,7 @@ def process_webcam(webcam_settings, pose_tracker, tracking, joint_angles, segmen
     
     json_to_csv(json_output_dir, frame_rate, interp_gap_smaller_than, filter_options, show_plots, min_detection_time)
 
-    # Recalculate angles from filtered CSV files and apply filtering
+    # Recalculate angles from filtered CSV files and apply filtering for each person
     for person_idx in keypoints_data.keys():
         csv_path = output_dir / f'_person{person_idx}_points.csv'
         if os.path.exists(csv_path):
@@ -811,42 +864,14 @@ def process_webcam(webcam_settings, pose_tracker, tracking, joint_angles, segmen
             scorer = ['DavidPagnon'] * (len(joint_angles) + len(segment_angles) + 1)
             individuals = [f'person{person_idx}'] * len(scorer)
             angs = ['Time'] + joint_angles + segment_angles
-            coords = ['seconds']
-            for j in joint_angles:
-                angle_params = get_joint_angle_params(j)
-                if angle_params:
-                    coords.append(angle_params[1])
-                else:
-                    coords.append('unknown')
-            for s in segment_angles:
-                angle_params = get_segment_angle_params(s)
-                if angle_params:
-                    coords.append(angle_params[1])
-                else:
-                    coords.append('unknown')
+            coords = ['seconds'] + [get_joint_angle_params(j)[1] if get_joint_angle_params(j) else 'unknown' for j in joint_angles] + [get_segment_angle_params(s)[1] if get_segment_angle_params(s) else 'unknown' for s in segment_angles]
             index_angs_csv = pd.MultiIndex.from_tuples(list(zip(scorer, individuals, angs, coords)), 
                                                       names=['scorer', 'individuals', 'angs', 'coords'])
-
-            if len(angle_series) != len(index_angs_csv):
-                logging.warning(f"Length of angle_series ({len(angle_series)}) does not match length of index_angs_csv ({len(index_angs_csv)}).")
-                while len(angle_series) < len(index_angs_csv):
-                    angle_series.append(np.full(max_length, np.nan))
-                angle_series = angle_series[:len(index_angs_csv)]
 
             df_angles = [pd.DataFrame(np.array(angle_series).T, columns=index_angs_csv)]
 
             # Apply filtering to angles
             if do_filter_angles:
-                filter_type = filter_options[1]
-                if filter_type == 'butterworth':
-                    args = f'Butterworth filter, {filter_options[2]}th order, {filter_options[3]} Hz.'
-                elif filter_type == 'gaussian':
-                    args = f'Gaussian filter, Sigma kernel {filter_options[5]}'
-                elif filter_type == 'loess':
-                    args = f'LOESS filter, window size of {filter_options[6]} frames.'
-                elif filter_type == 'median':
-                    args = f'Median filter, kernel of {filter_options[7]}.'
-                logging.info(f'Person {person_idx}: Filtering angles with {args}.')
                 df_angles[0].replace(0, np.nan, inplace=True)
                 df_angles.append(df_angles[0].copy())
                 df_angles[1] = df_angles[1].apply(filter.filter1d, axis=0, args=filter_options)
@@ -868,12 +893,11 @@ def process_webcam(webcam_settings, pose_tracker, tracking, joint_angles, segmen
                     display_figures_fun_ang(df_angles)
                 else:
                     logging.info(f'Person {person_idx}: No angle data to display.')
-                    plt.close('all')  # always close figures to avoid memory leak
 
     logging.info(f"Output saved to: {output_dir}")
     logging.info(f"JSON files: {json_output_dir}")
     if save_video:
-        logging.info(f"Video file: {video_output_path}")
+        logging.info(f"Video file: {video_path}")
     if save_images:
         logging.info(f"Image files: {img_output_dir}")
     logging.info(f"CSV files: {output_dir}")
@@ -933,7 +957,7 @@ def detect_pose_fun(config_dict, video_file):
     output_format = "openpose"
 
     # webcam settings
-    cam_id =  config_dict.get('webcam').get('cam_id')
+    cam_id =  config_dict.get('webcam').get('webcam_id')
     width = config_dict.get('webcam').get('width')
     height = config_dict.get('webcam').get('height')
     webcam_settings = (cam_id, width, height)
@@ -1001,7 +1025,7 @@ def detect_pose_fun(config_dict, video_file):
             json_path.mkdir(parents=True, exist_ok=True)
 
             # Process video with RTMPose
-            process_video(str(video_path), video_result_path, pose_tracker, tracking, output_format, save_vid, save_img, display_detection, frame_range)
+            process_video(str(video_path), video_result_path, pose_tracker, tracking, output_format, save_vid, save_img, display_detection, frame_range, kpt_thr)
 
         # Sort people and save to csv, optionally display plot
         try:
