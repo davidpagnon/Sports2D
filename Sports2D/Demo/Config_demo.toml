@@ -19,11 +19,11 @@ result_dir = '' # BETWEEN SINGLE QUOTES! # If empty, project dir is current dir
 
 
 [pose]
-data_type = "webcam"
+data_type = "video"
 video_path = "path/to/your/video.mp4"
 det_frequency = 1
 mode = "lightweight"
-keypoints_threshold = 0.1 #If only part of a person is on screen, increase this number to ensure that only correctly detected keypoints are used.
+keypoints_threshold = 0.2 #If only part of a person is on screen, increase this number to ensure that only correctly detected keypoints are used.
 tracking = true
 min_detection_time = 1 # If lower than this, person will be ignored
 						#For webcams, it is possible to detect the wrong person if the person is only partially detected (usually less than a second).
@@ -32,7 +32,7 @@ display_detection = true
 frame_range = []
 
 [webcam] 
-cam_id = 0 # 0 is default, it will use your first webcam.
+webcam_id = 0 # 0 is default, it will use your first webcam.
 width = 1280 # high resolution would be better pose estimation, but low fps
 height = 720 # high resolution would be better pose estimation, but low fps
 
@@ -57,7 +57,7 @@ overwrite_pose = true # If false, don't run openpose again if json pose files ar
 save_vid = true
 save_img = true
 interp_gap_smaller_than = 5 # do not interpolate bigger gaps
-filter = true
+filter = false
 show_plots = true
 filter_type = 'butterworth' # butterworth, gaussian, LOESS, median
    [pose_advanced.butterworth]
