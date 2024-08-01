@@ -77,10 +77,28 @@ __email__ = "contact@david-pagnon.com"
 __status__ = "Development"
 
 
-
 # CONSTANTS
 # dict: name: points, extra, offset, invert. 
 # Most angles are multiplied by -1 because the OpenCV y axis points down.
+
+# text dics
+joint_text_positions = {}
+
+# segment와 joint 매핑 정의
+segment_to_joint = {
+    "Right foot": "Right ankle",
+    "Left foot": "Left ankle",
+    "Right shank": "Right knee",
+    "Left shank": "Left knee",
+    "Right thigh": "Right hip",
+    "Left thigh": "Left hip",
+    "Trunk": None,  # Trunk에 해당하는 단일 joint가 없음
+    "Right arm": "Right shoulder",
+    "Left arm": "Left shoulder",
+    "Right forearm": "Right elbow",
+    "Left forearm": "Left elbow"
+}
+
 # define joint angle parameters
 def get_joint_angle_params(joint):
     """
@@ -504,59 +522,45 @@ def segment_angles_series_from_csv(df_points, angle_params, segment, kpt_thr):
         
     return ang_series
 
-def adjust_text_scale(frame, base_scale=0.25, base_thickness=1):
-    """
-    Adjusts the text scale and thickness based on the frame size.
+# def adjust_text_scale(frame, base_scale=0.25, base_thickness=1):
+#     """
+#     Adjusts the text scale and thickness based on the frame size.
 
-    This function calculates appropriate text scale and thickness for overlay text
-    on a given frame. It scales the text properties relative to a base frame width
-    of 640 pixels, ensuring that text appears proportional on different frame sizes.
+#     This function calculates appropriate text scale and thickness for overlay text
+#     on a given frame. It scales the text properties relative to a base frame width
+#     of 640 pixels, ensuring that text appears proportional on different frame sizes.
 
-    Args:
-        frame (numpy.ndarray): The input frame (image) on which text will be drawn.
-                               Expected to be a 3-dimensional array (height, width, channels).
-        base_scale (float, optional): The base scale factor for text. Defaults to 0.25.
-        base_thickness (int, optional): The base thickness for text. Defaults to 1.
+#     Args:
+#         frame (numpy.ndarray): The input frame (image) on which text will be drawn.
+#                                Expected to be a 3-dimensional array (height, width, channels).
+#         base_scale (float, optional): The base scale factor for text. Defaults to 0.25.
+#         base_thickness (int, optional): The base thickness for text. Defaults to 1.
 
-    Returns:
-        tuple: A tuple containing two elements:
-               - scale (float): The adjusted scale factor for text.
-               - thickness (int): The adjusted thickness for text.
-    """
-    height, width, _ = frame.shape
-    scale = base_scale * (width / 640)
-    thickness = int(base_thickness * (width / 640))
-    return scale, thickness
+#     Returns:
+#         tuple: A tuple containing two elements:
+#                - scale (float): The adjusted scale factor for text.
+#                - thickness (int): The adjusted thickness for text.
+#     """
+#     height, width, _ = frame.shape
+#     scale = base_scale * (width / 640)
+#     thickness = int(base_thickness * (width / 640))
+#     return scale, thickness
+
+def calculate_dynamic_font_scale(vector_length, min_scale=0.2, max_scale=3.0):
+    # 벡터 길이의 20%를 기준으로 폰트 크기 계산
+    base_font_scale = vector_length * 0.005  # 0.005는 조정 가능한 계수
+    
+    # 최소/최대 스케일 적용
+    return max(min(base_font_scale, max_scale), min_scale)
 
 def draw_joint_angle(frame, joint, angle, keypoints, scores, kpt_thr):
-    """
-    Draws the joint angle on the given frame.
-
-    This function identifies the keypoints for a specific joint and draws the angle
-    between them if their scores are above the threshold.
-
-    Args:
-        frame (numpy.ndarray): The image frame to draw on.
-        joint (str): The name of the joint (e.g., "Right knee", "Left elbow").
-        angle (float): The angle to be displayed.
-        keypoints (list): List of keypoint coordinates for the entire pose.
-        scores (list): List of confidence scores for each keypoint.
-        kpt_thr (float): Threshold for keypoint confidence scores.
-
-    Returns:
-        None: The function modifies the input frame in-place.
-
-    Note:
-        The function uses a predefined mapping of joints to keypoint indices.
-        It only draws the angle if all relevant keypoint scores are above the threshold.
-    """
     joint_to_keypoints = {
         "Right ankle": [14, 16, 25, 21],  # right knee, right ankle, right heel, right big_toe
         "Left ankle": [13, 15, 24, 20],   # left knee, left ankle, left heel, left big_toe
         "Right knee": [12, 14, 16],   # right hip, right knee, right ankle
         "Left knee": [11, 13, 15],    # left hip, knee, ankle
-        "Right hip": [18, 12, 14],    # neck, right hip, right knee
-        "Left hip": [18, 11, 13],     # neck, left hip, left knee
+        "Right hip": [6, 12, 14],    # right shoulder, right hip, right knee
+        "Left hip": [5, 11, 13],     # left shoulder, left hip, left knee
         "Right shoulder": [19, 6, 8], # neck, shoulder, elbow
         "Left shoulder": [19, 5, 7],  # neck, shoulder, elbow
         "Right elbow": [6, 8, 10],    # shoulder, elbow, wrist
@@ -573,7 +577,7 @@ def draw_joint_angle(frame, joint, angle, keypoints, scores, kpt_thr):
                 pt1, pt2, pt3 = pts
                 draw_angle_arc(frame, joint, [pt1, pt2, pt3], angle)
 
-def draw_dotted_line(frame, start, direction, length, color=(0, 255, 0), gap=7, dot_length=3):
+def draw_dotted_line(frame, start, direction, length, color=(0, 255, 0), gap=7, dot_length=3): # default is green color
     for i in range(0, length, gap):
         line_start = start + direction * i
         line_end = line_start + direction * dot_length
@@ -582,56 +586,26 @@ def draw_dotted_line(frame, start, direction, length, color=(0, 255, 0), gap=7, 
 # everything well done.
 def draw_angle_arc(frame, joint, pts, angle):
     """
-    Draws an arc representing the angle between three points on the frame.
-
-    This function calculates and draws an arc representing the angle formed by
-    three points, typically representing a joint angle. It also adds text showing
-    the angle value.
-
-    Args:
-        frame (numpy.ndarray): The image frame to draw on.
-        joint (str): The name of the joint (unused in this function, but kept for potential future use).
-        pt1 (tuple): Coordinates of the first point.
-        pt2 (tuple): Coordinates of the second point (vertex of the angle).
-        pt3 (tuple): Coordinates of the third point.
-        angle (float): The angle to be displayed.
-
-    Returns:
-        None: The function modifies the input frame in-place.
-
-    Note:
-        The function draws an arc, the angle value, and lines connecting the points.
-        The radius of the arc is calculated as 20% of the average length of the two vectors.
-
-        "Right ankle": [14, 16, 25, 21],  # right knee, right ankle, right heel, right big_toe
-        "Left ankle": [13, 15, 24, 20],   # left knee, left ankle, left heel, left big_toe
-        "Right knee": [12, 14, 16],   # right hip, right knee, right ankle
-        "Left knee": [11, 13, 15],    # left hip, knee, ankle
-        "Right hip": [18, 12, 14],    # neck, right hip, right knee
-        "Left hip": [18, 11, 13],     # neck, left hip, left knee
-        "Right shoulder": [18, 6, 8], # neck, shoulder, elbow
-        "Left shoulder": [18, 5, 7],  # neck, shoulder, elbow
-        "Right elbow": [6, 8, 10],    # shoulder, elbow, wrist
-        "Left elbow": [5, 7, 9],      # shoulder, elbow, wrist
     """
     start_angle = 0
     end_angle = 0
     ref_point = None
     radius = 0
+    # vector_length = 0  # It might be useful to adjust size of the font based on the vector length
+
 
     try:
         if 'ankle' in joint.lower():
             knee, ankle, heel, toe = map(np.array, pts)
 
-            # Calculate shank vector (from knee to ankle)
+            # Calculate shank vector (from ankle to knee)
             shank_vec = knee - ankle
             
-            # Calculate foot vector (from heel to toe)
-            foot_vec = toe - heel
-            
-            # Normalize vectors
-            # shank_vec_normalized = shank_vec / np.linalg.norm(shank_vec)
-            # foot_vec_normalized = foot_vec / np.linalg.norm(foot_vec)
+            # Calculate foot vector (from ankle to toe)
+            foot_vec = toe - ankle
+
+            # Vector length
+            vector_length = np.linalg.norm(shank_vec)
             
             # Calculate perpendicular vector to shank
             perpendicular_vec = np.array([-shank_vec[1], shank_vec[0]])
@@ -644,31 +618,22 @@ def draw_angle_arc(frame, joint, pts, angle):
             radius = int(0.2 * np.linalg.norm(knee - ankle))
             ref_point = ankle
             
-            # # Calculate the angle
-            # angle = np.degrees(np.arccos(np.clip(np.dot(perpendicular_vec, foot_vec_normalized), -1.0, 1.0)))
-            
-            # # Determine the direction of the angle
-            # if np.cross(perpendicular_vec, foot_vec_normalized) < 0:
-            #     angle = -angle
-            
             # Set start and end angles for the arc
             start_angle = np.degrees(np.arctan2(perpendicular_vec[1], perpendicular_vec[0]))
             end_angle = np.degrees(np.arctan2(foot_vec[1], foot_vec[0]))
             
-            # Ensure the arc is always drawn in the direction from perpendicular_vec to foot_vec
-            # if angle < 0:
-            #     start_angle, end_angle = end_angle, start_angle
-            #     angle = abs(angle)
-            
             # Draw dotted line
-            dotted_line_end = ref_point + perpendicular_vec * radius * 2
-            dotted_line_length = int(np.linalg.norm(dotted_line_end - ref_point))
+            segment_length = np.linalg.norm(knee - ankle)
+            dotted_line_length = int(segment_length*0.3)  # Use half of the segment length
             draw_dotted_line(frame, ref_point, perpendicular_vec, dotted_line_length)
+            # addtional_dotted_line_length = int(segment_length*0.2)
+            # draw_dotted_line(frame, ref_point, perpendicular_vec, addtional_dotted_line_length, (0, 0, 0))
         
         elif 'shoulder' in joint.lower():
             neck, shoulder, elbow = map(np.array, pts)
             ref_vec = neck - shoulder
             other_vec = elbow - shoulder
+            vector_length = np.linalg.norm(ref_vec)
 
             radius = int(0.2 * (np.linalg.norm(ref_vec) + np.linalg.norm(other_vec)) / 2)
             ref_point = shoulder
@@ -680,15 +645,17 @@ def draw_angle_arc(frame, joint, pts, angle):
             pt1, pt2, pt3 = map(np.array, pts)
             if 'knee' in joint.lower():
                 ref_vec = pt2 - pt1  # hip to knee
-                other_vec = pt3 - pt2  # knee to aankle
+                other_vec = pt3 - pt2  # knee to ankle
             elif 'hip' in joint.lower():
-                ref_vec = pt2 - pt1  # neck to hip
+                ref_vec = pt2 - pt1  # shoulder to hip
                 other_vec = pt3 - pt2  # hip to knee
             elif 'elbow' in joint.lower():
                 ref_vec = pt2 - pt1  # shoulder to elbow
                 other_vec = pt3 - pt2  # elbow to wrist
             else:
                 raise ValueError(f"Unsupported joint type: {joint}")
+            
+            vector_length = np.linalg.norm(ref_vec)
             
             direction = ref_vec / np.linalg.norm(ref_vec)
             radius = int(0.2 * (np.linalg.norm(pt1 - pt2) + np.linalg.norm(pt3 - pt2)) / 2)
@@ -698,8 +665,8 @@ def draw_angle_arc(frame, joint, pts, angle):
             end_angle = np.degrees(np.arctan2(other_vec[1], other_vec[0]))
 
             # Draw dotted line
-            dotted_line_end = ref_point + direction * radius * 2
-            dotted_line_length = int(np.linalg.norm(dotted_line_end - ref_point))
+            segment_length = np.linalg.norm(pt1 - pt2)
+            dotted_line_length = int(segment_length*0.3)  # Use half of the segment length
             draw_dotted_line(frame, ref_point, direction, dotted_line_length)
 
         # Ensure the arc is not greater than 180 degrees
@@ -711,50 +678,118 @@ def draw_angle_arc(frame, joint, pts, angle):
 
         # Draw arc
         cv2.ellipse(frame, tuple(ref_point.astype(int)), (radius, radius), 0, start_angle, end_angle, (0, 255, 0), 2)
-        
-        # Draw line for foot
-
-        # Draw text
+            
+        # 텍스트 위치 조정
         text_angle = np.radians((start_angle + end_angle) / 2)
+        text_radius = radius + 15  # arc 바로 아래에 위치하도록 조정
         text_pos = (
-            int(ref_point[0] + (radius + 20) * np.cos(text_angle)),
-            int(ref_point[1] + (radius + 20) * np.sin(text_angle))
+            int(ref_point[0] + text_radius * np.cos(text_angle)),
+            int(ref_point[1] + text_radius * np.sin(text_angle))
         )
-        cv2.putText(frame, f"{angle:.1f}", text_pos, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
 
+        # arc의 아래쪽에 텍스트가 오도록 조정
+        if text_pos[1] < ref_point[1]:  # 텍스트가 arc의 위쪽에 있다면
+            text_pos = (text_pos[0], int(ref_point[1] + radius + 10))  # arc의 아래로 이동
+        else:
+            text_pos = (text_pos[0], text_pos[1] + 10)  # 약간의 여백 추가
+        
+        # store text position
+        joint_text_positions[joint] = text_pos
+
+        # 텍스트 준비 (기존 코드 유지)
+        text = f"{angle:.1f}"
+        font = cv2.FONT_HERSHEY_TRIPLEX
+        font_scale = 0.4
+        out_thickness = 2
+        thickness = 1
+
+        # 텍스트 그리기 (기존 코드 유지, 색상 변경 없음)
+        outline_color = (255, 255, 255)  # White outline for joint text
+        for dx, dy in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:
+            cv2.putText(frame, text, 
+                        (text_pos[0] + dx, text_pos[1] + dy), 
+                        font, font_scale, outline_color, out_thickness, cv2.LINE_AA)
+        
+        cv2.putText(frame, text, text_pos, font, font_scale, (0, 255, 0), thickness, cv2.LINE_AA)
     except Exception as e:
-        print(f"Error in draw_angle_arc for joint {joint}: {str(e)}")
+            print(f"Error in draw_angle_arc for joint {joint}: {str(e)}")
 
+
+# def draw_segment_angle(frame, segment, angle, keypoints, scores, kpt_thr):
+#     """
+#     """
+#     thickness = 2
+#     # length = 20
+#     color = (255, 255, 255)  # White    
+
+#     segment_to_keypoints = {
+#         "Right foot": [21, 16],  # right_big_toe, right_ankle
+#         "Left foot": [20, 15],   # left_big_toe, left_ankle
+#         "Right shank": [14, 16], # right_knee, right_ankle
+#         "Left shank": [13, 15], # left_knee, left_ankle
+#         "Right thigh": [12, 14], # right_hip, right_knee
+#         "Left thigh": [11, 13], # left_hip, left_knee
+#         "Trunk": [19, 18], # hip, neck
+#         "Right arm": [6, 8], # right_shoulder, right_elbow
+#         "Left arm": [5, 7], # left_shoulder, left_elbow
+#         "Right forearm": [8, 10], # right_elbow, right_wrist
+#         "Left forearm": [7, 9] # left_elbow, left_wrist
+#     }
+
+#     # Extract right and left foot keypoints
+#     right_foot_keypoints = [keypoints[16], keypoints[21]]  # right_ankle, right_big_toe
+#     left_foot_keypoints = [keypoints[15], keypoints[20]]  # left_ankle, left_big_toe
+
+#     if segment in segment_to_keypoints:
+#         kpt_indices = segment_to_keypoints[segment]
+#         pt1, pt2 = [keypoints[i] for i in kpt_indices]
+#         score1, score2 = [scores[i] for i in kpt_indices]
+#         if min(score1, score2) >= kpt_thr:
+#             draw_angle_line(frame, pt1, pt2, None, angle, thickness, color, right_foot_keypoints, left_foot_keypoints, segment)
+
+# def draw_angle_line(frame, pt1, pt2, ankle, angle, thickness, color, right_foot_keypoints, left_foot_keypoints ,segment):
+
+#     pt1 = tuple(map(int, pt1))
+#     pt2 = tuple(map(int, pt2))
+
+#     # Calculate the direction vector of the segment
+#     segment_vector = np.array(pt2) - np.array(pt1)
+#     segment_length = np.linalg.norm(segment_vector)
+#     length = int(segment_length*0.12) # 12% of segment length
+
+#     # Normalize the segment vector
+#     if segment_length > 0:
+#         segment_unit_vector = segment_vector / segment_length
+#     else:
+#         segment_unit_vector = np.array([1, 0])  # Default to horizontal if segment length is 0
+
+#     # Calculate the end point of the horizontal reference line based on foot direction
+#     right_foot_direction = np.array(right_foot_keypoints[1]) - np.array(right_foot_keypoints[0]) # ankle to toe
+#     left_foot_direction = np.array(left_foot_keypoints[1]) - np.array(left_foot_keypoints[0]) # ankle to toe
+#     average_foot_direction = (right_foot_direction[0] + left_foot_direction[0]) / 2
+
+#     if average_foot_direction >= 0:
+#         direction = np.array([1, 0])  # oriented to the right
+#     else: 
+#         direction = np.array([-1, 0])  # oriented to the left
+
+#     # For non-foot segments, draw lines
+#     if segment != "Right foot" and segment != "Left foot":
+#         segment_end = tuple(map(int, pt1 + length * segment_unit_vector))
+
+#         reference_end = tuple(map(int, pt1 + length * direction))
+#         cv2.line(frame, pt1, reference_end, color, thickness)
+
+#         # Draw segment line
+#         cv2.line(frame, pt1, segment_end, color, thickness)
 
 def draw_segment_angle(frame, segment, angle, keypoints, scores, kpt_thr):
-    """
-    Draws the segment angle on the given frame.
-
-    This function identifies the keypoints for a specific body segment and draws the angle
-    between the segment and the horizontal axis if the keypoint scores are above the threshold.
-
-    Args:
-        frame (numpy.ndarray): The image frame to draw on.
-        segment (str): The name of the body segment (e.g., "Right thigh", "Left arm").
-        angle (float): The angle to be displayed.
-        keypoints (list): List of keypoint coordinates for the entire pose.
-        scores (list): List of confidence scores for each keypoint.
-        kpt_thr (float): Threshold for keypoint confidence scores.
-
-    Returns:
-        None: The function modifies the input frame in-place.
-
-    Note:
-        The function uses a predefined mapping of segments to keypoint indices.
-        It only draws the angle if both relevant keypoint scores are above the threshold.
-    """
-    thickness = 1
-    length = 20
-    color = (255, 255, 255)  # White
+    thickness = 2
+    color = (255, 255, 255)  # White    
 
     segment_to_keypoints = {
-        "Right foot": [25, 21, 16],  # right_heel, right_big_toe, right_ankle
-        "Left foot": [24, 20, 15],   # left_heel, left_big_toe, left_ankle
+        "Right foot": [25, 21, 16, 14],  # right_heel, right_big_toe, right_ankle, right_knee
+        "Left foot": [24, 20, 15, 13],   # left_heel, left_big_toe, left_ankle, left_knee
         "Right shank": [14, 16], # right_knee, right_ankle
         "Left shank": [13, 15], # left_knee, left_ankle
         "Right thigh": [12, 14], # right_hip, right_knee
@@ -766,325 +801,189 @@ def draw_segment_angle(frame, segment, angle, keypoints, scores, kpt_thr):
         "Left forearm": [7, 9] # left_elbow, left_wrist
     }
 
+    # print(f"Processing segment: {segment}")  # Debug print
+
     # Extract right and left foot keypoints
-    right_foot_keypoints = [keypoints[16], keypoints[21]]  # right_ankle, right_big_toe
-    left_foot_keypoints = [keypoints[15], keypoints[20]]  # left_ankle, left_big_toe
+    right_foot_keypoints = [keypoints[16], keypoints[21], keypoints[25]]  # right_ankle, right_big_toe, right_heel
+    left_foot_keypoints = [keypoints[15], keypoints[20], keypoints[24]]   # left_ankle, left_big_toe, left_heel
 
     if segment in segment_to_keypoints:
         kpt_indices = segment_to_keypoints[segment]
-        if len(kpt_indices) == 3:  # For foot segments
-            heel, toe, ankle = [keypoints[i] for i in kpt_indices]
-            score_heel, score_toe, score_ankle = [scores[i] for i in kpt_indices]
-            if min(score_heel, score_toe, score_ankle) >= kpt_thr:
-                draw_angle_line(frame, heel, toe, ankle, angle, thickness, length, color, right_foot_keypoints, left_foot_keypoints, segment)
-        elif len(kpt_indices) == 2:  # For other segments
+        if segment in ["Right foot", "Left foot"]:
+            heel, toe, ankle, knee = [keypoints[i] for i in kpt_indices]
+            score_heel, score_toe, score_ankle, score_knee = [scores[i] for i in kpt_indices]
+            if min(score_heel, score_toe, score_ankle, score_knee) >= kpt_thr:
+                draw_angle_line(frame, heel, toe, ankle, angle, thickness, color, right_foot_keypoints, left_foot_keypoints, segment)
+            # else:
+            #     print(f"Skipping {segment} due to low scores")
+        else:
             pt1, pt2 = [keypoints[i] for i in kpt_indices]
             score1, score2 = [scores[i] for i in kpt_indices]
             if min(score1, score2) >= kpt_thr:
-                draw_angle_line(frame, pt1, pt2, None, angle, thickness, length, color, right_foot_keypoints, left_foot_keypoints, segment)
+                draw_angle_line(frame, pt1, pt2, None, angle, thickness, color, right_foot_keypoints, left_foot_keypoints, segment)
+            # else:
+            #     print(f"Skipping {segment} due to low scores")
+    else:
+        print(f"Unknown segment: {segment}")
 
-def draw_angle_line(frame, pt1, pt2, ankle, angle, thickness, length, color, right_foot_keypoints, left_foot_keypoints ,segment):
-    """
-    Draws a line representing the segment angle on the frame.
+    return frame
 
-    This function draws a horizontal reference line and an angled line representing
-    the segment, along with the angle between them.
+def draw_angle_line(frame, pt1, pt2, ankle, angle, thickness, color, right_foot_keypoints, left_foot_keypoints, segment):
 
-    Args:
-        frame (numpy.ndarray): The image frame to draw on.
-        pt1 (tuple): Coordinates of the first point of the segment.
-        pt2 (tuple): Coordinates of the second point of the segment (unused in this function).
-        angle (float): The angle to be displayed.
-        thickness (int): Thickness of the lines to be drawn.
-        length (int): Length of the lines to be drawn.
-        color (tuple): RGB color of the lines.
-
-    Returns:
-        None: The function modifies the input frame in-place.
-
-    Note:
-        The function draws a horizontal reference line and an angled line from the first point (pt1).
-        The second point (pt2) is not used in the current implementation but kept for potential future use.
-    """
     pt1 = tuple(map(int, pt1))
     pt2 = tuple(map(int, pt2))
-
+    
     # Calculate the direction vector of the segment
     segment_vector = np.array(pt2) - np.array(pt1)
     segment_length = np.linalg.norm(segment_vector)
+    length = int(segment_length * 0.12)  # 12% of segment length
     
     # Normalize the segment vector
     if segment_length > 0:
         segment_unit_vector = segment_vector / segment_length
     else:
         segment_unit_vector = np.array([1, 0])  # Default to horizontal if segment length is 0
-
-    # starting point of foot is ankle
-    # if right_foot, pt1 = right_foot_keypoints[0]
-    # if left_foot, pt1 = left_foot_keypoints[0]
-
+    
+    # Calculate the end point of the horizontal reference line based on foot direction
+    right_foot_direction = np.array(right_foot_keypoints[1]) - np.array(right_foot_keypoints[2])  # heel to toe
+    left_foot_direction = np.array(left_foot_keypoints[1]) - np.array(left_foot_keypoints[2])  # heel to toe
+    average_foot_direction = (right_foot_direction[0] + left_foot_direction[0]) / 2
+    
+    if average_foot_direction >= 0:
+        direction = np.array([1, 0])  # oriented to the right
+    else: 
+        direction = np.array([-1, 0])  # oriented to the left
+    
     if segment == "Right foot" or segment == "Left foot":
         ankle = tuple(map(int, ankle))
-        pt1 = ankle
+        heel = np.array(pt1)
+        toe = np.array(pt2)
+        foot_length = int(segment_length * 0.20)  # 12% of segment length
         
-    # Calculate the end point of the horizontal reference line based on foot direction
-    right_foot_direction = np.array(right_foot_keypoints[1]) - np.array(right_foot_keypoints[0]) # ankle ot toe
-    left_foot_direction = np.array(left_foot_keypoints[1]) - np.array(left_foot_keypoints[0]) # ankle ot toe
-    average_foot_direction = (right_foot_direction[0] + left_foot_direction[0]) / 2
-    # print(f"average_foot_direction: {average_foot_direction}")
-    if average_foot_direction >= 0:
-        end_point = (int(pt1[0] + length), pt1[1]) # oriented to the right
-    else: 
-        end_point = (int(pt1[0] - length), pt1[1]) # oriented to the left
-
-    cv2.line(frame, pt1, end_point, color, thickness)
-    
-    # Calculate the end point of the segment line
-    if segment == "Right foot" or segment == "Left foot":
-        segment_end = tuple(map(int, heel + length * segment_unit_vector))
+        # Draw the line parallel to heel-toe starting from ankle
+        heel_to_toe_vector = toe - heel
+        heel_to_toe_unit_vector = heel_to_toe_vector / np.linalg.norm(heel_to_toe_vector)
+        foot_end = tuple(map(int, ankle + foot_length * heel_to_toe_unit_vector))
+        cv2.line(frame, ankle, foot_end, color, thickness)
+        
+        # Draw horizontal reference line
+        reference_end = tuple(map(int, np.array(ankle) + foot_length * direction))
+        cv2.line(frame, ankle, reference_end, color, thickness)
     else:
-        segment_end = tuple(map(int, pt1 + length * segment_unit_vector))
-    cv2.line(frame, pt1, segment_end, color, thickness)
-
-def overlay_angles(frame, df_angles_list_frame, keypoints, scores, kpt_thr):
-    """
-    Overlays angle information on the frame for each detected person, including text and progress bars.
-
-    This function draws angle labels, values, and a progress bar for each angle
-    on the frame. It also visualizes joint and segment angles using appropriate
-    drawing functions.
-
-    Args:
-        frame (numpy.ndarray): The image frame to draw on.
-        df_angles_list_frame (list): List of DataFrames containing angle information for each person.
-        keypoints (list): List of keypoint coordinates for each person.
-        scores (list): List of confidence scores for each person's keypoints.
-        kpt_thr (float): Threshold for keypoint confidence scores.
-
-    Returns:
-        numpy.ndarray: The frame with overlaid angle information.
-
-    Note:
-        - The function uses a color map to assign different colors to different persons.
-        - Angle labels and values are displayed in separate columns.
-        - A progress bar is drawn to visually represent the angle value.
-        - The function distinguishes between joint angles and segment angles for visualization.
-    """
-    # cmap = plt.cm.hsv
-    # font = cv2.FONT_HERSHEY_SIMPLEX
-    # space_between_groups = 20  # Space between joint and segment angles
-    
-    for i, (angles_frame_person, person_keypoints, person_scores) in enumerate(zip(df_angles_list_frame, keypoints, scores)):
-        # joint_positions = []
-        # segment_positions = []
-        # joint_count = 0
-        # segment_count = 0
+        # For non-foot segments, draw lines as before
+        segment_end = tuple(map(int, np.array(pt1) + length * segment_unit_vector))
+        reference_end = tuple(map(int, np.array(pt1) + length * direction))
         
-        for ang_nb, (angle_name, angle_value) in enumerate(angles_frame_person.items()):
-            try:
-                if angle_name == 'Time':  # Skip the 'Time' column
-                    continue
+        cv2.line(frame, pt1, segment_end, color, thickness)
+        cv2.line(frame, pt1, reference_end, color, thickness)
 
-                if isinstance(angle_value, pd.Series):
-                    angle_value = angle_value.iloc[0]
-                
-                angle_value = float(angle_value)
-                
-                angle_label = str(angle_name)
-                if isinstance(angle_name, tuple):
-                    angle_label = angle_name[2]  # Use the third element of the tuple for the label
-                
-                is_joint = any(joint in angle_label.lower() for joint in ["ankle", "knee", "hip", "shoulder", "elbow"])
-                
-                # Calculate text positions
-                # if is_joint:
-                #     y_offset = 15 + 15 * joint_count
-                #     joint_count += 1
-                # else:
-                #     y_offset = 15 + 15 * joint_count + space_between_groups + 15 * segment_count
-                #     segment_count += 1
-                
-                # label_position = (10+250*i, y_offset)
-                # value_position = (150+250*i, y_offset)
-                # progress_bar_start = (170+250*i, y_offset - 14)
-                # progress_bar_end = (220+250*i, y_offset + 1)
-                
-                # # Draw angle label
-                # cv2.putText(frame, 
-                #     angle_label + ':',
-                #     label_position, 
-                #     font, 0.5, 
-                #     (0,0,0), 
-                #     2, 
-                #     cv2.LINE_4)
-                # frame = cv2.putText(frame, 
-                #     angle_label + ':',
-                #     label_position, 
-                #     font, 0.5, 
-                #     (np.array(cmap((i+1)/len(df_angles_list_frame)))*255).tolist(), 
-                #     1, 
-                #     cv2.LINE_4)
-                
-                # # Draw angle value
-                # cv2.putText(frame, 
-                #     f"{angle_value:.1f}",
-                #     value_position, 
-                #     font, 0.5, 
-                #     (0,0,0), 
-                #     2, 
-                #     cv2.LINE_4)
-                # frame = cv2.putText(frame, 
-                #     f"{angle_value:.1f}",
-                #     value_position, 
-                #     font, 0.5, 
-                #     (np.array(cmap((i+1)/len(df_angles_list_frame)))*255).tolist(), 
-                #     1, 
-                #     cv2.LINE_4)
-                
-                # # Draw progress bar
-                # x_ang = int(angle_value*35/180)
-                # if x_ang != 0:
-                #     sub_frame = frame[progress_bar_start[1]:progress_bar_end[1], 
-                #                       progress_bar_start[0]:progress_bar_start[0]+x_ang]
-                #     if sub_frame.size > 0:
-                #         white_rect = np.ones(sub_frame.shape, dtype=np.uint8) * 255
-                #         res = cv2.addWeighted(sub_frame, 0.6, white_rect, 0.4, 1.0)
-                #         frame[progress_bar_start[1]:progress_bar_end[1], 
-                #               progress_bar_start[0]:progress_bar_start[0]+x_ang] = res
-
-                # # Store positions for box drawing
-                # positions = [label_position, value_position, progress_bar_start, progress_bar_end]
-                # if is_joint:
-                #     joint_positions.extend(positions)
-                # else:
-                #     segment_positions.extend(positions)
-
-                # Draw joint or segment angle
-                if is_joint:
-                    draw_joint_angle(frame, angle_label, angle_value, person_keypoints, person_scores, kpt_thr)
-                else:
-                    draw_segment_angle(frame, angle_label, angle_value, person_keypoints, person_scores, kpt_thr)
-                
-            except Exception as e:
-                # print(f"Warning: Unable to process angle {ang_nb} for person {i}: {str(e)}")
-                continue
-    
     return frame
 
-
-
-# ! This function integrated into overlay_angles
-
-# def overlay_angles_video(frame, df_angles_list_frame, keypoints, scores, kpt_thr):
-#     """
-#     Overlays angle information on a video frame for each detected person.
-
-#     This function draws angle labels, values, and a progress bar for each angle
-#     on the frame. It also visualizes joint and segment angles using appropriatezzz
-#     drawing functions.
-
-#     Args:
-#         frame (numpy.ndarray): The video frame to draw on.
-#         df_angles_list_frame (list): List of DataFrames containing angle information for each person.
-#         keypoints (list): List of keypoint coordinates for each person.
-#         scores (list): List of confidence scores for each person's keypoints.
-#         kpt_thr (float): Threshold for keypoint confidence scores.
-
-#     Returns:
-#         numpy.ndarray: The frame with overlaid angle information.
-
-#     Note:
-#         - The function uses a color map to assign different colors to different persons.
-#         - Angle labels and values are displayed in separate columns.
-#         - A progress bar is drawn to visually represent the angle value.
-#         - The function distinguishes between joint angles and segment angles for visualization.
-#     """
-#     cmap = plt.cm.hsv
-#     font = cv2.FONT_HERSHEY_SIMPLEX
-#     space_between_groups = 20  # Space between joint and segment angles
     
-#     for i, (angles_frame_person, person_keypoints, person_scores) in enumerate(zip(df_angles_list_frame, keypoints, scores)):
-#         joint_positions = []
-#         segment_positions = []
-#         joint_count = 0
-#         segment_count = 0
+def overlay_angles(frame, df_angles_list_frame, keypoints, scores, kpt_thr, person_ids):
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    font_scale = 0.5
+    text_color = (255, 255, 255)  # 흰색
+    outline_color = (0, 0, 0)  # 검정색
+    
+    if person_ids is None:
+        person_ids = range(len(df_angles_list_frame))
+
+    cmap = plt.cm.hsv  # draw_bounding_box 함수와 동일한 색상 맵 사용
+    
+    for i, (angles_frame_person, person_keypoints, person_scores, person_id) in enumerate(zip(df_angles_list_frame, keypoints, scores, person_ids)):
         
-#         for ang_nb, (angle_name, angle_value) in enumerate(angles_frame_person.items()):
-#             if angle_name == 'Time':  # Skip the 'Time' column
-#                 continue
+        person_color = (np.array(cmap((i+1)/len(df_angles_list_frame)))*255).astype(int).tolist()
 
-#             angle_label = angle_name[2]  # make sure it's a joint or segment name
-#             angle_value = float(angle_value)
+        # Check if angles_frame_person is a dict, if so, convert to pandas Series
+        if isinstance(angles_frame_person, dict):
+            angles_frame_person = pd.Series(angles_frame_person)
 
-#             is_joint = any(joint in angle_label.lower() for joint in ["ankle", "knee", "hip", "shoulder", "elbow"])
+        # NaN이 아닌 segment angle 값이 있는지 확인
+        segment_angles = angles_frame_person.dropna().drop('Time', errors='ignore')
+        segment_angles = segment_angles[[col for col in segment_angles.index if not any(joint in str(col).lower() for joint in ["ankle", "knee", "hip", "shoulder", "elbow"])]]
+        
+        if not segment_angles.empty:
+            segment_count = 0
             
-#             # Calculate text positions
-#             if is_joint:
-#                 y_offset = 15 + 20 * joint_count  # Increased vertical spacing\\\\\
-#                 joint_count += 1
-#             else:
-#                 y_offset = 15 + 20 * joint_count + space_between_groups + 20 * segment_count  # Increased vertical spacing
-#                 segment_count += 1
+            # 사람 구분을 위한 라벨 추가 (이제 person_id 사용)
+            person_label = f"person{person_id}"
+            person_label_position = (10 + 250*i, 15)
+            person_outline_color = (255, 255, 255)  # 흰색
             
-#             label_position = (10+250*i, y_offset)
-#             value_position = (150+250*i, y_offset)
-#             progress_bar_start = (170+250*i, y_offset - 14)
-#             progress_bar_end = (220+250*i, y_offset + 1)
+            # 사람 라벨 그리기
+            for dx, dy in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:
+                cv2.putText(frame, person_label, 
+                            (person_label_position[0] + dx, person_label_position[1] + dy), 
+                            font, font_scale, person_outline_color, 2, cv2.LINE_AA)
+            cv2.putText(frame, person_label, person_label_position, font, font_scale, person_color, 1, cv2.LINE_AA)
             
-#             # Angle label and value (single call with contrasting color)
-#             text_color = (np.array(cmap((i+1)/len(df_angles_list_frame)))*255).astype(int).tolist()
-#             cv2.putText(frame, 
-#                 f"{angle_label}: {round(angle_value, 1)}",
-#                 label_position, 
-#                 font, 0.5, 
-#                 text_color, 
-#                 1, 
-#                 cv2.LINE_AA)  # Using LINE_AA for smoother text
-            
-#             # Progress bar
-#             x_ang = int(angles_frame_person.iloc[ang_nb]*50/180)
-#             if x_ang > 0:
-#                 sub_frame = frame[ 1+15*ang_nb : 16+15*ang_nb , 170+250*i : 170+250*i+x_ang ]
-#                 if sub_frame.size>0:
-#                     white_rect = np.ones(sub_frame.shape, dtype=np.uint8) * 255
-#                     res = cv2.addWeighted(sub_frame, 0.6, white_rect, 0.4, 1.0)
-#                     frame[ 1+15*ang_nb : 16+15*ang_nb , 170+250*i : 170+250*i+x_ang ] = res
-#             elif x_ang < 0:
-#                 sub_frame = frame[ 1+15*ang_nb : 16+15*ang_nb , 170+250*i+x_ang : 170+250*i ]
-#                 if sub_frame.size>0:
-#                     white_rect = np.ones(sub_frame.shape, dtype=np.uint8) * 255
-#                     res = cv2.addWeighted(sub_frame, 0.6, white_rect, 0.4, 1.0)
-#                     frame[ 1+15*ang_nb : 16+15*ang_nb , 170+250*i+x_ang : 170+250*i ] = res
+            for ang_nb, (angle_name, angle_value) in enumerate(angles_frame_person.items()):
+                try:
+                    if angle_name == 'Time':  # Skip the 'Time' column
+                        continue
 
-#             # Store positions for box drawing
-#             positions = [label_position, value_position, progress_bar_start, progress_bar_end]
-#             if is_joint:
-#                 joint_positions.extend(positions)
-#             else:
-#                 segment_positions.extend(positions)
+                    if isinstance(angle_value, pd.Series):
+                        angle_value = angle_value.iloc[0]
+                    
+                    angle_value = float(angle_value)
+                    
+                    angle_label = str(angle_name)
+                    if isinstance(angle_name, tuple):
+                        angle_label = angle_name[2]  # Use the third element of the tuple for the label
+                    
+                    is_joint = any(joint in angle_label.lower() for joint in ["ankle", "knee", "hip", "shoulder", "elbow"])
+                    
+                    if is_joint:
+                        # Draw joint angle, no text (as before)
+                        draw_joint_angle(frame, angle_label, angle_value, person_keypoints, person_scores, kpt_thr)
+                    else:
+                        # For segment angles, display text and draw angle only if not NaN
+                        if not pd.isna(angle_value):
+                            y_offset = 35 + 15 * segment_count  # 시작 위치를 약간 아래로 조정
+                            segment_count += 1
+                            
+                            label_position = (10+250*i, y_offset)
+                            value_position = (150+250*i, y_offset)
+                            progress_bar_start = (170+250*i, y_offset - 14)
+                            progress_bar_end = (220+250*i, y_offset + 1)
+                            
+                            # Draw angle label with outline
+                            label_text = f"{angle_label}:"
+                            for dx, dy in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:
+                                cv2.putText(frame, label_text, 
+                                            (label_position[0] + dx, label_position[1] + dy), 
+                                            font, font_scale, outline_color, 2, cv2.LINE_AA)
+                            cv2.putText(frame, label_text, label_position, font, font_scale, text_color, 1, cv2.LINE_AA)
+                            
+                            # Draw angle value with outline
+                            value_text = f"{angle_value:.1f}"
+                            for dx, dy in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:
+                                cv2.putText(frame, value_text, 
+                                            (value_position[0] + dx, value_position[1] + dy), 
+                                            font, font_scale, outline_color, 2, cv2.LINE_AA)
+                            cv2.putText(frame, value_text, value_position, font, font_scale, text_color, 1, cv2.LINE_AA)
+                            
+                            # Draw progress bar
+                            x_ang = int(angle_value*35/180)
+                            if x_ang != 0:
+                                sub_frame = frame[progress_bar_start[1]:progress_bar_end[1], 
+                                                  progress_bar_start[0]:progress_bar_start[0]+x_ang]
+                                if sub_frame.size > 0:
+                                    white_rect = np.ones(sub_frame.shape, dtype=np.uint8) * 255
+                                    res = cv2.addWeighted(sub_frame, 0.6, white_rect, 0.4, 1.0)
+                                    frame[progress_bar_start[1]:progress_bar_end[1], 
+                                          progress_bar_start[0]:progress_bar_start[0]+x_ang] = res
 
-#             # Draw joint or segment angle
-#             if is_joint:
-#                 draw_joint_angle(frame, angle_label, angle_value, person_keypoints, person_scores, kpt_thr)
-#             else:
-#                 draw_segment_angle(frame, angle_label, angle_value, person_keypoints, person_scores, kpt_thr)
-#     return frame
-
-
-# def generate_colors(n, exclude_colors=[(0, 255, 0), (0, 0, 0)]):
-#     cmap = plt.cm.hsv
-#     colors = []
-#     exclude_colors = set(tuple(color) for color in exclude_colors)
-#     i = 0
-#     while len(colors) < n:
-#         color = tuple(map(int, np.array(cmap(i / n)) * 255))
-#         if color not in exclude_colors:
-#             colors.append(color)
-#         i += 1
-#         if i > n * 2:
-#             break
+                            # Draw segment angle
+                            draw_segment_angle(frame, angle_label, angle_value, person_keypoints, person_scores, kpt_thr)
+                    
+                except Exception as e:
+                    # print(f"Warning: Unable to process angle {ang_nb} for person {i}: {str(e)}")
+                    continue
     
-#     return colors
+    return frame
+    
 def draw_bounding_box(X, Y, img, person_ids=None):
     '''
     Draw bounding boxes and person ID
@@ -1148,6 +1047,13 @@ def draw_keypts_skel(X, Y, scores, img, pose_model, kpt_thr):
     # Draw skeleton
     if pose_model == 'RTMPose':
         keypoint_id_to_index = {kp['id']: i for i, kp in halpe26_rtm['keypoint_info'].items()}
+
+        # Add shoulder-hip connections to skeleton_info for shoulder's arc
+        halpe26_rtm['skeleton_info'].update({
+            'right_shoulder_hip': {'link': ('right_shoulder', 'right_hip')},
+            'left_shoulder_hip': {'link': ('left_shoulder', 'left_hip')}
+        })
+
         for link_info in halpe26_rtm['skeleton_info'].values():
             start_name, end_name = link_info['link']
             start_id = next(kp['id'] for kp in halpe26_rtm['keypoint_info'].values() if kp['name'] == start_name)
@@ -1236,7 +1142,7 @@ def save_imgvid_reID(video_path, video_result_path, df_angles_list, pose_model, 
                     frame_keypoints.append(frame_keypoints[-1])
                     frame_scores.append(frame_scores[-1])
                 else:
-                    print(f"Warning: No previous keypoints or scores available for frame {f}")
+                    # print(f"Warning: No previous keypoints or scores available for frame {f}")
                     break
 
         frame_keypoints = np.array(frame_keypoints)
@@ -1252,7 +1158,10 @@ def save_imgvid_reID(video_path, video_result_path, df_angles_list, pose_model, 
                     df_angles_list_frame.append(df.iloc[f,:])
                 else:
                     df_angles_list_frame.append(df.iloc[-1,:])
-            frame = overlay_angles(frame, df_angles_list_frame, frame_keypoints, frame_scores, kpt_thr=0.2)
+            
+            # person_ids를 overlay_angles 함수에 전달
+            frame = overlay_angles(frame, df_angles_list_frame, frame_keypoints, frame_scores, kpt_thr=0.2, person_ids=person_ids)
+
 
         if save_vid:
             writer.write(frame)
@@ -1329,7 +1238,7 @@ def compute_angles_fun(config_dict, video_file):
     show_angles_vid = config_dict.get('compute_angles_advanced').get('show_angles_on_vid')
 
     data_type = config_dict.get('pose').get('data_type')
-    kpt_thr = config_dict.get('pose').get('keypoints_threshold')
+    kpt_thr = config_dict.get('pose_advanced').get('keypoints_threshold')
     
     # Find csv position files in video_dir, search pose_model and video_file.stem
     csv_dir = result_dir / 'video_results' # csv files are in the pose directory
@@ -1374,7 +1283,7 @@ def compute_angles_fun(config_dict, video_file):
                         
                         # Flip along x when feet oriented to the left
                         if flip_left_right:
-                            print(f"Flipping left-right for Person {i}")
+                            # print(f"Flipping left-right for Person {i}")
                             df_points = flip_left_right_direction(df_points, data_type)
                         
             # Joint angles
