@@ -14,22 +14,16 @@
 
 [project]
 video_dir = '' # BETWEEN SINGLE QUOTES! # If empty, result dir is current dir
-video_files = 'demo.mp4' # video file (e.g.: 'demo.mp4') or list of video files (e.g.: ['demo.mp4', 'other.mov'])
+video_files = 'demo5.mp4' # video file (e.g.: 'demo.mp4') or list of video files (e.g.: ['demo.mp4', 'other.mov'])
 result_dir = '' # BETWEEN SINGLE QUOTES! # If empty, project dir is current dir
 
 
 [pose]
 data_type = "video"
 video_path = "path/to/your/video.mp4"
-det_frequency = 1
-mode = "lightweight"
-keypoints_threshold = 0.2 #If only part of a person is on screen, increase this number to ensure that only correctly detected keypoints are used.
-tracking = true
-min_detection_time = 1 # If lower than this, person will be ignored
-						#For webcams, it is possible to detect the wrong person if the person is only partially detected (usually less than a second).
 to_openpose = false
 display_detection = true
-frame_range = []
+time_range = []
 
 [webcam] 
 webcam_id = 0 # 0 is default, it will use your first webcam.
@@ -48,16 +42,21 @@ joint_angles = ['Right ankle', 'Left ankle', 'Right knee', 'Left knee', 'Right h
 segment_angles = ['Right foot', 'Left foot', 'Right shank', 'Left shank', 'Right thigh', 'Left thigh', 'Trunk', 'Right arm', 'Left arm', 'Right forearm', 'Left forearm']
 
    	
-	
 
 # ADVANCED CONFIGURATION
 	
-[pose_advanced] # only for OPENPOSE
+[pose_advanced]
 overwrite_pose = true # If false, don't run openpose again if json pose files are found.
+det_frequency = 1 # detect person every det_frequency (1 = 1 frame)
+mode = "lightweight" # # lightweight, balanced, performance
+keypoints_threshold = 0.3 #If only part of a person is on screen, increase this number to ensure that only correctly detected keypoints are used.
+tracking = false # !!!
+min_detection_time = 1 # If lower than this, person will be ignored(sec)
+						#For webcams, it is possible to detect the wrong person if the person is only partially detected (usually less than a second).
 save_vid = true
 save_img = true
 interp_gap_smaller_than = 5 # do not interpolate bigger gaps
-filter = false
+filter = true
 show_plots = true
 filter_type = 'butterworth' # butterworth, gaussian, LOESS, median
    [pose_advanced.butterworth]
@@ -74,7 +73,7 @@ filter_type = 'butterworth' # butterworth, gaussian, LOESS, median
 [compute_angles_advanced] # for OPENPOSE and BLAZEPOSE
 show_angles_on_img = true
 show_angles_on_vid = true
-filter = false
+filter = true
 show_plots = true
 flip_left_right = true # Same angles whether the participant faces left/right. Set it to false if you want timeseries to be continuous even when the participent switches their stance.
 filter_type = 'butterworth' # butterworth, gaussian, LOESS, median
