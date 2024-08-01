@@ -230,7 +230,7 @@ def sort_people(keyptpre, keypt, nb_persons_to_detect):
 def save_to_openpose(json_file_path, keypoints, scores, kpt_thr):
     score_threshold = kpt_thr
     nb_detections = len(keypoints)
-    print(f" number of detections: {nb_detections}")
+    # print(f" number of detections: {nb_detections}")
     detections = []
 
     for i in range(nb_detections):
@@ -253,7 +253,7 @@ def save_to_openpose(json_file_path, keypoints, scores, kpt_thr):
                 "hand_left_keypoints_3d": [],
                 "hand_right_keypoints_3d": []
             })
-            print(f"Person {i} passed the threshold. Average score: {average_score:.4f}")
+            # print(f"Person {i} passed the threshold. Average score: {average_score:.4f}")
         # else:
         #     print(f"Person {i} did not pass the threshold. Average score: {average_score:.4f}")
     
@@ -497,8 +497,9 @@ def process_video(video_path, video_result_path,pose_tracker, tracking, output_f
     if display_detection and 'google.colab' not in sys.modules:
         cv2.destroyAllWindows()
 
-def process_webcam(webcam_settings, pose_tracker, tracking, joint_angles, segment_angles, save_video, save_images, interp_gap_smaller_than, 
-                   filter_options, show_plots, flip_left_right, kpt_thr, data_type, do_filter_angles, min_detection_time):
+def process_webcam(webcam_settings, pose_tracker, openpose_skeleton, joint_angles, segment_angles, 
+                       save_vid, save_img, interp_gap_smaller_than, filter_options, show_plots, flip_left_right,
+                         tracking, kpt_thr, data_type, min_detection_time, filter_options_ang, show_plots_ang):
     """
     Process a live webcam feed to detect poses and calculate angles.
 
@@ -637,7 +638,7 @@ def process_webcam(webcam_settings, pose_tracker, tracking, joint_angles, segmen
         cv2.namedWindow("Real-time Analysis", cv2.WINDOW_NORMAL)
 
     # Image output directory setup
-    if save_images:
+    if save_img:
         img_output_dir = output_dir / 'webcam_images'
         img_output_dir.mkdir(parents=True, exist_ok=True)
     
@@ -669,7 +670,8 @@ def process_webcam(webcam_settings, pose_tracker, tracking, joint_angles, segmen
             
             # Reorder keypoints, scores
             if tracking:
-                max_id = max(pose_tracker.track_ids_last_frame)
+                print("트레킹시작할게요!!!!!")
+                max_id = max(pose_tracker.track_ids_last_frame) if pose_tracker.track_ids_last_frame else 0
                 num_frames, num_points, num_coordinates = keypoints.shape
                 keypoints_filled = np.zeros((max_id+1, num_points, num_coordinates))
                 scores_filled = np.zeros((max_id+1, num_points))
@@ -687,8 +689,8 @@ def process_webcam(webcam_settings, pose_tracker, tracking, joint_angles, segmen
                 person_keypoints = keypoints[person_idx]
                 person_scores = scores[person_idx]
 
-                if np.sum(person_scores >= kpt_thr) < len(person_keypoints) * 0.3:
-                    continue  
+                # if np.sum(person_scores >= kpt_thr) < len(person_keypoints) * 0.3:
+                    # continue  
 
                 df_points = common.convert_keypoints_to_dataframe(person_keypoints, person_scores)
 
@@ -700,14 +702,14 @@ def process_webcam(webcam_settings, pose_tracker, tracking, joint_angles, segmen
                 valid_scores.append(person_scores)
                 valid_person_ids.append(person_idx)
 
-                print(f"Person {person_idx} - Before flip:")
-                print(df_points[[col for col in df_points.columns if col.endswith('_x')]].head())
+                # print(f"Person {person_idx} - Before flip:")
+                # print(df_points[[col for col in df_points.columns if col.endswith('_x')]].head())
 
                 # 2024.07.25 fixed flip_left_right_direction function
                 if flip_left_right:
                     df_points = flip_left_right_direction(df_points, data_type)
-                    print(f"Person {person_idx} - After flip:")
-                    print(df_points[[col for col in df_points.columns if col.endswith('_x')]].head())
+                    # print(f"Person {person_idx} - After flip:")
+                    # print(df_points[[col for col in df_points.columns if col.endswith('_x')]].head())
 
                     # x 좌표만 업데이트
                     x_columns = [col for col in df_points.columns if col.endswith('_x')]
@@ -716,12 +718,12 @@ def process_webcam(webcam_settings, pose_tracker, tracking, joint_angles, segmen
 
                     # x 좌표 변화 확인
                     original_x = person_keypoints[:, 0]
-                    print(f"Person {person_idx}, frame : {frame_count} - X coordinates comparison:")
-                    print(pd.DataFrame({
-                        'Original X': original_x,
-                        'Flipped X': flipped_x,
-                        'Difference': original_x - flipped_x
-                    }).head())
+                    # print(f"Person {person_idx}, frame : {frame_count} - X coordinates comparison:")
+                    # print(pd.DataFrame({
+                    #     'Original X': original_x,
+                    #     'Flipped X': flipped_x,
+                    #     'Difference': original_x - flipped_x
+                    # }).head())
 
                 
                 joint_angle_values = {}
@@ -754,7 +756,7 @@ def process_webcam(webcam_settings, pose_tracker, tracking, joint_angles, segmen
                 img_show = draw_bounding_box(valid_X, valid_Y, img_show, valid_person_ids)
                 img_show = draw_keypts_skel(valid_X, valid_Y, valid_scores, img_show, 'RTMPose', kpt_thr)
 
-            img_show = overlay_angles(img_show, df_angles_list_frame, keypoints, scores, kpt_thr)
+            img_show = overlay_angles(img_show, df_angles_list_frame, keypoints, scores, kpt_thr, valid_person_ids)
 
             processed_frames.append(img_show)
 
@@ -772,7 +774,7 @@ def process_webcam(webcam_settings, pose_tracker, tracking, joint_angles, segmen
                     img_show = cv2.resize(img_show, (window_size[2], window_size[3]))
                 cv2.imshow("Real-time Analysis", img_show)
             
-            if save_images:
+            if save_img:
                 cv2.imwrite(str(img_output_dir / f'frame_{frame_count:06d}.png'), img_show)
             
             json_file_path = json_output_dir / f'frame_{frame_count:06d}.json'
@@ -804,7 +806,7 @@ def process_webcam(webcam_settings, pose_tracker, tracking, joint_angles, segmen
     actual_processing_fps = len(processed_frames) / sum(processing_times)
     print(f"Actual processing FPS: {actual_processing_fps:.2f}")
 
-    if save_video:
+    if save_vid:
         video_path = str(output_dir / 'webcam_video.mp4')
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         writer = cv2.VideoWriter(video_path, fourcc, actual_processing_fps, (cam_width, cam_height))
@@ -870,17 +872,33 @@ def process_webcam(webcam_settings, pose_tracker, tracking, joint_angles, segmen
 
             df_angles = [pd.DataFrame(np.array(angle_series).T, columns=index_angs_csv)]
 
+            # Initialize df_list
+            df_list = df_angles.copy()
+
             # Apply filtering to angles
-            if do_filter_angles:
-                df_angles[0].replace(0, np.nan, inplace=True)
-                df_angles.append(df_angles[0].copy())
-                df_angles[1] = df_angles[1].apply(filter.filter1d, axis=0, args=filter_options)
+            if filter_options_ang[0]:
+                filter_type = filter_options_ang[1]
+                if filter_type == 'butterworth':
+                    args = f'Butterworth filter, {filter_options_ang[2]}th order, {filter_options_ang[3]} Hz.'
+                elif filter_type == 'gaussian':
+                    args = f'Gaussian filter, Sigma kernel {filter_options_ang[5]}'
+                elif filter_type == 'loess':
+                    args = f'LOESS filter, window size of {filter_options_ang[6]} frames.'
+                elif filter_type == 'median':
+                    args = f'Median filter, kernel of {filter_options_ang[7]}.'
+                logging.info(f'Person {person_idx}: Filtering with {args}.')
+                df_list[0].replace(0, np.nan, inplace=True)
+                df_list += [df_list[0].copy()]
+                df_list[1] = df_list[1].apply(filter.filter1d, axis=0, args=filter_options_ang)
+        
+            # empty values
+            df_list[-1] = df_list[-1].replace({np.nan: None, 0: None})
 
             # Replace NaN with 0 in the final DataFrame
-            df_angles[-1].replace(np.nan, 0, inplace=True)
+            df_list[-1].replace(np.nan, 0, inplace=True)
 
             csv_angle_path = output_dir / f'_person{person_idx}_angles.csv'
-            df_angles[-1].to_csv(csv_angle_path, sep=',', index=True, lineterminator='\n')
+            df_list[-1].to_csv(csv_angle_path, sep=',', index=True, lineterminator='\n')
             
             if os.path.exists(csv_angle_path):
                 logging.info(f'Successfully saved angles CSV for Person {person_idx}')
@@ -888,17 +906,17 @@ def process_webcam(webcam_settings, pose_tracker, tracking, joint_angles, segmen
                 logging.error(f'Failed to save angles CSV for Person {person_idx}')
 
             # Display figures
-            if show_plots:
-                if not df_angles[0].empty:
-                    display_figures_fun_ang(df_angles)
+            if show_plots_ang:
+                if not df_list[0].empty:
+                    display_figures_fun_ang(df_list)
                 else:
                     logging.info(f'Person {person_idx}: No angle data to display.')
 
     logging.info(f"Output saved to: {output_dir}")
     logging.info(f"JSON files: {json_output_dir}")
-    if save_video:
+    if save_vid:
         logging.info(f"Video file: {video_path}")
-    if save_images:
+    if save_img:
         logging.info(f"Image files: {img_output_dir}")
     logging.info(f"CSV files: {output_dir}")
 
@@ -944,16 +962,10 @@ def detect_pose_fun(config_dict, video_file):
 
     #pose settings
     data_type = config_dict.get('pose').get('data_type', 'webcam')  # Default to 'webcam' if not specified
-    mode = config_dict.get('pose').get('mode')
-    det_frequency = config_dict['pose']['det_frequency']
-    mode = config_dict['pose']['mode']
-    kpt_thr = config_dict.get('pose').get('keypoints_threshold') # If only part of a person is on screen, increase this number to ensure that only correctly detected keypoints are used.
-    frame_range = config_dict.get('pose').get('frame_range', [])
-    tracking = config_dict['pose']['tracking']
-    min_detection_time = config_dict.get('pose').get('min_detection_time') # If lower than this, person will be ignored 
-                                                                            #For webcams, it is possible to detect the wrong person if the person is only partially detected (usually less than a second).
-    openpose_skeleton = config_dict['pose']['to_openpose']
-    display_detection = config_dict['pose']['display_detection']
+    time_range = config_dict.get('pose', {}).get('time_range', [])
+    frame_range = [int(time_range[0] * frame_rate), int(time_range[1] * frame_rate)] if len(time_range) == 2 else []
+    openpose_skeleton = config_dict.get('pose').get('to_openpose')
+    display_detection = config_dict.get('pose').get('display_detection')
     output_format = "openpose"
 
     # webcam settings
@@ -962,26 +974,45 @@ def detect_pose_fun(config_dict, video_file):
     height = config_dict.get('webcam').get('height')
     webcam_settings = (cam_id, width, height)
 
-    # Advanced pose settings
-    bbox = config_dict.get('pose_advanced').get('draw_bbox') # May I set this selectively? or draw it always?
+    # pose_advanced settings
     load_pose = not config_dict.get('pose_advanced').get('overwrite_pose')
     save_vid = config_dict.get('pose_advanced').get('save_vid')
     save_img = config_dict.get('pose_advanced').get('save_img')
     interp_gap_smaller_than = config_dict.get('pose_advanced').get('interp_gap_smaller_than')
-    flip_left_right = config_dict.get('compute_angles_advanced').get('flip_left_right')
+    tracking = config_dict['pose_advanced']['tracking'] # !!!
+    min_detection_time = config_dict.get('pose_advanced').get('min_detection_time') # If lower than this, person will be ignored. For webcams, it is possible to detect the wrong person if the person is only partially detected (usually less than a second).
+    mode = config_dict.get('pose_advanced').get('mode')
+    det_frequency = config_dict.get('pose_advanced').get('det_frequency')
+    kpt_thr = config_dict.get('pose_advanced').get('keypoints_threshold') # If only part of a person is on screen, increase this number to ensure that only correctly detected keypoints are used.
     
-    # filter settings
+    ## filtering
     show_plots = config_dict.get('pose_advanced').get('show_plots')
     do_filter = config_dict.get('pose_advanced').get('filter')
-    do_filter_angles = config_dict.get('compute_angles_advanced').get('filter')
     filter_type = config_dict.get('pose_advanced').get('filter_type')
     butterworth_filter_order = config_dict.get('pose_advanced').get('butterworth').get('order')
     butterworth_filter_cutoff = config_dict.get('pose_advanced').get('butterworth').get('cut_off_frequency')
     gaussian_filter_kernel = config_dict.get('pose_advanced').get('gaussian').get('sigma_kernel')
     loess_filter_kernel = config_dict.get('pose_advanced').get('loess').get('nb_values_used')
     median_filter_kernel = config_dict.get('pose_advanced').get('median').get('kernel_size')
-    filter_options = (do_filter, filter_type, butterworth_filter_order, butterworth_filter_cutoff, frame_rate, gaussian_filter_kernel, loess_filter_kernel, median_filter_kernel)
-    
+    filter_options = (do_filter, filter_type, butterworth_filter_order, butterworth_filter_cutoff, frame_rate,
+                      gaussian_filter_kernel, loess_filter_kernel, median_filter_kernel)
+
+    # compute_angles_advanced settings
+    # filter settings
+    show_plots_ang = config_dict.get('compute_angles_advanced').get('show_plots')
+    flip_left_right = config_dict.get('compute_angles_advanced').get('flip_left_right')
+    do_filter_ang = config_dict.get('compute_angles_advanced').get('filter')
+    filter_type_ang = config_dict.get('compute_angles_advanced').get('filter_type')
+    butterworth_filter_order_ang = config_dict.get('compute_angles_advanced').get('butterworth').get('order')
+    butterworth_filter_cutoff_ang = config_dict.get('compute_angles_advanced').get('butterworth').get('cut_off_frequency')
+    gaussian_filter_kernel_ang = config_dict.get('compute_angles_advanced').get('gaussian').get('sigma_kernel')
+    loess_filter_kernel_ang = config_dict.get('compute_angles_advanced').get('loess').get('nb_values_used')
+    median_filter_kernel_ang = config_dict.get('compute_angles_advanced').get('median').get('kernel_size')
+    filter_options_ang = (do_filter_ang, filter_type_ang, butterworth_filter_order_ang, butterworth_filter_cutoff_ang,
+                          frame_rate, gaussian_filter_kernel_ang, loess_filter_kernel_ang, median_filter_kernel_ang)
+
+
+
     # Determine device and backend for RTMPose
     if 'CUDAExecutionProvider' in ort.get_available_providers() and torch.cuda.is_available():
         device = 'cuda'
@@ -1041,7 +1072,8 @@ def detect_pose_fun(config_dict, video_file):
 
         # Process webcam feed
         process_webcam(webcam_settings, pose_tracker, openpose_skeleton, joint_angles, segment_angles, 
-                       save_vid, save_img, interp_gap_smaller_than, filter_options, show_plots, flip_left_right, kpt_thr, data_type, do_filter_angles, min_detection_time)
+                       save_vid, save_img, interp_gap_smaller_than, filter_options, show_plots, flip_left_right,
+                         tracking, kpt_thr, data_type, min_detection_time, filter_options_ang, show_plots_ang)
 
     else:
         raise ValueError(f"Invalid input_source: {data_type}. Must be 'video' or 'webcam'.")
