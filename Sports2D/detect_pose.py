@@ -497,7 +497,7 @@ def process_video(video_path, video_result_path,pose_tracker, tracking, output_f
     if display_detection and 'google.colab' not in sys.modules:
         cv2.destroyAllWindows()
 
-def process_webcam(webcam_settings, pose_tracker, openpose_skeleton, joint_angles, segment_angles, 
+def process_webcam(cam_id, pose_tracker, openpose_skeleton, joint_angles, segment_angles, 
                        save_vid, save_img, interp_gap_smaller_than, filter_options, show_plots, flip_left_right,
                          tracking, kpt_thr, data_type, min_detection_time, filter_options_ang, show_plots_ang):
     """
@@ -621,26 +621,42 @@ def process_webcam(webcam_settings, pose_tracker, openpose_skeleton, joint_angle
         display(plt.gcf())
     else:
         # Local webcam setup
-        cam_id, cam_width, cam_height = webcam_settings
-        cap = cv2.VideoCapture(cam_id)
+        cap = cv2.VideoCapture(cam_id, cv2.CAP_DSHOW)
         if not cap.isOpened():
             print("Error: Could not open webcam.")
             return
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, cam_width)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, cam_height)
+
+        # 높은 해상도로 설정 시도 (4K)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 3840)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 2160)
+        # cap.set(cv2.CAP_PROP_FPS)
+        # MJPG 코덱 설정 시도
+        cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
         
-        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        frame_rate = cap.get(cv2.CAP_PROP_FPS) or 30
-        print(f"Resolution: {width}x{height}")
-        print(f"Webcam frame rate: {frame_rate}")
+        # 실제 설정된 해상도 확인
+        cam_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        cam_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        
+        # FPS 가져오기
+        # fps = cap.get(cv2.CAP_PROP_FPS)
+        
+        print(f"Resolution: {cam_width}x{cam_height}")
+        # print(f"FPS: {fps:.2f}")
+
+        # 프레임 읽기 테스트
+        ret, frame = cap.read()
+        if ret:
+            print(f"Actual frame size: {frame.shape[1]}x{frame.shape[0]}")
+        else:
+            print("Failed to capture frame")
 
         cv2.namedWindow("Real-time Analysis", cv2.WINDOW_NORMAL)
 
-    # Image output directory setup
-    if save_img:
-        img_output_dir = output_dir / 'webcam_images'
-        img_output_dir.mkdir(parents=True, exist_ok=True)
+
+        # Image output directory setup
+        if save_img:
+            img_output_dir = output_dir / 'webcam_images'
+            img_output_dir.mkdir(parents=True, exist_ok=True)
     
     frame_count = 0
     keypoints_data = {}
@@ -818,10 +834,10 @@ def process_webcam(webcam_settings, pose_tracker, openpose_skeleton, joint_angle
 
     if filter_options[0]:
         filter_options = list(filter_options)
-        filter_options[4] = frame_rate
+        filter_options[4] = actual_processing_fps
         filter_options = tuple(filter_options)
     
-    json_to_csv(json_output_dir, frame_rate, interp_gap_smaller_than, filter_options, show_plots, min_detection_time)
+    json_to_csv(json_output_dir, actual_processing_fps, interp_gap_smaller_than, filter_options, show_plots, min_detection_time)
 
     # Recalculate angles from filtered CSV files and apply filtering for each person
     for person_idx in keypoints_data.keys():
@@ -970,9 +986,9 @@ def detect_pose_fun(config_dict, video_file):
 
     # webcam settings
     cam_id =  config_dict.get('webcam').get('webcam_id')
-    width = config_dict.get('webcam').get('width')
-    height = config_dict.get('webcam').get('height')
-    webcam_settings = (cam_id, width, height)
+    # width = config_dict.get('webcam').get('width')
+    # height = config_dict.get('webcam').get('height')
+    # webcam_settings = (cam_id, width, height)
 
     # pose_advanced settings
     load_pose = not config_dict.get('pose_advanced').get('overwrite_pose')
@@ -1071,7 +1087,7 @@ def detect_pose_fun(config_dict, video_file):
         segment_angles = config_dict.get('compute_angles').get('segment_angles', [])
 
         # Process webcam feed
-        process_webcam(webcam_settings, pose_tracker, openpose_skeleton, joint_angles, segment_angles, 
+        process_webcam(cam_id, pose_tracker, openpose_skeleton, joint_angles, segment_angles, 
                        save_vid, save_img, interp_gap_smaller_than, filter_options, show_plots, flip_left_right,
                          tracking, kpt_thr, data_type, min_detection_time, filter_options_ang, show_plots_ang)
 

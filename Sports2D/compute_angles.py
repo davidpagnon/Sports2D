@@ -230,7 +230,7 @@ def flip_left_right_direction(df_points, data_type):      # ! should check worki
     - df_points: dataframe of pose detection with flipped X coordinates
     '''
 
-    print(f"Flipping left-right direction for {data_type} data")
+    # print(f"Flipping left-right direction for {data_type} data")
     if data_type not in ['video', 'webcam']:
         raise ValueError("data_type must be either 'video' or 'webcam'")
     
@@ -561,8 +561,8 @@ def draw_joint_angle(frame, joint, angle, keypoints, scores, kpt_thr):
         "Left knee": [11, 13, 15],    # left hip, knee, ankle
         "Right hip": [6, 12, 14],    # right shoulder, right hip, right knee
         "Left hip": [5, 11, 13],     # left shoulder, left hip, left knee
-        "Right shoulder": [19, 6, 8], # neck, shoulder, elbow
-        "Left shoulder": [19, 5, 7],  # neck, shoulder, elbow
+        "Right shoulder": [12, 6, 8], # right hip, shoulder, elbow
+        "Left shoulder": [11, 5, 7],  # left hip, shoulder, elbow
         "Right elbow": [6, 8, 10],    # shoulder, elbow, wrist
         "Left elbow": [5, 7, 9],      # shoulder, elbow, wrist
     }
@@ -571,11 +571,13 @@ def draw_joint_angle(frame, joint, angle, keypoints, scores, kpt_thr):
         pts = [keypoints[i] for i in joint_to_keypoints[joint]]
         scores_pts = [scores[i] for i in joint_to_keypoints[joint]]
         if all(score >= kpt_thr for score in scores_pts):
+            neck = keypoints[18]  # neck keypoint
+            mid_hip = keypoints[19]  # mid hip keypoint
             if 'ankle' in joint.lower():
-                draw_angle_arc(frame, joint, pts, angle)
+                draw_angle_arc(frame, joint, pts, angle, neck, mid_hip)
             else:
                 pt1, pt2, pt3 = pts
-                draw_angle_arc(frame, joint, [pt1, pt2, pt3], angle)
+                draw_angle_arc(frame, joint, [pt1, pt2, pt3], angle, neck, mid_hip)
 
 def draw_dotted_line(frame, start, direction, length, color=(0, 255, 0), gap=7, dot_length=3): # default is green color
     for i in range(0, length, gap):
@@ -584,7 +586,7 @@ def draw_dotted_line(frame, start, direction, length, color=(0, 255, 0), gap=7, 
         cv2.line(frame, tuple(line_start.astype(int)), tuple(line_end.astype(int)), color, 2)
 
 # everything well done.
-def draw_angle_arc(frame, joint, pts, angle):
+def draw_angle_arc(frame, joint, pts, angle, neck, mid_hip):
     """
     """
     start_angle = 0
@@ -601,13 +603,10 @@ def draw_angle_arc(frame, joint, pts, angle):
             # Calculate shank vector (from ankle to knee)
             shank_vec = knee - ankle
             
-            # Calculate foot vector (from ankle to toe)
-            foot_vec = toe - ankle
+            # Calculate foot vector (from heel to toe)
+            foot_vec = toe - heel
 
-            # Vector length
-            vector_length = np.linalg.norm(shank_vec)
-            
-            # Calculate perpendicular vector to shank
+            # Calculate perpendicular vector to shank (shin)
             perpendicular_vec = np.array([-shank_vec[1], shank_vec[0]])
             perpendicular_vec /= np.linalg.norm(perpendicular_vec)
             
@@ -618,44 +617,52 @@ def draw_angle_arc(frame, joint, pts, angle):
             radius = int(0.2 * np.linalg.norm(knee - ankle))
             ref_point = ankle
             
-            # Set start and end angles for the arc
+            # Set start angle perpendicular to the shin
             start_angle = np.degrees(np.arctan2(perpendicular_vec[1], perpendicular_vec[0]))
-            end_angle = np.degrees(np.arctan2(foot_vec[1], foot_vec[0]))
             
-            # Draw dotted line
+            # Set end angle parallel to heel-toe line, but starting from ankle
+            heel_toe_vec = toe - heel
+            heel_toe_unit_vec = heel_toe_vec / np.linalg.norm(heel_toe_vec)
+            end_angle = np.degrees(np.arctan2(heel_toe_unit_vec[1], heel_toe_unit_vec[0]))
+            
+            # Draw dotted line perpendicular to shin
             segment_length = np.linalg.norm(knee - ankle)
-            dotted_line_length = int(segment_length*0.3)  # Use half of the segment length
+            dotted_line_length = int(segment_length * 0.3)
             draw_dotted_line(frame, ref_point, perpendicular_vec, dotted_line_length)
-            # addtional_dotted_line_length = int(segment_length*0.2)
-            # draw_dotted_line(frame, ref_point, perpendicular_vec, addtional_dotted_line_length, (0, 0, 0))
         
-        elif 'shoulder' in joint.lower():
-            neck, shoulder, elbow = map(np.array, pts)
-            ref_vec = neck - shoulder
-            other_vec = elbow - shoulder
-            vector_length = np.linalg.norm(ref_vec)
+        elif 'shoulder' in joint.lower() or 'hip' in joint.lower():
+            trunk_vec = np.array(mid_hip) - np.array(neck)
+            trunk_unit_vec = trunk_vec / np.linalg.norm(trunk_vec)
 
-            radius = int(0.2 * (np.linalg.norm(ref_vec) + np.linalg.norm(other_vec)) / 2)
-            ref_point = shoulder
+            if 'shoulder' in joint.lower():
+                hip, shoulder, elbow = map(np.array, pts)
+                ref_point = shoulder
+                other_vec = elbow - shoulder
+            else:  # 'hip' in joint.lower()
+                shoulder, hip, knee = map(np.array, pts)
+                ref_point = hip
+                other_vec = knee - hip
 
-            start_angle = np.degrees(np.arctan2(ref_vec[1], ref_vec[0]))
-            end_angle = np.degrees(np.arctan2(other_vec[1], other_vec[0])) 
+            radius = int(0.2 * np.linalg.norm(other_vec))
+
+            start_angle = np.degrees(np.arctan2(trunk_unit_vec[1], trunk_unit_vec[0]))
+            end_angle = np.degrees(np.arctan2(other_vec[1], other_vec[0]))
+
+            # Draw dotted line parallel to neck-to-mid-hip vector, starting from ref_point
+            segment_length = np.linalg.norm(trunk_vec)
+            dotted_line_length = int(segment_length * 0.3)
+            draw_dotted_line(frame, ref_point, trunk_unit_vec, dotted_line_length)
 
         else:
             pt1, pt2, pt3 = map(np.array, pts)
             if 'knee' in joint.lower():
                 ref_vec = pt2 - pt1  # hip to knee
                 other_vec = pt3 - pt2  # knee to ankle
-            elif 'hip' in joint.lower():
-                ref_vec = pt2 - pt1  # shoulder to hip
-                other_vec = pt3 - pt2  # hip to knee
             elif 'elbow' in joint.lower():
                 ref_vec = pt2 - pt1  # shoulder to elbow
                 other_vec = pt3 - pt2  # elbow to wrist
             else:
                 raise ValueError(f"Unsupported joint type: {joint}")
-            
-            vector_length = np.linalg.norm(ref_vec)
             
             direction = ref_vec / np.linalg.norm(ref_vec)
             radius = int(0.2 * (np.linalg.norm(pt1 - pt2) + np.linalg.norm(pt3 - pt2)) / 2)
@@ -666,7 +673,7 @@ def draw_angle_arc(frame, joint, pts, angle):
 
             # Draw dotted line
             segment_length = np.linalg.norm(pt1 - pt2)
-            dotted_line_length = int(segment_length*0.3)  # Use half of the segment length
+            dotted_line_length = int(segment_length * 0.3)
             draw_dotted_line(frame, ref_point, direction, dotted_line_length)
 
         # Ensure the arc is not greater than 180 degrees
@@ -678,6 +685,7 @@ def draw_angle_arc(frame, joint, pts, angle):
 
         # Draw arc
         cv2.ellipse(frame, tuple(ref_point.astype(int)), (radius, radius), 0, start_angle, end_angle, (0, 255, 0), 2)
+            
             
         # 텍스트 위치 조정
         text_angle = np.radians((start_angle + end_angle) / 2)
@@ -844,21 +852,24 @@ def draw_angle_line(frame, pt1, pt2, ankle, angle, thickness, color, right_foot_
     else:
         segment_unit_vector = np.array([1, 0])  # Default to horizontal if segment length is 0
     
-    # Calculate the end point of the horizontal reference line based on foot direction
-    right_foot_direction = np.array(right_foot_keypoints[1]) - np.array(right_foot_keypoints[2])  # heel to toe
-    left_foot_direction = np.array(left_foot_keypoints[1]) - np.array(left_foot_keypoints[2])  # heel to toe
-    average_foot_direction = (right_foot_direction[0] + left_foot_direction[0]) / 2
+    # Calculate the direction for each foot
+    right_foot_direction = np.array(right_foot_keypoints[1]) - np.array(right_foot_keypoints[2])  # right toe to heel
+    left_foot_direction = np.array(left_foot_keypoints[1]) - np.array(left_foot_keypoints[2])  # left toe to heel
     
-    if average_foot_direction >= 0:
-        direction = np.array([1, 0])  # oriented to the right
-    else: 
-        direction = np.array([-1, 0])  # oriented to the left
+    # Determine the reference direction based on the segment
+    if segment.startswith("Right"):
+        direction = np.array([1, 0]) if right_foot_direction[0] >= 0 else np.array([-1, 0])
+    elif segment.startswith("Left"):
+        direction = np.array([1, 0]) if left_foot_direction[0] >= 0 else np.array([-1, 0])
+    else:  # For trunk
+        average_foot_direction = (right_foot_direction[0] + left_foot_direction[0]) / 2
+        direction = np.array([1, 0]) if average_foot_direction >= 0 else np.array([-1, 0])
     
     if segment == "Right foot" or segment == "Left foot":
         ankle = tuple(map(int, ankle))
         heel = np.array(pt1)
         toe = np.array(pt2)
-        foot_length = int(segment_length * 0.20)  # 12% of segment length
+        foot_length = int(segment_length * 0.20)  # 20% of foot length
         
         # Draw the line parallel to heel-toe starting from ankle
         heel_to_toe_vector = toe - heel
@@ -869,6 +880,7 @@ def draw_angle_line(frame, pt1, pt2, ankle, angle, thickness, color, right_foot_
         # Draw horizontal reference line
         reference_end = tuple(map(int, np.array(ankle) + foot_length * direction))
         cv2.line(frame, ankle, reference_end, color, thickness)
+        
     else:
         # For non-foot segments, draw lines as before
         segment_end = tuple(map(int, np.array(pt1) + length * segment_unit_vector))
@@ -915,7 +927,7 @@ def overlay_angles(frame, df_angles_list_frame, keypoints, scores, kpt_thr, pers
             for dx, dy in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:
                 cv2.putText(frame, person_label, 
                             (person_label_position[0] + dx, person_label_position[1] + dy), 
-                            font, font_scale, person_outline_color, 2, cv2.LINE_AA)
+                            font, font_scale, outline_color, 2, cv2.LINE_AA)
             cv2.putText(frame, person_label, person_label_position, font, font_scale, person_color, 1, cv2.LINE_AA)
             
             for ang_nb, (angle_name, angle_value) in enumerate(angles_frame_person.items()):
@@ -1223,7 +1235,7 @@ def compute_angles_fun(config_dict, video_file):
     
     show_plots = config_dict.get('compute_angles_advanced').get('show_plots')
     flip_left_right = config_dict.get('compute_angles_advanced').get('flip_left_right')
-    print(f"flip_left_right: {flip_left_right}")
+    # print(f"flip_left_right: {flip_left_right}")
     do_filter = config_dict.get('compute_angles_advanced').get('filter')
     filter_type = config_dict.get('compute_angles_advanced').get('filter_type')
     butterworth_filter_order = config_dict.get('compute_angles_advanced').get('butterworth').get('order')
