@@ -55,7 +55,15 @@ def butterworth_filter_1d(col, args):
 
     order, cutoff, framerate = args
     
-    b, a = signal.butter(order/2, cutoff/(framerate/2), 'low', analog = False) 
+    # Prevent error when webcam's framerate is too low
+    try:
+        b, a = signal.butter(order/2, cutoff/(framerate/2), 'low', analog=False)
+    except ValueError:
+        # Adjust cutoff frequency if error occurs
+        adjusted_cutoff = framerate / 4  # Set cutoff to 1/4 of framerate
+        print(f"Warning: Adjusting cutoff frequency to {adjusted_cutoff} Hz due to ValueError.")
+        b, a = signal.butter(order/2, adjusted_cutoff/(framerate/2), 'low', analog=False)
+
     padlen = 3 * max(len(a), len(b))
     
     # split into sequences of not nans

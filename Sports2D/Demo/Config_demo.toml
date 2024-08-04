@@ -14,23 +14,12 @@
 
 [project]
 video_dir = '' # BETWEEN SINGLE QUOTES! # If empty, result dir is current dir
-video_files = 'demo5.mp4' # video file (e.g.: 'demo.mp4') or list of video files (e.g.: ['demo.mp4', 'other.mov'])
+video_input = 'demo.mp4' # 'webcam' or 'your_video_name.extenstion'
 result_dir = '' # BETWEEN SINGLE QUOTES! # If empty, project dir is current dir
 
-
 [pose]
-data_type = "video"
-video_path = "path/to/your/video.mp4"
-to_openpose = false
 display_detection = true
 time_range = []
-
-[webcam] 
-webcam_id = 0 # 0 is default, it will use your first webcam.
-width = 1280 # high resolution would be better pose estimation, but low fps
-height = 720 # high resolution would be better pose estimation, but low fps
-
-	
 
 [compute_angles]
 # Select joint angles among
@@ -42,15 +31,14 @@ joint_angles = ['Right ankle', 'Left ankle', 'Right knee', 'Left knee', 'Right h
 segment_angles = ['Right foot', 'Left foot', 'Right shank', 'Left shank', 'Right thigh', 'Left thigh', 'Trunk', 'Right arm', 'Left arm', 'Right forearm', 'Left forearm']
 
    	
-
 # ADVANCED CONFIGURATION
 	
 [pose_advanced]
+webcam_id = 0 # your webcam id (0 is default)
 overwrite_pose = true # If false, don't run openpose again if json pose files are found.
 det_frequency = 1 # detect person every det_frequency (1 = 1 frame)
 mode = "lightweight" # # lightweight, balanced, performance
 keypoints_threshold = 0.3 #If only part of a person is on screen, increase this number to ensure that only correctly detected keypoints are used.
-tracking = false # !!!
 min_detection_time = 1 # If lower than this, person will be ignored(sec)
 						#For webcams, it is possible to detect the wrong person if the person is only partially detected (usually less than a second).
 save_vid = true
@@ -61,7 +49,7 @@ show_plots = true
 filter_type = 'butterworth' # butterworth, gaussian, LOESS, median
    [pose_advanced.butterworth]
    order = 4 
-   cut_off_frequency = 6 # Hz
+   cut_off_frequency = 3 # Hz
    [pose_advanced.gaussian]
    sigma_kernel = 1 #px
    [pose_advanced.loess]
@@ -69,8 +57,7 @@ filter_type = 'butterworth' # butterworth, gaussian, LOESS, median
    [pose_advanced.median]
    kernel_size = 3
 
-
-[compute_angles_advanced] # for OPENPOSE and BLAZEPOSE
+[compute_angles_advanced]
 show_angles_on_img = true
 show_angles_on_vid = true
 filter = true
