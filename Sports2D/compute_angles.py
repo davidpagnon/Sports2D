@@ -84,21 +84,6 @@ __status__ = "Development"
 # text dics
 joint_text_positions = {}
 
-# segment와 joint 매핑 정의
-segment_to_joint = {
-    "Right foot": "Right ankle",
-    "Left foot": "Left ankle",
-    "Right shank": "Right knee",
-    "Left shank": "Left knee",
-    "Right thigh": "Right hip",
-    "Left thigh": "Left hip",
-    "Trunk": None,  # Trunk에 해당하는 단일 joint가 없음
-    "Right arm": "Right shoulder",
-    "Left arm": "Left shoulder",
-    "Right forearm": "Right elbow",
-    "Left forearm": "Left elbow"
-}
-
 # define joint angle parameters
 def get_joint_angle_params(joint):
     """
@@ -142,7 +127,7 @@ def get_segment_angle_params(segment):
         'Left shank': [['left_knee', 'left_ankle'], 'horizontal', 0, -1],
         'Right thigh': [['right_hip', 'right_knee'], 'horizontal', 0, -1],
         'Left thigh': [['left_hip', 'left_knee'], 'horizontal', 0, -1],
-        'Trunk': [['right_hip', 'right_shoulder'], 'horizontal', 0, -1],
+        'Trunk': [['hip', 'neck'], 'horizontal', 0, -1],
         'Right arm': [['right_shoulder', 'right_elbow'], 'horizontal', 0, -1],
         'Left arm': [['left_shoulder', 'left_elbow'], 'horizontal', 0, -1],
         'Right forearm': [['right_elbow', 'right_wrist'], 'horizontal', 0, -1],
@@ -522,61 +507,20 @@ def segment_angles_series_from_csv(df_points, angle_params, segment, kpt_thr):
         
     return ang_series
 
-# def adjust_text_scale(frame, base_scale=0.25, base_thickness=1):
-#     """
-#     Adjusts the text scale and thickness based on the frame size.
-
-#     This function calculates appropriate text scale and thickness for overlay text
-#     on a given frame. It scales the text properties relative to a base frame width
-#     of 640 pixels, ensuring that text appears proportional on different frame sizes.
-
-#     Args:
-#         frame (numpy.ndarray): The input frame (image) on which text will be drawn.
-#                                Expected to be a 3-dimensional array (height, width, channels).
-#         base_scale (float, optional): The base scale factor for text. Defaults to 0.25.
-#         base_thickness (int, optional): The base thickness for text. Defaults to 1.
-
-#     Returns:
-#         tuple: A tuple containing two elements:
-#                - scale (float): The adjusted scale factor for text.
-#                - thickness (int): The adjusted thickness for text.
-#     """
-#     height, width, _ = frame.shape
-#     scale = base_scale * (width / 640)
-#     thickness = int(base_thickness * (width / 640))
-#     return scale, thickness
-
-def calculate_dynamic_font_scale(vector_length, min_scale=0.2, max_scale=3.0):
-    # 벡터 길이의 20%를 기준으로 폰트 크기 계산
-    base_font_scale = vector_length * 0.005  # 0.005는 조정 가능한 계수
-    
-    # 최소/최대 스케일 적용
-    return max(min(base_font_scale, max_scale), min_scale)
-
 def draw_joint_angle(frame, joint, angle, keypoints, scores, kpt_thr):
-    joint_to_keypoints = {
-        "Right ankle": [14, 16, 25, 21],  # right knee, right ankle, right heel, right big_toe
-        "Left ankle": [13, 15, 24, 20],   # left knee, left ankle, left heel, left big_toe
-        "Right knee": [12, 14, 16],   # right hip, right knee, right ankle
-        "Left knee": [11, 13, 15],    # left hip, knee, ankle
-        "Right hip": [6, 12, 14],    # right shoulder, right hip, right knee
-        "Left hip": [5, 11, 13],     # left shoulder, left hip, left knee
-        "Right shoulder": [12, 6, 8], # right hip, shoulder, elbow
-        "Left shoulder": [11, 5, 7],  # left hip, shoulder, elbow
-        "Right elbow": [6, 8, 10],    # shoulder, elbow, wrist
-        "Left elbow": [5, 7, 9],      # shoulder, elbow, wrist
-    }
-
-    if joint in joint_to_keypoints:
-        pts = [keypoints[i] for i in joint_to_keypoints[joint]]
-        scores_pts = [scores[i] for i in joint_to_keypoints[joint]]
+    joint_params = get_joint_angle_params(joint)
+    if joint_params:
+        keypoint_names = joint_params[0]
+        pts = [keypoints[halpe26_rtm['keypoint_info'][next(k for k, v in halpe26_rtm['keypoint_info'].items() if v['name'] == name)]['id']] for name in keypoint_names]
+        scores_pts = [scores[halpe26_rtm['keypoint_info'][next(k for k, v in halpe26_rtm['keypoint_info'].items() if v['name'] == name)]['id']] for name in keypoint_names]
+        
         if all(score >= kpt_thr for score in scores_pts):
-            neck = keypoints[18]  # neck keypoint
-            mid_hip = keypoints[19]  # mid hip keypoint
+            neck = keypoints[halpe26_rtm['keypoint_info'][next(k for k, v in halpe26_rtm['keypoint_info'].items() if v['name'] == 'neck')]['id']]
+            mid_hip = keypoints[halpe26_rtm['keypoint_info'][next(k for k, v in halpe26_rtm['keypoint_info'].items() if v['name'] == 'hip')]['id']]
             if 'ankle' in joint.lower():
                 draw_angle_arc(frame, joint, pts, angle, neck, mid_hip)
             else:
-                pt1, pt2, pt3 = pts
+                pt1, pt2, pt3 = pts[:3]  # Use only the first three points for non-ankle joints
                 draw_angle_arc(frame, joint, [pt1, pt2, pt3], angle, neck, mid_hip)
 
 def draw_dotted_line(frame, start, direction, length, color=(0, 255, 0), gap=7, dot_length=3): # default is green color
@@ -587,8 +531,7 @@ def draw_dotted_line(frame, start, direction, length, color=(0, 255, 0), gap=7, 
 
 # everything well done.
 def draw_angle_arc(frame, joint, pts, angle, neck, mid_hip):
-    """
-    """
+
     start_angle = 0
     end_angle = 0
     ref_point = None
@@ -598,7 +541,7 @@ def draw_angle_arc(frame, joint, pts, angle, neck, mid_hip):
 
     try:
         if 'ankle' in joint.lower():
-            knee, ankle, heel, toe = map(np.array, pts)
+            heel, toe, ankle, knee = map(np.array, pts)
 
             # Calculate shank vector (from ankle to knee)
             shank_vec = knee - ankle
@@ -639,7 +582,7 @@ def draw_angle_arc(frame, joint, pts, angle, neck, mid_hip):
                 ref_point = shoulder
                 other_vec = elbow - shoulder
             else:  # 'hip' in joint.lower()
-                shoulder, hip, knee = map(np.array, pts)
+                knee, hip, shoulder = map(np.array, pts)
                 ref_point = hip
                 other_vec = knee - hip
 
@@ -655,12 +598,12 @@ def draw_angle_arc(frame, joint, pts, angle, neck, mid_hip):
 
         else:
             pt1, pt2, pt3 = map(np.array, pts)
-            if 'knee' in joint.lower():
+            if 'knee' in joint.lower(): # hip, knee, ankle
                 ref_vec = pt2 - pt1  # hip to knee
                 other_vec = pt3 - pt2  # knee to ankle
-            elif 'elbow' in joint.lower():
-                ref_vec = pt2 - pt1  # shoulder to elbow
-                other_vec = pt3 - pt2  # elbow to wrist
+            elif 'elbow' in joint.lower(): # wrist, elbow, shoulder
+                ref_vec = pt2 - pt3  # shoulder to elbow
+                other_vec = pt1 - pt2  # elbow to wrist
             else:
                 raise ValueError(f"Unsupported joint type: {joint}")
             
@@ -722,122 +665,48 @@ def draw_angle_arc(frame, joint, pts, angle, neck, mid_hip):
     except Exception as e:
             print(f"Error in draw_angle_arc for joint {joint}: {str(e)}")
 
-
-# def draw_segment_angle(frame, segment, angle, keypoints, scores, kpt_thr):
-#     """
-#     """
-#     thickness = 2
-#     # length = 20
-#     color = (255, 255, 255)  # White    
-
-#     segment_to_keypoints = {
-#         "Right foot": [21, 16],  # right_big_toe, right_ankle
-#         "Left foot": [20, 15],   # left_big_toe, left_ankle
-#         "Right shank": [14, 16], # right_knee, right_ankle
-#         "Left shank": [13, 15], # left_knee, left_ankle
-#         "Right thigh": [12, 14], # right_hip, right_knee
-#         "Left thigh": [11, 13], # left_hip, left_knee
-#         "Trunk": [19, 18], # hip, neck
-#         "Right arm": [6, 8], # right_shoulder, right_elbow
-#         "Left arm": [5, 7], # left_shoulder, left_elbow
-#         "Right forearm": [8, 10], # right_elbow, right_wrist
-#         "Left forearm": [7, 9] # left_elbow, left_wrist
-#     }
-
-#     # Extract right and left foot keypoints
-#     right_foot_keypoints = [keypoints[16], keypoints[21]]  # right_ankle, right_big_toe
-#     left_foot_keypoints = [keypoints[15], keypoints[20]]  # left_ankle, left_big_toe
-
-#     if segment in segment_to_keypoints:
-#         kpt_indices = segment_to_keypoints[segment]
-#         pt1, pt2 = [keypoints[i] for i in kpt_indices]
-#         score1, score2 = [scores[i] for i in kpt_indices]
-#         if min(score1, score2) >= kpt_thr:
-#             draw_angle_line(frame, pt1, pt2, None, angle, thickness, color, right_foot_keypoints, left_foot_keypoints, segment)
-
-# def draw_angle_line(frame, pt1, pt2, ankle, angle, thickness, color, right_foot_keypoints, left_foot_keypoints ,segment):
-
-#     pt1 = tuple(map(int, pt1))
-#     pt2 = tuple(map(int, pt2))
-
-#     # Calculate the direction vector of the segment
-#     segment_vector = np.array(pt2) - np.array(pt1)
-#     segment_length = np.linalg.norm(segment_vector)
-#     length = int(segment_length*0.12) # 12% of segment length
-
-#     # Normalize the segment vector
-#     if segment_length > 0:
-#         segment_unit_vector = segment_vector / segment_length
-#     else:
-#         segment_unit_vector = np.array([1, 0])  # Default to horizontal if segment length is 0
-
-#     # Calculate the end point of the horizontal reference line based on foot direction
-#     right_foot_direction = np.array(right_foot_keypoints[1]) - np.array(right_foot_keypoints[0]) # ankle to toe
-#     left_foot_direction = np.array(left_foot_keypoints[1]) - np.array(left_foot_keypoints[0]) # ankle to toe
-#     average_foot_direction = (right_foot_direction[0] + left_foot_direction[0]) / 2
-
-#     if average_foot_direction >= 0:
-#         direction = np.array([1, 0])  # oriented to the right
-#     else: 
-#         direction = np.array([-1, 0])  # oriented to the left
-
-#     # For non-foot segments, draw lines
-#     if segment != "Right foot" and segment != "Left foot":
-#         segment_end = tuple(map(int, pt1 + length * segment_unit_vector))
-
-#         reference_end = tuple(map(int, pt1 + length * direction))
-#         cv2.line(frame, pt1, reference_end, color, thickness)
-
-#         # Draw segment line
-#         cv2.line(frame, pt1, segment_end, color, thickness)
-
 def draw_segment_angle(frame, segment, angle, keypoints, scores, kpt_thr):
     thickness = 2
-    color = (255, 255, 255)  # White    
+    color = (255, 255, 255)  # White
 
-    segment_to_keypoints = {
-        "Right foot": [25, 21, 16, 14],  # right_heel, right_big_toe, right_ankle, right_knee
-        "Left foot": [24, 20, 15, 13],   # left_heel, left_big_toe, left_ankle, left_knee
-        "Right shank": [14, 16], # right_knee, right_ankle
-        "Left shank": [13, 15], # left_knee, left_ankle
-        "Right thigh": [12, 14], # right_hip, right_knee
-        "Left thigh": [11, 13], # left_hip, left_knee
-        "Trunk": [19, 18], # hip, neck
-        "Right arm": [6, 8], # right_shoulder, right_elbow
-        "Left arm": [5, 7], # left_shoulder, left_elbow
-        "Right forearm": [8, 10], # right_elbow, right_wrist
-        "Left forearm": [7, 9] # left_elbow, left_wrist
-    }
+    segment_params = get_segment_angle_params(segment)
+    if segment_params:
+        keypoint_names = segment_params[0]
+        kpt_indices = [halpe26_rtm['keypoint_info'][next(k for k, v in halpe26_rtm['keypoint_info'].items() if v['name'] == name)]['id'] for name in keypoint_names]
+        
+        right_foot_keypoints = [keypoints[halpe26_rtm['keypoint_info'][next(k for k, v in halpe26_rtm['keypoint_info'].items() if v['name'] == name)]['id']] for name in ['right_ankle', 'right_big_toe', 'right_heel']]
+        left_foot_keypoints = [keypoints[halpe26_rtm['keypoint_info'][next(k for k, v in halpe26_rtm['keypoint_info'].items() if v['name'] == name)]['id']] for name in ['left_ankle', 'left_big_toe', 'left_heel']]
 
-    # print(f"Processing segment: {segment}")  # Debug print
-
-    # Extract right and left foot keypoints
-    right_foot_keypoints = [keypoints[16], keypoints[21], keypoints[25]]  # right_ankle, right_big_toe, right_heel
-    left_foot_keypoints = [keypoints[15], keypoints[20], keypoints[24]]   # left_ankle, left_big_toe, left_heel
-
-    if segment in segment_to_keypoints:
-        kpt_indices = segment_to_keypoints[segment]
         if segment in ["Right foot", "Left foot"]:
-            heel, toe, ankle, knee = [keypoints[i] for i in kpt_indices]
-            score_heel, score_toe, score_ankle, score_knee = [scores[i] for i in kpt_indices]
-            if min(score_heel, score_toe, score_ankle, score_knee) >= kpt_thr:
+            heel, toe = [keypoints[i] for i in kpt_indices]
+            score_heel, score_toe = [scores[i] for i in kpt_indices]
+            if min(score_heel, score_toe) >= kpt_thr:
+                ankle = keypoints[halpe26_rtm['keypoint_info'][next(k for k, v in halpe26_rtm['keypoint_info'].items() if v['name'] == f"{segment.lower().split()[0]}_ankle")]['id']]
                 draw_angle_line(frame, heel, toe, ankle, angle, thickness, color, right_foot_keypoints, left_foot_keypoints, segment)
-            # else:
-            #     print(f"Skipping {segment} due to low scores")
         else:
             pt1, pt2 = [keypoints[i] for i in kpt_indices]
             score1, score2 = [scores[i] for i in kpt_indices]
             if min(score1, score2) >= kpt_thr:
                 draw_angle_line(frame, pt1, pt2, None, angle, thickness, color, right_foot_keypoints, left_foot_keypoints, segment)
-            # else:
-            #     print(f"Skipping {segment} due to low scores")
-    else:
-        print(f"Unknown segment: {segment}")
 
     return frame
 
 def draw_angle_line(frame, pt1, pt2, ankle, angle, thickness, color, right_foot_keypoints, left_foot_keypoints, segment):
-
+    """
+        segment_angle_dict = {
+        'Right foot': [['right_heel', 'right_big_toe'], 'horizontal', 0, -1],
+        'Left foot': [['left_heel', 'left_big_toe'], 'horizontal', 0, -1],
+        'Right shank': [['right_knee', 'right_ankle'], 'horizontal', 0, -1],
+        'Left shank': [['left_knee', 'left_ankle'], 'horizontal', 0, -1],
+        'Right thigh': [['right_hip', 'right_knee'], 'horizontal', 0, -1],
+        'Left thigh': [['left_hip', 'left_knee'], 'horizontal', 0, -1],
+        'Trunk': [['right_hip', 'right_shoulder'], 'horizontal', 0, -1],
+        'Right arm': [['right_shoulder', 'right_elbow'], 'horizontal', 0, -1],
+        'Left arm': [['left_shoulder', 'left_elbow'], 'horizontal', 0, -1],
+        'Right forearm': [['right_elbow', 'right_wrist'], 'horizontal', 0, -1],
+        'Left forearm': [['left_elbow', 'left_wrist'], 'horizontal', 0, -1],
+    }
+    """
     pt1 = tuple(map(int, pt1))
     pt2 = tuple(map(int, pt2))
     
@@ -1228,7 +1097,7 @@ def compute_angles_fun(config_dict, video_file):
     '''
     
     # Retrieve parameters
-    video_dir, video_files, result_dir, frame_rate = base_params(config_dict)
+    video_dir, video_files, result_dir, frame_rate, data_type = base_params(config_dict)
     joint_angles = config_dict.get('compute_angles').get('joint_angles')
     segment_angles = config_dict.get('compute_angles').get('segment_angles')
     angle_nb = len(joint_angles) + len(segment_angles)
@@ -1249,14 +1118,14 @@ def compute_angles_fun(config_dict, video_file):
     show_angles_img = config_dict.get('compute_angles_advanced').get('show_angles_on_img')
     show_angles_vid = config_dict.get('compute_angles_advanced').get('show_angles_on_vid')
 
-    data_type = config_dict.get('pose').get('data_type')
+    # data_type = config_dict.get('pose').get('data_type')
     kpt_thr = config_dict.get('pose_advanced').get('keypoints_threshold')
     
     # Find csv position files in video_dir, search pose_model and video_file.stem
     csv_dir = result_dir / 'video_results' # csv files are in the pose directory
     video_file_name = video_file.stem
     csv_paths = list(csv_dir.glob(f'{video_file_name}_person*_points*.csv'))
-    print(f"found {len(csv_paths)} csv files")
+    # print(f"found {len(csv_paths)} csv files")
 
     # Compute angles
     df_angles_list = []
@@ -1366,9 +1235,9 @@ def compute_angles_fun(config_dict, video_file):
             # df_angles[-1].replace(np.nan, 0, inplace=True)
 
             # Creation of the csv files
-            print(f"c : {c}")
+            # print(f"c : {c}")
             csv_angle_path = c.parent / (c.stem.replace('points', 'angles') + '.csv')
-            print(f"Saving angles CSV file to {csv_angle_path}")
+            # print(f"Saving angles CSV file to {csv_angle_path}")
             df_angles[-1].to_csv(csv_angle_path, sep=',', index=True, lineterminator='\n')
             
             if os.path.exists(csv_angle_path):
