@@ -266,7 +266,7 @@ def save_to_openpose(json_file_path, keypoints, scores, kpt_thr):
         json.dump(json_output, json_file)
 
 
-def json_to_csv(json_path, frame_rate, interp_gap_smaller_than, filter_options, show_plots, min_detection_time=1):
+def json_to_csv(json_path, frame_rate, interp_gap_smaller_than, filter_options, show_plots, min_detection_time, tracking):
     '''
     Converts frame-by-frame json coordinate files 
     to one csv files per detected person
@@ -311,8 +311,10 @@ def json_to_csv(json_path, frame_rate, interp_gap_smaller_than, filter_options, 
                 keypt = [np.concatenate([keypt, empty_keypt_to_add]) if list(keypt)!=[] else empty_keypt_to_add][0]
             if 'keyptpre' not in locals():
                 keyptpre = keypt
-            # Associate persons across frames
-            keypt = sort_people(keyptpre, keypt, nb_persons_to_detect)
+            # Associate persons across frames if tracking is enabled
+            if tracking and keyptpre is not None:
+                # print(f"Tracking enabled. keyptpre: {keyptpre.shape}")
+                keypt = sort_people(keyptpre, keypt, nb_persons_to_detect)
             # Concatenate to coordinates of previous frames
             for i in range(nb_persons_to_detect): 
                 Coords[i] = np.vstack([Coords[i], keypt[i].reshape(-1)])
@@ -644,6 +646,9 @@ def process_webcam(cam_id, pose_tracker, openpose_skeleton, joint_angles, segmen
     processing_times = []
     last_process_time = time.time()
 
+    # Initialize previous frame keypoints for person tracking
+    prev_keypoints = None
+
     try:
         while True:
             if is_colab:
@@ -662,6 +667,11 @@ def process_webcam(cam_id, pose_tracker, openpose_skeleton, joint_angles, segmen
             processing_times.append(elapsed_time)
 
             keypoints, scores = pose_tracker(frame)
+
+            # Apply person tracking
+            if prev_keypoints is not None:
+                keypoints = sort_people(prev_keypoints, keypoints, len(keypoints))
+            prev_keypoints = keypoints
 
             df_angles_list_frame = []
             valid_X, valid_Y, valid_scores, valid_person_ids = [], [], [], []
@@ -791,7 +801,7 @@ def process_webcam(cam_id, pose_tracker, openpose_skeleton, joint_angles, segmen
         filter_options = tuple(filter_options)
     
     # Save CSV files
-    json_to_csv(json_output_dir, actual_processing_fps, interp_gap_smaller_than, filter_options, show_plots, min_detection_time)
+    json_to_csv(json_output_dir, actual_processing_fps, interp_gap_smaller_than, filter_options, show_plots, min_detection_time, tracking=False)
 
     # Recalculate angles from filtered CSV files and apply filtering for each person
     for person_idx in keypoints_data.keys():
@@ -1026,7 +1036,7 @@ def detect_pose_fun(config_dict, video_file):
 
         # Sort people and save to csv, optionally display plot
         try:
-            json_to_csv(json_path, frame_rate, interp_gap_smaller_than, filter_options, show_plots, min_detection_time)
+            json_to_csv(json_path, frame_rate, interp_gap_smaller_than, filter_options, show_plots, min_detection_time, tracking=True)
         except:
             logging.warning('No person detected or persons could not be associated across frames.')
             return
