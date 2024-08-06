@@ -52,7 +52,6 @@ import cv2
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from tqdm import tqdm
-import torch
 import onnxruntime as ort
 from datetime import datetime
 import sys
@@ -611,9 +610,9 @@ def process_webcam(cam_id, pose_tracker, joint_angles, segment_angles,
 
         print(f"Webcam resolution: {actual_width}x{actual_height}")
 
-        display(PIL.Image.fromarray(np.zeros((cam_height, cam_width, 3), dtype=np.uint8)), display_id='video_feed')
+        display(PIL.Image.fromarray(np.zeros((actual_height, actual_width, 3), dtype=np.uint8)), display_id='video_feed')
         plt.figure(figsize=(10, 8))
-        img_display = plt.imshow(np.zeros((cam_height, cam_width, 3), dtype=np.uint8))
+        img_display = plt.imshow(np.zeros((actual_height, actual_height, 3), dtype=np.uint8))
         plt.axis('off')
         display(plt.gcf())
     else:
@@ -959,7 +958,7 @@ def detect_pose_fun(config_dict, video_file):
     # Pose settings
     time_range = config_dict.get('pose', {}).get('time_range', []) 
     frame_range = [int(time_range[0] * frame_rate), int(time_range[1] * frame_rate)] if len(time_range) == 2 else []
-    display_detection = config_dict.get('pose').get('display_detection')
+    display_detection = config_dict.get('pose_advanced').get('display_detection')
     output_format = "openpose"
     openpose_skeleton = False
     
@@ -1004,9 +1003,11 @@ def detect_pose_fun(config_dict, video_file):
 
 
     # Determine device and backend for RTMPose
-    if 'CUDAExecutionProvider' in ort.get_available_providers() and torch.cuda.is_available():
-        device = 'cuda'
-        backend = 'onnxruntime'
+    if 'CUDAExecutionProvider' in ort.get_available_providers():
+        import torch
+        if torch.cuda.is_available():
+            device = 'cuda'
+            backend = 'onnxruntime'
         logging.info(f"\nValid CUDA installation found: using ONNXRuntime backend with GPU.")
     elif 'MPSExecutionProvider' in ort.get_available_providers() or 'CoreMLExecutionProvider' in ort.get_available_providers():
         device = 'mps'
