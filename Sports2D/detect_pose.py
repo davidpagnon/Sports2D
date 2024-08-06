@@ -497,13 +497,7 @@ def process_video(video_path, video_result_path,pose_tracker, output_format, sav
     if display_detection and 'google.colab' not in sys.modules:
         cv2.destroyAllWindows()
 
-<<<<<<< HEAD
-
-import time
-def process_webcam(cam_id, pose_tracker, openpose_skeleton, joint_angles, segment_angles, 
-=======
 def process_webcam(cam_id, pose_tracker, joint_angles, segment_angles, 
->>>>>>> d894ece6b17df0008300de852586e09a6d984c5c
                        save_vid, save_img, interp_gap_smaller_than, filter_options, show_plots, flip_left_right,
                          kpt_thr, data_type, min_detection_time, filter_options_ang, show_plots_ang):
     """
