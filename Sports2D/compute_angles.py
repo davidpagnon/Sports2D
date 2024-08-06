@@ -505,7 +505,7 @@ def draw_joint_angle(frame, joint, angle, keypoints, scores, kpt_thr):
     Returns:
         None
     """
-        joint_params = get_joint_angle_params(joint)
+    joint_params = get_joint_angle_params(joint)
     if joint_params:
         keypoint_names = joint_params[0]
         pts = [keypoints[halpe26_rtm['keypoint_info'][next(k for k, v in halpe26_rtm['keypoint_info'].items() if v['name'] == name)]['id']] for name in keypoint_names]
@@ -524,7 +524,7 @@ def draw_dotted_line(frame, start, direction, length, color=(0, 255, 0), gap=7, 
     """
     Draw a dotted line on the given frame.
     """
-        for i in range(0, length, gap):
+    for i in range(0, length, gap):
         line_start = start + direction * i
         line_end = line_start + direction * dot_length
         cv2.line(frame, tuple(line_start.astype(int)), tuple(line_end.astype(int)), color, 2)
@@ -691,7 +691,7 @@ def draw_segment_angle(frame, segment, angle, keypoints, scores, kpt_thr):
     Returns:
         numpy.ndarray: The updated frame with the angle drawn.
     """
-        thickness = 2
+    thickness = 2
     color = (255, 255, 255)  # White
 
     segment_params = get_segment_angle_params(segment)
@@ -737,7 +737,7 @@ def draw_angle_line(frame, pt1, pt2, ankle, angle, thickness, color, right_foot_
     Returns:
         numpy.ndarray: The updated frame with the angle line drawn.
     """
-        pt1 = tuple(map(int, pt1))
+    pt1 = tuple(map(int, pt1))
     pt2 = tuple(map(int, pt2))
     
     # Calculate the direction vector of the segment
