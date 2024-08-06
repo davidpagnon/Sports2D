@@ -505,7 +505,7 @@ def draw_joint_angle(frame, joint, angle, keypoints, scores, kpt_thr):
     Returns:
         None
     """
-        joint_params = get_joint_angle_params(joint)
+    joint_params = get_joint_angle_params(joint)
     if joint_params:
         keypoint_names = joint_params[0]
         pts = [keypoints[halpe26_rtm['keypoint_info'][next(k for k, v in halpe26_rtm['keypoint_info'].items() if v['name'] == name)]['id']] for name in keypoint_names]
