@@ -42,6 +42,7 @@
 ## INIT
 import os
 import logging
+import time as time_module # Avoid conflict
 from pathlib import Path
 from sys import platform
 import json
@@ -56,7 +57,6 @@ import torch
 import onnxruntime as ort
 from datetime import datetime
 import sys
-import time
 from IPython.display import clear_output
 
 from Sports2D.Sports2D import base_params
@@ -485,6 +485,8 @@ def process_video(video_path, video_result_path,pose_tracker, output_format, sav
     if display_detection and 'google.colab' not in sys.modules:
         cv2.destroyAllWindows()
 
+
+import time
 def process_webcam(cam_id, pose_tracker, openpose_skeleton, joint_angles, segment_angles, 
                        save_vid, save_img, interp_gap_smaller_than, filter_options, show_plots, flip_left_right,
                          kpt_thr, data_type, min_detection_time, filter_options_ang, show_plots_ang):
@@ -531,17 +533,154 @@ def process_webcam(cam_id, pose_tracker, openpose_skeleton, joint_angles, segmen
     Note: The function can be interrupted by pressing 'q' or using a keyboard interrupt (Ctrl+C).
     """
 
-    global time
-
     is_colab = 'google.colab' in sys.modules
     if is_colab:
         from IPython.display import display, Javascript, clear_output
         from google.colab.output import eval_js
-        from base64 import b64decode
+        from base64 import b64decode, b64encode
         import matplotlib.pyplot as plt
         import PIL.Image
         import io
+    
+        # JavaScript to properly create our live video stream using our webcam as input
+        def video_stream():
+            js = Javascript('''
+                var video;
+                var div = null;
+                var stream;
+                var captureCanvas;
+                var imgElement;
+                var labelElement;
+                var resultImgElement;
+                
+                var pendingResolve = null;
+                var shutdown = false;
+                
+                function removeDom() {
+                   stream.getVideoTracks()[0].stop();
+                   video.remove();
+                   div.remove();
+                   video = null;
+                   div = null;
+                   stream = null;
+                   imgElement = null;
+                   captureCanvas = null;
+                   labelElement = null;
+                   resultImgElement = null;
+                }
+                
+                function onAnimationFrame() {
+                  if (!shutdown) {
+                    window.requestAnimationFrame(onAnimationFrame);
+                  }
+                  if (pendingResolve) {
+                    var result = "";
+                    if (!shutdown) {
+                      captureCanvas.getContext('2d').drawImage(video, 0, 0, 640, 480);
+                      result = captureCanvas.toDataURL('image/jpeg', 0.8)
+                    }
+                    var lp = pendingResolve;
+                    pendingResolve = null;
+                    lp(result);
+                  }
+                }
+                
+                async function createDom() {
+                  if (div !== null) {
+                    return stream;
+                  }
+            
+                  div = document.createElement('div');
+                  div.style.border = '2px solid black';
+                  div.style.padding = '3px';
+                  div.style.width = '100%';
+                  div.style.maxWidth = '600px';
+                  document.body.appendChild(div);
+                  
+                  const modelOut = document.createElement('div');
+                  modelOut.innerHTML = "<span>Status:</span>";
+                  labelElement = document.createElement('span');
+                  labelElement.innerText = 'No data';
+                  labelElement.style.fontWeight = 'bold';
+                  modelOut.appendChild(labelElement);
+                  div.appendChild(modelOut);
+                       
+                  video = document.createElement('video');
+                  video.style.display = 'block';
+                  video.width = div.clientWidth - 6;
+                  video.setAttribute('playsinline', '');
+                  video.onclick = () => { shutdown = true; };
+                  stream = await navigator.mediaDevices.getUserMedia(
+                      {video: { facingMode: "environment"}});
+                  div.appendChild(video);
+            
+                  resultImgElement = document.createElement('img');
+                  resultImgElement.style.position = 'absolute';
+                  resultImgElement.style.zIndex = 1;
+                  resultImgElement.onclick = () => { shutdown = true; };
+                  div.appendChild(resultImgElement);
+                  
+                  const instruction = document.createElement('div');
+                  instruction.innerHTML = 
+                      '<span style="color: red; font-weight: bold;">' +
+                      'When finished, click here or on the video to stop this demo</span>';
+                  div.appendChild(instruction);
+                  instruction.onclick = () => { shutdown = true; };
+                  
+                  video.srcObject = stream;
+                  await video.play();
+            
+                  captureCanvas = document.createElement('canvas');
+                  captureCanvas.width = 640; //video.videoWidth;
+                  captureCanvas.height = 480; //video.videoHeight;
+                  window.requestAnimationFrame(onAnimationFrame);
+                  
+                  return stream;
+                }
+                async function stream_frame(label, imgData) {
+                  if (shutdown) {
+                    removeDom();
+                    shutdown = false;
+                    return '';
+                  }
+            
+                  var preCreate = Date.now();
+                  stream = await createDom();
+                  
+                  var preShow = Date.now();
+                  if (label != "") {
+                    labelElement.innerHTML = label;
+                  }
+                        
+                  if (imgData != "") {
+                    var videoRect = video.getClientRects()[0];
+                    resultImgElement.style.top = videoRect.top + "px";
+                    resultImgElement.style.left = videoRect.left + "px";
+                    resultImgElement.style.width = videoRect.width + "px";
+                    resultImgElement.style.height = videoRect.height + "px";
+                    resultImgElement.src = imgData;
+                  }
+                  
+                  var preCapture = Date.now();
+                  var result = await new Promise(function(resolve, reject) {
+                    pendingResolve = resolve;
+                  });
+                  shutdown = false;
+                  
+                  return {'create': preShow - preCreate, 
+                          'show': preCapture - preShow, 
+                          'capture': Date.now() - preCapture,
+                          'img': result};
+                }
+                ''')
+            
+            display(js)
+          
+        def video_frame(label, bbox):
+          data = eval_js('stream_frame("{}", "{}")'.format(label, bbox))
+          return data
 
+        
     # Output directory setup
     current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
     output_dir = Path(os.path.join(os.getcwd(), f'webcam_results_{current_time}'))
@@ -550,60 +689,17 @@ def process_webcam(cam_id, pose_tracker, openpose_skeleton, joint_angles, segmen
     json_output_dir.mkdir(parents=True, exist_ok=True)
 
     if is_colab:
-        # frame_rate = 30  # Hardcoded fps
-
-        # Colab webcam setup
-        js = Javascript('''
-        async function setupWebcam() {
-          const video = document.createElement('video');
-          video.style.display = 'none';
-          const stream = await navigator.mediaDevices.getUserMedia({video: true});
-          video.srcObject = stream;
-          await video.play();
-          
-          const canvas = document.createElement('canvas');
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
-          const ctx = canvas.getContext('2d');
-          
-          return {video, canvas, ctx, stream, width: video.videoWidth, height: video.videoHeight};
-        }
+        #initialize video stream
+        video_stream()
         
-        async function captureFrame(video, canvas, ctx) {
-          ctx.drawImage(video, 0, 0);
-          return canvas.toDataURL('image/jpeg');
-        }
+        # Get initial frame to determine resolution
+        initial_frame_data = video_frame("Initializing...", "")
+        frame = np.frombuffer(b64decode(initial_frame_data['img'].split(',')[1]), dtype=np.uint8)
+        frame = cv2.imdecode(frame, cv2.IMREAD_COLOR)
+        cam_width, cam_height = frame.shape[1], frame.shape[0]
+    
+        print(f"Webcam resolution: {cam_width}x{cam_height}")
         
-        var webCamSetup = null;
-        
-        window.startWebcam = async function() {
-          if (!webCamSetup) {
-            webCamSetup = await setupWebcam();
-          }
-          const frame = await captureFrame(webCamSetup.video, webCamSetup.canvas, webCamSetup.ctx);
-          return {frame: frame, width: webCamSetup.width, height: webCamSetup.height};
-        }
-        
-        window.stopWebcam = function() {
-          if (webCamSetup && webCamSetup.stream) {
-            webCamSetup.stream.getTracks().forEach(track => track.stop());
-            webCamSetup = null;
-          }
-        }
-        ''')
-        display(js)
-        
-        webcam_data = eval_js('startWebcam()')
-        actual_width = webcam_data['width']
-        actual_height = webcam_data['height']
-
-        print(f"Webcam resolution: {actual_width}x{actual_height}")
-
-        display(PIL.Image.fromarray(np.zeros((cam_height, cam_width, 3), dtype=np.uint8)), display_id='video_feed')
-        plt.figure(figsize=(10, 8))
-        img_display = plt.imshow(np.zeros((cam_height, cam_width, 3), dtype=np.uint8))
-        plt.axis('off')
-        display(plt.gcf())
     else:
         # Local webcam setup
         cap = cv2.VideoCapture(cam_id, cv2.CAP_DSHOW) # CAP_DSHOW would be better for Windows
@@ -644,7 +740,7 @@ def process_webcam(cam_id, pose_tracker, openpose_skeleton, joint_angles, segmen
     scores_data = {}
     processed_frames = []
     processing_times = []
-    last_process_time = time.time()
+    last_process_time = time_module.time()
 
     # Initialize previous frame keypoints for person tracking
     prev_keypoints = None
@@ -652,8 +748,12 @@ def process_webcam(cam_id, pose_tracker, openpose_skeleton, joint_angles, segmen
     try:
         while True:
             if is_colab:
-                webcam_data = eval_js('startWebcam()')
-                frame = np.frombuffer(b64decode(webcam_data['frame'].split(',')[1]), dtype=np.uint8)
+                frame_data = video_frame("Processing...", "")
+                if frame_data == '':
+                    print("Processing stopped by user.")
+                    break
+    
+                frame = np.frombuffer(b64decode(frame_data['img'].split(',')[1]), dtype=np.uint8)
                 frame = cv2.imdecode(frame, cv2.IMREAD_COLOR)
             else:
                 ret, frame = cap.read()
@@ -662,7 +762,7 @@ def process_webcam(cam_id, pose_tracker, openpose_skeleton, joint_angles, segmen
                     break
 
             frame_count += 1
-            current_time = time.time()
+            current_time = time_module.time()
             elapsed_time = current_time - last_process_time
             processing_times.append(elapsed_time)
 
@@ -742,10 +842,12 @@ def process_webcam(cam_id, pose_tracker, openpose_skeleton, joint_angles, segmen
 
 
             if is_colab:
-                img_byte_arr = io.BytesIO()
-                PIL.Image.fromarray(cv2.cvtColor(img_show, cv2.COLOR_BGR2RGB)).save(img_byte_arr, format='JPEG')
-                clear_output(wait=True)
-                display(PIL.Image.open(img_byte_arr), display_id='video_feed')
+                # Incoding image to base64 for display
+                _, buffer = cv2.imencode('.jpg', img_show)
+                img_base64 = b64encode(buffer).decode('utf-8')
+                
+                # Display image in Colab
+                _ = video_frame("Processing...", f"data:image/jpeg;base64,{img_base64}")
             else:
                 window_size = cv2.getWindowImageRect("Real-time Analysis")
                 if window_size[2] > 0 and window_size[3] > 0:
@@ -773,7 +875,7 @@ def process_webcam(cam_id, pose_tracker, openpose_skeleton, joint_angles, segmen
         print("\nInterrupted by user")
     finally:
         if is_colab:
-            eval_js('stopWebcam()')
+            eval_js('stream_frame("", "")')
         else:
             cap.release()
         cv2.destroyAllWindows()
