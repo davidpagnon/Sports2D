@@ -1227,11 +1227,11 @@ def compute_angles_fun(config_dict, video_file):
                 try:
                     angle_params = get_joint_angle_params(j)
                     if angle_params:
-                        print(f"Calculating joint angle {j} for Person {i}")
+                        # print(f"Calculating joint angle {j} for Person {i}")
                         j_ang_series = joint_angles_series_from_csv(df_points, angle_params, kpt_thr)
                         joint_angle_series.append(j_ang_series if j_ang_series is not None else np.nan)
                     else:
-                        print(f"Error: No parameters found for joint angle {j}")
+                        # print(f"Error: No parameters found for joint angle {j}")
                         joint_angle_series.append(np.nan)
                 except Exception as e:
                     logging.warning(f'Error calculating joint angle {j} for Person {i}: {str(e)}')
