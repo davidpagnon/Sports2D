@@ -140,13 +140,6 @@ def interpolate_zeros_nans(col, *args):
 def natural_sort_key(s):
     return [int(c) if c.isdigit() else c.lower() for c in re.split(r'(\d+)', s)]
 
-def adjust_text_scale(frame, base_scale=0.25, base_thickness=1):
-    height, width, _ = frame.shape
-    scale = base_scale * (width / 640)
-    thickness = int(base_thickness * (width / 640))
-    return scale, thickness
-
-
 # It should be followed halpe26 foramt
 def convert_keypoints_to_dataframe(keypoints, scores):   
     data = []

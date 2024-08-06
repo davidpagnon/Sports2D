@@ -530,7 +530,7 @@ halpe26_rtm = dict(name='halpe26',
         4: dict(link=('right_knee', 'right_hip'), id=4, color=[255, 128, 0]),
         5: dict(link=('right_hip', 'hip'), id=5, color=[255, 128, 0]),
         6: dict(link=('head', 'neck'), id=6, color=[51, 153, 255]),
-        # 7: dict(link=('neck', 'hip'), id=7, color=[51, 153, 255]),
+        # 7: dict(link=('neck', 'hip'), id=7, color=[51, 153, 255]), # Commented because we will use the shoulder-hip line instead
         8: dict(link=('neck', 'left_shoulder'), id=8, color=[0, 255, 0]),
         9: dict(link=('left_shoulder', 'left_elbow'), id=9, color=[0, 255, 0]),
         10: dict(link=('left_elbow', 'left_wrist'), id=10, color=[0, 255, 0]),
