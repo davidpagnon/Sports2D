@@ -708,40 +708,6 @@ def process_webcam(cam_id, pose_tracker, joint_angles, segment_angles,
         cam_width, cam_height = frame.shape[1], frame.shape[0]
     
         print(f"Webcam resolution: {cam_width}x{cam_height}")
-        
-<<<<<<< HEAD
-        var webCamSetup = null;
-        
-        window.startWebcam = async function() {
-          if (!webCamSetup) {
-            webCamSetup = await setupWebcam();
-          }
-          const frame = await captureFrame(webCamSetup.video, webCamSetup.canvas, webCamSetup.ctx);
-          return {frame: frame, width: webCamSetup.width, height: webCamSetup.height};
-        }
-        
-        window.stopWebcam = function() {
-          if (webCamSetup && webCamSetup.stream) {
-            webCamSetup.stream.getTracks().forEach(track => track.stop());
-            webCamSetup = null;
-          }
-        }
-        ''')
-        display(js)
-        
-        webcam_data = eval_js('startWebcam()')
-        actual_width = webcam_data['width']
-        actual_height = webcam_data['height']
-
-        print(f"Webcam resolution: {actual_width}x{actual_height}")
-
-        display(PIL.Image.fromarray(np.zeros((actual_height, actual_width, 3), dtype=np.uint8)), display_id='video_feed')
-        plt.figure(figsize=(10, 8))
-        img_display = plt.imshow(np.zeros((actual_height, actual_height, 3), dtype=np.uint8))
-        plt.axis('off')
-        display(plt.gcf())
-=======
->>>>>>> 3697e6bc2057dcd054e3cdbaa1f4a57f4b10e6f2
     else:
         # Local webcam setup
         cap = cv2.VideoCapture(cam_id, cv2.CAP_DSHOW) # CAP_DSHOW would be better for Windows
