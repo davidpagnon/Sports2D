@@ -1100,22 +1100,31 @@ def detect_pose_fun(config_dict, video_file):
                           frame_rate, gaussian_filter_kernel_ang, loess_filter_kernel_ang, median_filter_kernel_ang)
 
 
+    # Set default values
+    device = 'cpu'
+    backend = 'openvino'
 
     # Determine device and backend for RTMPose
     if 'CUDAExecutionProvider' in ort.get_available_providers():
-        import torch
-        if torch.cuda.is_available():
-            device = 'cuda'
-            backend = 'onnxruntime'
-        logging.info(f"\nValid CUDA installation found: using ONNXRuntime backend with GPU.")
+        try:
+            import torch
+            if torch.cuda.is_available():
+                device = 'cuda'
+                backend = 'onnxruntime'
+                logging.info("\nValid CUDA installation found: using ONNXRuntime backend with GPU.")
+            else:
+                logging.info("\nCUDA is available in ONNXRuntime but not in PyTorch. Checking other options.")
+        except ImportError:
+            logging.info("\nCUDA is available in ONNXRuntime but PyTorch import failed. Checking other options.")
     elif 'MPSExecutionProvider' in ort.get_available_providers() or 'CoreMLExecutionProvider' in ort.get_available_providers():
         device = 'mps'
         backend = 'onnxruntime'
-        logging.info(f"\nValid MPS installation found: using ONNXRuntime backend with GPU.")
+        logging.info("\nValid MPS installation found: using ONNXRuntime backend with GPU.")
     else:
-        device = 'cpu'
-        backend = 'openvino'
-        logging.info(f"\nNo valid CUDA installation found: using OpenVINO backend with CPU.")
+        logging.info("\nNo valid CUDA or MPS installation found: using OpenVINO backend with CPU.")
+
+    # Log the final device and backend selection
+    logging.info(f"Selected device: {device}, backend: {backend}")
 
     # Initialize the pose tracker with Halpe26 model(I should add the other models later)
     pose_tracker = PoseTracker(
