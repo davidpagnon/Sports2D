@@ -88,7 +88,12 @@ If you need research-grade markerless joint kinematics, consider using several c
      cd sports2d
      pip install .
      ```
-
+- Note: **Run with GPU**\
+      If you want to run Sports2D with GPU, install the following.
+  ``` cmd
+    pip install torch
+    pip install onnxruntime-gpu
+  ```
 
 ### Demonstration: Detect pose and compute 2D angles
 
