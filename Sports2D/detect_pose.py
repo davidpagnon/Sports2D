@@ -1055,8 +1055,9 @@ def detect_pose_fun(config_dict, video_file):
     video_dir, video_files, result_dir, frame_rate, data_type = base_params(config_dict)
 
     # Pose settings
-    time_range = config_dict.get('pose', {}).get('time_range', []) 
-    frame_range = [int(time_range[0] * frame_rate), int(time_range[1] * frame_rate)] if len(time_range) == 2 else []
+    if data_type == 'video':
+        time_range = config_dict.get('pose', {}).get('time_range', []) 
+        frame_range = [int(time_range[0] * frame_rate), int(time_range[1] * frame_rate)] if len(time_range) == 2 else []
     display_detection = config_dict.get('pose').get('display_detection')
     output_format = "openpose"
     openpose_skeleton = False
