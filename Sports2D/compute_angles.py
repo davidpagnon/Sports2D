@@ -276,219 +276,112 @@ def flip_left_right_direction(df_points, data_type):
 
     return df_points
 
-def joint_angles_series_from_points(df_points, angle_params, kpt_thr):
+def calculate_angles_series(df_points, angle_params, segment=None, kpt_thr=0.0, is_csv=False):
     '''
-    Obtain joint angle series from point series.
+    Obtain joint or segment angle series from point series.
     
     INPUT: 
-    - df_points: dataframe of pose detection, from csv
+    - df_points: dataframe of pose detection
     - angle_params: dictionary specifying which points to use, and what offset and multiplying factor to use
-    
-    OUTPUT:
-    - ang_series: array of time series of the considered angle
-    '''
-    
-    # Retrieve points
-    keypt_series = []
-    for k in angle_params[0]:
-        if f"{k}_x" in df_points.columns and f"{k}_y" in df_points.columns and f"{k}_score" in df_points.columns:
-            score = df_points[f"{k}_score"].values[0]
-            if score >= kpt_thr:
-                keypt = df_points[[f"{k}_x", f"{k}_y"]]
-                keypt_series.append(keypt)
-            else:
-                return None
-        else:
-            print(f"Error: Keypoint {k} or its score not found in dataframe")
-            return None
-
-    if len(keypt_series) != len(angle_params[0]):
-        print(f"Error: Not all required keypoints were found or passed the threshold")
-        return None
-
-    # Compute angles
-    points_list = [k.values.T for k in keypt_series]
-    ang_series = points2D_to_angles(points_list)
-    if ang_series is None:
-        print(f"points2D_to_angles returned None for {angle_params[1]}")
-        return None
-    
-    ang_series += angle_params[2]
-    ang_series *= angle_params[3]
-    
-    if ang_series.mean() > 180: ang_series -= 360
-    if ang_series.mean() < -180: ang_series += 360
-
-    return ang_series
-
-
-def segment_angles_series_from_points(df_points, angle_params, segment, kpt_thr):
-    '''
-    Obtain segment angle series w/r horizontal from point series.
-    For trunk segment: mean of the angles between RHip-RShoulder and LHip-LShoulder
-    
-    INPUT: 
-    - df_points: dataframe of pose detection, from csv
-    - angle_params: dictionary specifying which points to use, and what offset and multiplying factor to use
-    - segment: which segment angle is considered
-    
-    OUTPUT:
-    - ang_series: array of time series of the considered angle
-    '''
-    
-    # Retrieve points
-    keypt_series = []
-    for k in angle_params[0]:
-        if df_points[f"{k}_score"].values[0] >= kpt_thr:
-            keypt_series.append(df_points[[f"{k}_x", f"{k}_y"]])
-        else:
-            return None
-
-    points_list = [k.values.T for k in keypt_series]
-    ang_series = points2D_to_angles(points_list)
-    if ang_series is None:
-        return None
-
-    ang_series += angle_params[2]
-    ang_series *= angle_params[3]
-    # ang_series = np.where(ang_series>180,ang_series-360,ang_series)
-
-    # For trunk: mean between angles RHip-RShoulder and LHip-LShoulder
-    if segment == 'Trunk':
-        ang_seriesR = ang_series
-        angle_params[0] = [a.replace('R','L') for a in angle_params[0]]
-        keypt_series = []
-        for k in angle_params[0]:
-            if df_points[f"{k}_score"].values[0] >= kpt_thr:
-                keypt_series.append(df_points[[f"{k}_x", f"{k}_y"]])
-            else:
-                return None
-
-        points_list = [k.values.T for k in keypt_series]
-        ang_series = points2D_to_angles(points_list)
-        ang_series += angle_params[2]
-        ang_series *= angle_params[3]
-        ang_series = np.mean((ang_seriesR, ang_series), axis=0)
-        # ang_series = np.where(ang_series>180,ang_series-360,ang_series)
-        
-    if ang_series.mean() > 180: ang_series -= 360
-    if ang_series.mean() < -180: ang_series += 360
-
-    return ang_series
-
-def joint_angles_series_from_csv(df_points, angle_params, kpt_thr):
-    '''
-    Obtain joint angle series from point series.
-    
-    INPUT: 
-    - df_points: dataframe of pose detection, from csv
-    - angle_params: dictionary specifying which points to use, and what offset and multiplying factor to use
+    - segment: which segment angle is considered (optional, for segment angles)
     - kpt_thr: threshold for keypoint confidence
+    - is_csv: boolean indicating if the input is from a CSV file
     
     OUTPUT:
     - ang_series: array of time series of the considered angle
     '''
     
-    # Retrieve points
-    keypt_series = []
-    for k in angle_params[0]:
-        series = df_points.iloc[:,df_points.columns.get_level_values(2)==k].iloc[:,:2]
-        keypt_series.append(series)
+    def process_keypoints(df, keys, threshold):
+        if is_csv:
+            return [df.iloc[:,df.columns.get_level_values(2)==k].iloc[:,:2] for k in keys]
+        else:
+            keypt_series = []
+            for k in keys:
+                if f"{k}_x" in df.columns and f"{k}_y" in df.columns and f"{k}_score" in df.columns:
+                    score = df[f"{k}_score"].values[0]
+                    if score >= threshold:
+                        keypt = df[[f"{k}_x", f"{k}_y"]]
+                        keypt_series.append(keypt)
+                    else:
+                        return None
+                else:
+                    print(f"Error: Keypoint {k} or its score not found in dataframe")
+                    return None
+            return keypt_series if len(keypt_series) == len(keys) else None
+
+    def adjust_angle_range(angles, valid_indices):
+        angles[valid_indices] = np.where(angles[valid_indices] > 180, angles[valid_indices] - 360, angles[valid_indices])
+        angles[valid_indices] = np.where(angles[valid_indices] < -180, angles[valid_indices] + 360, angles[valid_indices])
+        return angles
+
+    # Process keypoints
+    keypt_series = process_keypoints(df_points, angle_params[0], kpt_thr)
+    if keypt_series is None:
+        return None
 
     # Compute angles
     points_list = [k.values.T for k in keypt_series]
     
-    # Create a mask for valid data (non-NaN)
-    valid_mask = np.all([~np.isnan(points).any(axis=0) for points in points_list], axis=0)
-    
-    # Only compute angles for valid data
-    ang_series = np.full(valid_mask.shape, np.nan)
-    ang_series[valid_mask] = points2D_to_angles([p[:, valid_mask] for p in points_list])
-    
-    # Apply offset and scaling only to valid angles
-    valid_indices = np.where(valid_mask)[0]
+    if is_csv:
+        valid_mask = np.all([~np.isnan(points).any(axis=0) for points in points_list], axis=0)
+        ang_series = np.full(valid_mask.shape, np.nan)
+        ang_series[valid_mask] = points2D_to_angles([p[:, valid_mask] for p in points_list])
+        valid_indices = np.where(valid_mask)[0]
+    else:
+        ang_series = points2D_to_angles(points_list)
+        if ang_series is None:
+            print(f"points2D_to_angles returned None for {angle_params[1]}")
+            return None
+        valid_indices = np.arange(len(ang_series))
+
+    # Apply offset and scaling
     ang_series[valid_indices] += angle_params[2]
     ang_series[valid_indices] *= angle_params[3]
 
-    # Adjust each angle individually to be within -180 to 180 range
-    def adjust_angle(angle):
-        while angle > 180:
-            angle -= 360
-        while angle < -180:
-            angle += 360
-        return angle
+    # Adjust angle range
+    ang_series = adjust_angle_range(ang_series, valid_indices)
 
-    ang_series[valid_indices] = np.array([adjust_angle(angle) for angle in ang_series[valid_indices]])
-
-    return ang_series
-
-def segment_angles_series_from_csv(df_points, angle_params, segment, kpt_thr):
-    '''
-    Obtain segment angle series w/r horizontal from point series.
-    For trunk segment: mean of the angles between RHip-RShoulder and LHip-LShoulder
-    
-    INPUT: 
-    - df_points: dataframe of pose detection, from csv
-    - angle_params: dictionary specifying which points to use, and what offset and multiplying factor to use
-    - segment: which segment angle is considered
-    
-    OUTPUT:
-    - ang_series: array of time series of the considered angle
-    '''
-    
-    # Retrieve points
-    keypt_series = []
-    for k in angle_params[0]:
-        keypt_series += [df_points.iloc[:,df_points.columns.get_level_values(2)==k].iloc[:,:2]]
-    points_list = [k.values.T for k in keypt_series]
-    
-    # Create a mask for valid data (non-NaN)
-    valid_mask = np.all([~np.isnan(points).any(axis=0) for points in points_list], axis=0)
-    
-    # Only compute angles for valid data
-    ang_series = np.full(valid_mask.shape, np.nan)
-    ang_series[valid_mask] = points2D_to_angles([p[:, valid_mask] for p in points_list])
-    
-    # Apply offset and scaling only to valid angles
-    valid_indices = np.where(valid_mask)[0]
-    ang_series[valid_indices] += angle_params[2]
-    ang_series[valid_indices] *= angle_params[3]
-    
-    # For trunk: mean between angles RHip-RShoulder and LHip-LShoulder
+    # For trunk segment
     if segment == 'Trunk':
         ang_seriesR = ang_series.copy()
         angle_params[0] = [a.replace('R','L') for a in angle_params[0]]
-        keypt_series = []
-        for k in angle_params[0]:
-            keypt_series += [df_points.iloc[:,df_points.columns.get_level_values(2)==k].iloc[:,:2]]
-        points_list = [k.values.T for k in keypt_series]
         
-        # Create a new mask for the left side
-        valid_mask_L = np.all([~np.isnan(points).any(axis=0) for points in points_list], axis=0)
+        keypt_series_L = process_keypoints(df_points, angle_params[0], kpt_thr)
+        if keypt_series_L is None:
+            return None
+
+        points_list_L = [k.values.T for k in keypt_series_L]
         
-        # Compute angles for the left side
-        ang_seriesL = np.full(valid_mask_L.shape, np.nan)
-        ang_seriesL[valid_mask_L] = points2D_to_angles([p[:, valid_mask_L] for p in points_list])
-        
-        # Apply offset and scaling
-        valid_indices_L = np.where(valid_mask_L)[0]
+        if is_csv:
+            valid_mask_L = np.all([~np.isnan(points).any(axis=0) for points in points_list_L], axis=0)
+            ang_seriesL = np.full(valid_mask_L.shape, np.nan)
+            ang_seriesL[valid_mask_L] = points2D_to_angles([p[:, valid_mask_L] for p in points_list_L])
+            valid_indices_L = np.where(valid_mask_L)[0]
+        else:
+            ang_seriesL = points2D_to_angles(points_list_L)
+            if ang_seriesL is None:
+                return None
+            valid_indices_L = np.arange(len(ang_seriesL))
+
         ang_seriesL[valid_indices_L] += angle_params[2]
         ang_seriesL[valid_indices_L] *= angle_params[3]
+        ang_seriesL = adjust_angle_range(ang_seriesL, valid_indices_L)
         
-        # Combine right and left angles
         ang_series = np.nanmean(np.array([ang_seriesR, ang_seriesL]), axis=0)
 
-    # Adjust each angle individually to be within -180 to 180 range
-    def adjust_angle(angle):
-        while angle > 180:
-            angle -= 360
-        while angle < -180:
-            angle += 360
-        return angle
-
-    ang_series[~np.isnan(ang_series)] = np.array([adjust_angle(angle) for angle in ang_series[~np.isnan(ang_series)]])
-        
     return ang_series
+
+def joint_angles_series_from_points(df_points, angle_params, kpt_thr):
+    return calculate_angles_series(df_points, angle_params, kpt_thr=kpt_thr, is_csv=False)
+
+def segment_angles_series_from_points(df_points, angle_params, segment, kpt_thr):
+    return calculate_angles_series(df_points, angle_params, segment=segment, kpt_thr=kpt_thr, is_csv=False)
+
+def joint_angles_series_from_csv(df_points, angle_params, kpt_thr):
+    return calculate_angles_series(df_points, angle_params, kpt_thr=kpt_thr, is_csv=True)
+
+def segment_angles_series_from_csv(df_points, angle_params, segment, kpt_thr):
+    return calculate_angles_series(df_points, angle_params, segment=segment, kpt_thr=kpt_thr, is_csv=True)
 
 def draw_joint_angle(frame, joint, angle, keypoints, scores, kpt_thr):
     """
