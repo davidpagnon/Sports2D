@@ -998,7 +998,7 @@ def draw_keypts_skel(X, Y, scores, img, pose_model, kpt_thr):
     
     return img
 
-def save_imgvid_reID(video_path, video_result_path, df_angles_list, pose_model, save_vid, save_img, kpt_thr):
+def save_imgvid_reID(video_path, video_result_path, df_angles_list, pose_model, save_vid, save_img, kpt_thr, frame_range):
     """
     Saves the video and/or images with the computed angles and keypoints overlaid on the original video.
 
@@ -1010,6 +1010,7 @@ def save_imgvid_reID(video_path, video_result_path, df_angles_list, pose_model, 
         save_vid (bool): Whether to save the video with the overlaid angles and keypoints.
         save_img (bool): Whether to save individual frames as images with the overlaid angles and keypoints.
         kpt_thr (float): Threshold for displaying keypoints.
+        frame_range (list): Range of frames to process. If empty, process all frames.
 
     Returns:
         None
@@ -1021,7 +1022,17 @@ def save_imgvid_reID(video_path, video_result_path, df_angles_list, pose_model, 
     if not csv_paths:
         print("Error: No CSV files found in the specified directory.")
         return
-        
+    
+    cap = cv2.VideoCapture(str(video_path))
+    if not cap.isOpened():
+        print(f"Error opening video file: {video_path}")
+        return
+
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    f_range = [0, total_frames] if frame_range == [] else frame_range
+
+    print(f"Processing frames from {f_range[0]} to {f_range[1]}")
+
     # Load both angles and points CSV files
     angles_coords = []
     points_coords = []
@@ -1040,10 +1051,7 @@ def save_imgvid_reID(video_path, video_result_path, df_angles_list, pose_model, 
             person_id = int(c.stem.split('_person')[1].split('_')[0])
             person_ids.append(person_id)
 
-    cap = cv2.VideoCapture(str(video_path))
-    if not cap.isOpened():
-        print(f"Error opening video file: {video_path}")
-        return
+    print(f"Loaded data for {len(person_ids)} persons")
 
     W, H = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = cap.get(cv2.CAP_PROP_FPS)
@@ -1057,30 +1065,24 @@ def save_imgvid_reID(video_path, video_result_path, df_angles_list, pose_model, 
         img_pose_path = csv_dir / (video_result_path.stem + '_' + pose_model + '_img')
         img_pose_path.mkdir(parents=True, exist_ok=True)
         
-    f = 0
-    while(cap.isOpened()):
+    cap.set(cv2.CAP_PROP_POS_FRAMES, f_range[0])
+    for f in range(len(points_coords[0])): # csv file already has the same number of frames
         ret, frame = cap.read()
         if not ret:
+            print(f"Failed to read frame {f + f_range[0]}")
             break
         
         frame_keypoints = []
         frame_scores = []
         for coord in points_coords:
-            if f < len(coord):
-                X = np.array(coord.iloc[f, 0::3])
-                Y = np.array(coord.iloc[f, 1::3])
-                S = np.array(coord.iloc[f, 2::3])
-                
-                person_keypoints = np.column_stack((X, Y))
-                frame_keypoints.append(person_keypoints)
-                frame_scores.append(S)
-            else:
-                if frame_keypoints and frame_scores:
-                    frame_keypoints.append(frame_keypoints[-1])
-                    frame_scores.append(frame_scores[-1])
-                else:
-                    # print(f"Warning: No previous keypoints or scores available for frame {f}")
-                    break
+            person_data = coord.iloc[f]
+            X = np.array(person_data[0::3])
+            Y = np.array(person_data[1::3])
+            S = np.array(person_data[2::3])
+            
+            person_keypoints = np.column_stack((X, Y))
+            frame_keypoints.append(person_keypoints)
+            frame_scores.append(S)
 
         frame_keypoints = np.array(frame_keypoints)
         frame_scores = np.array(frame_scores)
@@ -1091,26 +1093,23 @@ def save_imgvid_reID(video_path, video_result_path, df_angles_list, pose_model, 
             # Draw skeleton
             frame = draw_keypts_skel(frame_keypoints[:,:,0], frame_keypoints[:,:,1], frame_scores, frame, pose_model, kpt_thr)
 
-            df_angles_list_frame = []
-            for df in angles_coords:
-                if f < len(df):
-                    df_angles_list_frame.append(df.iloc[f,:])
-                else:
-                    df_angles_list_frame.append(df.iloc[-1,:])
+            df_angles_list_frame = [df.iloc[f] for df in angles_coords]
             
             # Draw arc, line, dotted line relative to angles
             frame = overlay_angles(frame, df_angles_list_frame, frame_keypoints, frame_scores, kpt_thr=0.2, person_ids=person_ids)
-
+        else:
+            print(f"No keypoints or scores for frame {f + f_range[0]}")
 
         if save_vid: # save video
             writer.write(frame)
         if save_img: # save image
-            cv2.imwrite(str(img_pose_path / f"{video_result_path.stem}_{pose_model}.{f:05d}.png"), frame)
-        f += 1
+            cv2.imwrite(str(img_pose_path / f"{video_result_path.stem}_{pose_model}.{f + f_range[0]:05d}.png"), frame)
 
     cap.release()
     if save_vid:
         writer.release()
+
+    print("Video processing completed")
     
 def compute_angles_fun(config_dict, video_file):
     '''
@@ -1160,6 +1159,8 @@ def compute_angles_fun(config_dict, video_file):
     joint_angles = config_dict.get('compute_angles').get('joint_angles')
     segment_angles = config_dict.get('compute_angles').get('segment_angles')
     angle_nb = len(joint_angles) + len(segment_angles)
+    time_range = config_dict.get('pose', {}).get('time_range', []) 
+    frame_range = [int(time_range[0] * frame_rate), int(time_range[1] * frame_rate)] if len(time_range) == 2 else []
     
     # Compute_angles_advanced settings
     show_plots = config_dict.get('compute_angles_advanced').get('show_plots')
@@ -1316,4 +1317,4 @@ def compute_angles_fun(config_dict, video_file):
     if show_angles_img or show_angles_vid:
         video_base = Path(video_dir / video_file)
         video_pose = result_dir / (video_base.stem + '.mp4')
-        save_imgvid_reID(video_base, video_pose, df_angles_list, 'RTMPose', save_vid=show_angles_vid, save_img=show_angles_img, kpt_thr=kpt_thr)
+        save_imgvid_reID(video_base, video_pose, df_angles_list, 'RTMPose', save_vid=show_angles_vid, save_img=show_angles_img, kpt_thr=kpt_thr, frame_range=frame_range)
