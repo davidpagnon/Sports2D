@@ -516,7 +516,7 @@ def log_overall_performance(start_time, frame_count):
 
 def process_webcam(cam_id, pose_tracker, joint_angles, segment_angles, 
                        save_vid, save_img, interp_gap_smaller_than, filter_options, show_plots, flip_left_right,
-                         kpt_thr, data_type, min_detection_time, filter_options_ang, show_plots_ang):
+                         kpt_thr, data_type, min_detection_time, filter_options_ang, show_plots_ang, input_size):
     """
     Process a live webcam feed to detect poses and calculate angles.
 
@@ -733,9 +733,13 @@ def process_webcam(cam_id, pose_tracker, joint_angles, segment_angles,
             print("Error: Could not open webcam.")
             return
 
-        # Set extremely high resolution for automatically using maximum resolution of webcam
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 3840)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 2160)
+        if input_size == 'auto': # Set extremely high resolution for automatically using maximum resolution of webcam
+            cap.set(cv2.CAP_PROP_FRAME_WIDTH, 3840)
+            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 2160)
+            
+        else: # Set custom resolution
+            cap.set(cv2.CAP_PROP_FRAME_WIDTH, input_size[0])
+            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, input_size[1])
 
         # MJPG would be better when high resolution is needed
         cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
@@ -1082,6 +1086,7 @@ def detect_pose_fun(config_dict, video_file):
     
     # Pose_advanced settings
     cam_id =  config_dict.get('pose_advanced').get('webcam_id')
+    input_size = config_dict.get('pose_advanced').get('input_size')
     load_pose = not config_dict.get('pose_advanced').get('overwrite_pose')
     save_vid = config_dict.get('pose_advanced').get('save_vid')
     save_img = config_dict.get('pose_advanced').get('save_img')
@@ -1195,7 +1200,7 @@ def detect_pose_fun(config_dict, video_file):
         # Process webcam feed
         process_webcam(cam_id, pose_tracker, joint_angles, segment_angles, 
                        save_vid, save_img, interp_gap_smaller_than, filter_options, show_plots, flip_left_right,
-                         kpt_thr, data_type, min_detection_time, filter_options_ang, show_plots_ang)
+                         kpt_thr, data_type, min_detection_time, filter_options_ang, show_plots_ang, input_size)
 
     else:
         raise ValueError(f"Invalid input_source: {data_type}. Must be 'video' or 'webcam'.")
