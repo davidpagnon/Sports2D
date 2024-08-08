@@ -35,10 +35,11 @@ segment_angles = ['Right foot', 'Left foot', 'Right shank', 'Left shank', 'Right
 	
 [pose_advanced]
 webcam_id = 0 # your webcam id (0 is default)
+input_size = [1980, 1080] # 'auto' or [W, H]. Full image resolution: 'auto'. Custom resolution: list of two integers. Lower resolution will be faster but less precise.
 overwrite_pose = true # If false, don't run openpose again if json pose files are found.
 det_frequency = 1 # detect person every det_frequency (1 = 1 frame)
 mode = "lightweight" # # lightweight, balanced, performance
-keypoints_threshold = 0.3 #If only part of a person is on screen, increase this number to ensure that only correctly detected keypoints are used.
+keypoints_threshold = 0.5 #If only part of a person is on screen, increase this number to ensure that only correctly detected keypoints are used.
 min_detection_time = 1 # If lower than this, person will be ignored(sec)
 						#For webcams, it is possible to detect the wrong person if the person is only partially detected (usually less than a second).
 save_vid = true
