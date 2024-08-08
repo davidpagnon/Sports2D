@@ -53,7 +53,6 @@ import cv2
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from tqdm import tqdm
-import onnxruntime as ort
 from datetime import datetime
 import sys
 from IPython.display import clear_output
