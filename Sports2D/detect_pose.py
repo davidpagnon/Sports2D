@@ -496,6 +496,25 @@ def process_video(video_path, video_result_path,pose_tracker, output_format, sav
     if display_detection and 'google.colab' not in sys.modules:
         cv2.destroyAllWindows()
 
+import psutil
+import cProfile
+
+def log_performance_metrics(frame_times, frame_count):
+    for key, times in frame_times.items():
+        avg_time = sum(times[-100:]) / min(100, len(times))
+        logging.info(f"Average {key} time (last 100 frames): {avg_time:.4f} seconds")
+    logging.info(f"Total frames processed: {frame_count}")
+
+def log_memory_usage():
+    process = psutil.Process()
+    memory_info = process.memory_info()
+    logging.info(f"Memory usage: {memory_info.rss / (1024 * 1024):.2f} MB")
+
+def log_overall_performance(start_time, frame_count):
+    total_time = time_module.time() - start_time
+    logging.info(f"Total execution time: {total_time:.2f} seconds")
+    logging.info(f"Average FPS: {frame_count / total_time:.2f}")
+
 def process_webcam(cam_id, pose_tracker, joint_angles, segment_angles, 
                        save_vid, save_img, interp_gap_smaller_than, filter_options, show_plots, flip_left_right,
                          kpt_thr, data_type, min_detection_time, filter_options_ang, show_plots_ang):
@@ -1101,29 +1120,30 @@ def detect_pose_fun(config_dict, video_file):
                           frame_rate, gaussian_filter_kernel_ang, loess_filter_kernel_ang, median_filter_kernel_ang)
 
 
-    # Set default values
-    device = 'cpu'
-    backend = 'openvino'
-
-    # Determine device and backend for RTMPose
-    if 'CUDAExecutionProvider' in ort.get_available_providers():
+# If CUDA is available, use it with ONNXRuntime backend; else use CPU with openvino
+    try:
+        import torch
+        import onnxruntime as ort
+        if torch.cuda.is_available() == False and 'CUDAExecutionProvider' in ort.get_available_providers():
+            device = 'cuda'
+            backend = 'onnxruntime'
+            logging.info(f"\nValid CUDA installation found: using ONNXRuntime backend with GPU.")
+        else:
+            raise 
+    except:
         try:
-            import torch
-            if torch.cuda.is_available():
-                device = 'cuda'
+            import onnxruntime as ort
+            if 'MPSExecutionProvider' in ort.get_available_providers() or 'CoreMLExecutionProvider' in ort.get_available_providers():
+                device = 'mps'
                 backend = 'onnxruntime'
-                logging.info("\nValid CUDA installation found: using ONNXRuntime backend with GPU.")
+                logging.info(f"\nValid MPS installation found: using ONNXRuntime backend with GPU.")
             else:
-                logging.info("\nCUDA is available in ONNXRuntime but not in PyTorch. Checking other options.")
-        except ImportError:
-            logging.info("\nCUDA is available in ONNXRuntime but PyTorch import failed. Checking other options.")
-    elif 'MPSExecutionProvider' in ort.get_available_providers() or 'CoreMLExecutionProvider' in ort.get_available_providers():
-        device = 'mps'
-        backend = 'onnxruntime'
-        logging.info("\nValid MPS installation found: using ONNXRuntime backend with GPU.")
-    else:
-        logging.info("\nNo valid CUDA or MPS installation found: using OpenVINO backend with CPU.")
-
+                raise
+        except:
+            device = 'cpu'
+            backend = 'openvino'
+            logging.info(f"\nNo valid CUDA installation found: using OpenVINO backend with CPU.")
+    
     # Log the final device and backend selection
     logging.info(f"Selected device: {device}, backend: {backend}")
 
