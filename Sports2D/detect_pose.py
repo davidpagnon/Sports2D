@@ -1128,7 +1128,7 @@ def detect_pose_fun(config_dict, video_file):
     try:
         import torch
         import onnxruntime as ort
-        if torch.cuda.is_available() == False and 'CUDAExecutionProvider' in ort.get_available_providers():
+        if torch.cuda.is_available() == True and 'CUDAExecutionProvider' in ort.get_available_providers():
             device = 'cuda'
             backend = 'onnxruntime'
             logging.info(f"\nValid CUDA installation found: using ONNXRuntime backend with GPU.")
