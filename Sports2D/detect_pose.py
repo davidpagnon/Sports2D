@@ -495,25 +495,6 @@ def process_video(video_path, video_result_path,pose_tracker, output_format, sav
     if display_detection and 'google.colab' not in sys.modules:
         cv2.destroyAllWindows()
 
-import psutil
-import cProfile
-
-def log_performance_metrics(frame_times, frame_count):
-    for key, times in frame_times.items():
-        avg_time = sum(times[-100:]) / min(100, len(times))
-        logging.info(f"Average {key} time (last 100 frames): {avg_time:.4f} seconds")
-    logging.info(f"Total frames processed: {frame_count}")
-
-def log_memory_usage():
-    process = psutil.Process()
-    memory_info = process.memory_info()
-    logging.info(f"Memory usage: {memory_info.rss / (1024 * 1024):.2f} MB")
-
-def log_overall_performance(start_time, frame_count):
-    total_time = time_module.time() - start_time
-    logging.info(f"Total execution time: {total_time:.2f} seconds")
-    logging.info(f"Average FPS: {frame_count / total_time:.2f}")
-
 def process_webcam(cam_id, pose_tracker, joint_angles, segment_angles, 
                        save_vid, save_img, interp_gap_smaller_than, filter_options, show_plots, flip_left_right,
                          kpt_thr, data_type, min_detection_time, filter_options_ang, show_plots_ang, input_size):
@@ -800,8 +781,16 @@ def process_webcam(cam_id, pose_tracker, joint_angles, segment_angles,
 
             # Apply person tracking
             if prev_keypoints is not None:
-                keypoints = sort_people(prev_keypoints, keypoints, len(keypoints))
-            prev_keypoints = keypoints
+                nb_persons_to_detect = min(len(prev_keypoints), len(keypoints))
+                sorted_keypoints = sort_people(prev_keypoints, keypoints, nb_persons_to_detect)
+
+                # Add new people if there are more in the current frame
+                if len(keypoints) > len(prev_keypoints):
+                    new_people = keypoints[len(prev_keypoints):]
+                    sorted_keypoints = np.vstack((sorted_keypoints, new_people))
+            else:
+                sorted_keypoints = keypoints
+            prev_keypoints = sorted_keypoints
 
             df_angles_list_frame = []
             valid_X, valid_Y, valid_scores, valid_person_ids = [], [], [], []
@@ -813,8 +802,8 @@ def process_webcam(cam_id, pose_tracker, joint_angles, segment_angles,
 
                 # This would be useful for more accurate detection of people
                 # If the person has less than 30% keypoints, skip this person.
-                # if np.sum(person_scores >= kpt_thr) < len(person_keypoints) * 0.3:
-                    # continue  
+                if np.sum(person_scores >= kpt_thr) < len(person_keypoints) * 0.3:
+                    continue  
 
                 df_points = common.convert_keypoints_to_dataframe(person_keypoints, person_scores)
 
