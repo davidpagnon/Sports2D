@@ -55,7 +55,15 @@ def butterworth_filter_1d(col, args):
 
     order, cutoff, framerate = args
     
-    b, a = signal.butter(order/2, cutoff/(framerate/2), 'low', analog = False) 
+    # Prepare cut-off frequency for webcam
+    if cutoff / (framerate / 2) >= 1:
+        cutoff_old = cutoff
+        cutoff = framerate/(2+0.001)
+        print(f'{cutoff_old:.1f} Hz cut-off framerate too large for a real-time framerate of {framerate:.1f} Hz. Using a cut-off framerate of {cutoff:.1f} Hz instead.')
+
+    # Filter
+    b, a = signal.butter(order/2, cutoff/(framerate/2), 'low', analog = False)
+
     padlen = 3 * max(len(a), len(b))
     
     # split into sequences of not nans

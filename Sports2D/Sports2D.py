@@ -136,7 +136,20 @@ def base_params(config_dict):
 
     video_dir = Path(config_dict.get('project').get('video_dir')).resolve()
     if video_dir == '': video_dir = os.getcwd()
-    video_files = config_dict.get('project').get('video_files')
+    
+    video_input = config_dict.get('project').get('video_input')
+
+    if video_input == "webcam":
+        data_type = "webcam"
+        video_files = []  # No video files for webcam
+    else:
+        data_type = "video"
+        video_files = config_dict.get('project').get('video_input')
+        if isinstance(video_files, str):
+            video_files = [Path(video_files)]
+        else: 
+            video_files = [Path(v) for v in video_files]
+
     if isinstance(video_files, str):
         video_files = [Path(video_files)]
     else: 
@@ -144,22 +157,26 @@ def base_params(config_dict):
     result_dir = Path(config_dict.get('project').get('result_dir')).resolve()
     if result_dir == '': result_dir = os.getcwd()
     
-    for video_file in video_files:
-        video = cv2.VideoCapture(str(video_dir / video_file))
-        frame_rate = video.get(cv2.CAP_PROP_FPS)
-        try:
-            1/frame_rate
-        except ZeroDivisionError:
-            print('Frame rate could not be retrieved: check that your video exists at the correct path')
-            raise
-        video.release()
+    # Only calculate frame rate if it's a video file
+    if data_type == "video":
+        for video_file in video_files:
+            video = cv2.VideoCapture(str(video_dir / video_file))
+            frame_rate = video.get(cv2.CAP_PROP_FPS)
+            try:
+                1/frame_rate
+            except ZeroDivisionError:
+                print('Frame rate could not be retrieved: check that your video exists at the correct path')
+                raise
+            video.release()
+    else:
+        frame_rate = None  # No frame rate for webcam
 
-    return video_dir, video_files, result_dir, frame_rate
+    return video_dir, video_files, result_dir, frame_rate, data_type
 
 
 def detect_pose(config='Config_demo.toml'):
     '''
-    Compute 2D pose from video.
+    Compute 2D pose from video or webcam.
     Save 2D csv file, and optionally json files, image files, and video file.
     Optionally interpolates missing data, filters them, and displays figures.
     '''
@@ -167,7 +184,7 @@ def detect_pose(config='Config_demo.toml'):
     from Sports2D.detect_pose import detect_pose_fun
     
     config_dict = read_config_file(config)
-    _, video_files, result_dir, _ = base_params(config_dict)
+    _, video_files, result_dir, _, data_type = base_params(config_dict)
         
     with open(result_dir / 'logs.txt', 'a+') as log_f: pass
     logging.basicConfig(format='%(message)s', level=logging.INFO, force=True, 
@@ -184,6 +201,17 @@ def detect_pose(config='Config_demo.toml'):
         end = time.time()
         logging.info(f'Pose detection took {end-start:.2f} s.')
     
+    if data_type == "webcam":
+        logging.info("\n\n---------------------------------------------------------------------")
+        logging.info(f"Detecting pose for {data_type}")
+        logging.info("------------------------o ---------------------------------------------")
+        start = time.time()
+
+        detect_pose_fun(config_dict, video_files) 
+
+        end = time.time()
+        logging.info(f'Pose detection took {end-start:.2f} s.')
+        
     
 def compute_angles(config='Config_demo.toml'):
     '''
@@ -195,7 +223,7 @@ def compute_angles(config='Config_demo.toml'):
     from Sports2D.compute_angles import compute_angles_fun
 
     config_dict = read_config_file(config)
-    _, video_files, result_dir, _ = base_params(config_dict)
+    _, video_files, result_dir, _, _ = base_params(config_dict)
         
     with open(result_dir / 'logs.txt', 'a+') as log_f: pass
     logging.basicConfig(format='%(message)s', level=logging.INFO, force=True, 

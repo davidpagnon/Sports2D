@@ -88,7 +88,24 @@ If you need research-grade markerless joint kinematics, consider using several c
      cd sports2d
      pip install .
      ```
+- **Optional**\
+    *For faster inference, you can run on the GPU. Install pyTorch with CUDA and cuDNN support, and ONNX Runtime with GPU support (not available on MacOS).*\
+    Be aware that GPU support takes an additional 6 GB on disk.
+    
+    Go to the [ONNXruntime requirement page](https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html#requirements), check the latest CUDA and cuDNN requirements. Then go to the [pyTorch website]( https://pytorch.org/get-started/locally) and install the latest version that satisfies these requirements (beware that torch 2.4 ships with cuDNN 9, while torch 2.3 installs cuDNN 8). For example:
+    ``` cmd
+      pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+    ```
+    
+    ***Note:*** issues reported with the default command. However, this has been tested and works:
+    `pip install torch==2.3.1 torchvision==0.18.1 torchaudio==2.3.1 --index-url https://download.pytorch.org/whl/cu118`
 
+
+
+    Then install ONNX Runtime with GPU support:
+    ```
+    pip install onnxruntime-gpu
+    ```
 
 ### Demonstration: Detect pose and compute 2D angles
 

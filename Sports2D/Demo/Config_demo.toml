@@ -14,28 +14,12 @@
 
 [project]
 video_dir = '' # BETWEEN SINGLE QUOTES! # If empty, result dir is current dir
-video_files = 'demo.mp4' # video file (e.g.: 'demo.mp4') or list of video files (e.g.: ['demo.mp4', 'other.mov'])
+video_input = 'webcam' # 'webcam' or 'your_video_name.extenstion'
 result_dir = '' # BETWEEN SINGLE QUOTES! # If empty, project dir is current dir
 
-
 [pose]
-pose_algo = 'BLAZEPOSE' # 'OPENPOSE' or 'BLAZEPOSE' 
-# OpenPose is more accurate and supports multi-person detection, but needs to be installed separately	
-# Coming soon: 'deeplabcut', 'alphapose'
-	
-	[pose.BLAZEPOSE]
-	# 0,1,2. 2 is slightly slower but more accurate
-	model_complexity = 2 
-		
-	[pose.OPENPOSE]
-	# Install OpenPose from https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/installation/0_index.md
-	# BODY_25 is standard, BODY_25B is more accurate but requires downloading the model from 
-	# https://github.com/CMU-Perceptual-Computing-Lab/openpose_train/blob/master/experimental_models/README.md
-	openpose_model = 'BODY_25' 
-	
-	# Installation path of openpose (between single quotes) 
-	openpose_path = 'D:\softs\openpose-1.6.0-binaries-win64-gpu-flir-3d_recommended\openpose'
-	
+display_detection = true
+time_range = []
 
 [compute_angles]
 # Select joint angles among
@@ -47,21 +31,26 @@ joint_angles = ['Right ankle', 'Left ankle', 'Right knee', 'Left knee', 'Right h
 segment_angles = ['Right foot', 'Left foot', 'Right shank', 'Left shank', 'Right thigh', 'Left thigh', 'Trunk', 'Right arm', 'Left arm', 'Right forearm', 'Left forearm']
 
    	
-	
-
 # ADVANCED CONFIGURATION
 	
-[pose_advanced] # only for OPENPOSE
-overwrite_pose = false # If false, don't run openpose again if json pose files are found. 
+[pose_advanced]
+webcam_id = 0 # your webcam id (0 is default)
+input_size = [1980, 1080] # 'auto' or [W, H]. Full image resolution: 'auto'. Custom resolution: list of two integers. Lower resolution will be faster but less precise.
+overwrite_pose = true # If false, don't run openpose again if json pose files are found.
+det_frequency = 1 # detect person every det_frequency (1 = 1 frame)
+mode = "lightweight" # # lightweight, balanced, performance
+keypoints_threshold = 0.5 #If only part of a person is on screen, increase this number to ensure that only correctly detected keypoints are used.
+min_detection_time = 1 # If lower than this, person will be ignored(sec)
+						#For webcams, it is possible to detect the wrong person if the person is only partially detected (usually less than a second).
 save_vid = true
 save_img = true
 interp_gap_smaller_than = 5 # do not interpolate bigger gaps
 filter = true
-show_plots = false
+show_plots = true
 filter_type = 'butterworth' # butterworth, gaussian, LOESS, median
    [pose_advanced.butterworth]
    order = 4 
-   cut_off_frequency = 6 # Hz
+   cut_off_frequency = 3 # Hz
    [pose_advanced.gaussian]
    sigma_kernel = 1 #px
    [pose_advanced.loess]
@@ -69,12 +58,11 @@ filter_type = 'butterworth' # butterworth, gaussian, LOESS, median
    [pose_advanced.median]
    kernel_size = 3
 
-
-[compute_angles_advanced] # for OPENPOSE and BLAZEPOSE
+[compute_angles_advanced]
 show_angles_on_img = true
 show_angles_on_vid = true
-filter = false
-show_plots = false
+filter = true
+show_plots = true
 flip_left_right = true # Same angles whether the participant faces left/right. Set it to false if you want timeseries to be continuous even when the participent switches their stance.
 filter_type = 'butterworth' # butterworth, gaussian, LOESS, median
    [compute_angles_advanced.butterworth]
