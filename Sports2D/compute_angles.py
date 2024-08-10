@@ -959,7 +959,10 @@ def save_imgvid_reID(video_path, video_result_path, df_angles_list, pose_model, 
         img_pose_path.mkdir(parents=True, exist_ok=True)
         
     cap.set(cv2.CAP_PROP_POS_FRAMES, f_range[0])
-    for f in range(len(points_coords[0])): # csv file already has the same number of frames
+
+    min_frames = min(len(coord) for coord in points_coords)
+
+    for f in range(min_frames):
         ret, frame = cap.read()
         if not ret:
             print(f"Failed to read frame {f + f_range[0]}")
