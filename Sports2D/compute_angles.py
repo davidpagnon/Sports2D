@@ -935,8 +935,18 @@ def save_imgvid_reID(video_path, video_result_path, df_angles_list, pose_model, 
         points_file = c.parent / (c.stem.replace('angles', 'points') + '.csv')
         
         with open(angles_file) as af, open(points_file) as pf:
-            angles_df = pd.read_csv(af, header=[0,1,2,3], index_col=[0,1])
-            points_df = pd.read_csv(pf, header=[0,1,2,3], index_col=[0,1])
+            angles_df = pd.read_csv(af, header=[0,1,2,3])
+            points_df = pd.read_csv(pf, header=[0,1,2,3])
+            
+            # Ignore the first two columns
+            angles_df = angles_df.iloc[:, 2:]
+            points_df = points_df.iloc[:, 2:]
+            
+            # Reset the index
+            angles_df.reset_index(drop=True, inplace=True)
+            points_df.reset_index(drop=True, inplace=True)
+
+            # Append the DataFrames to the lists
             angles_coords.append(angles_df)
             points_coords.append(points_df)
 
@@ -944,7 +954,7 @@ def save_imgvid_reID(video_path, video_result_path, df_angles_list, pose_model, 
             person_id = int(c.stem.split('_person')[1].split('_')[0])
             person_ids.append(person_id)
 
-    print(f"Loaded data for {len(person_ids)} persons")
+    # print(f"Loaded data for {len(person_ids)} persons")
 
     W, H = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = cap.get(cv2.CAP_PROP_FPS)
