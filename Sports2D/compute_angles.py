@@ -199,7 +199,8 @@ def points2D_to_angles(points_list):
         vx, vy = dx-cx, dy-cy
 
     ang = np.arctan2(uy, ux) - np.arctan2(vy, vx)
-    ang_deg = np.array(np.degrees(np.unwrap(ang*2)/2))
+    ang_deg = np.degrees(ang)
+    # ang_deg = np.array(np.degrees(np.unwrap(ang*2)/2))
 
     return ang_deg
 
