@@ -13,9 +13,9 @@
 
 
 [project]
-video_dir = '' # BETWEEN SINGLE QUOTES! # If empty, result dir is current dir
+video_dir = '../Demo' # BETWEEN SINGLE QUOTES! # If empty, result dir is current dir
 video_input = 'demo.mp4' # 'webcam' or 'your_video_name.extenstion'
-result_dir = '' # BETWEEN SINGLE QUOTES! # If empty, project dir is current dir
+result_dir = '../Demo' # BETWEEN SINGLE QUOTES! # If empty, project dir is current dir
 
 [pose]
 display_detection = false
