@@ -8,81 +8,87 @@
 # conda activate Sports2D
 # ipython
 # from Sports2D import Sports2D
-# Sports2D.detect_pose('Config_demo.toml')
-# Sports2D.compute_angles('Config_demo.toml')
+# Sports2D.process('Config_demo.toml')
 
 
 [project]
-video_dir = '' # BETWEEN SINGLE QUOTES! # If empty, result dir is current dir
-video_files = 'demo.mp4' # video file (e.g.: 'demo.mp4') or list of video files (e.g.: ['demo.mp4', 'other.mov'])
-result_dir = '' # BETWEEN SINGLE QUOTES! # If empty, project dir is current dir
+video_input = 'Demo.mp4' # 'webcam' or '<your_video.ext>', or ['<your_video1.ext>', '<your_video2.ext>', ...]
+result_dir = 'C:\Users\david\Downloads' # BETWEEN SINGLE QUOTES! # If empty, project dir is current dir
+
+# Video parameters
+video_dir = 'C:\Users\david\miniconda3\envs\Sports2D\Lib\site-packages\Sports2D\Demo' # BETWEEN SINGLE QUOTES! # If empty, result dir is current dir
+time_range = [] # [] for the whole video, or [start_time, end_time] (in seconds), or [[start_time1, end_time1], [start_time2, end_time2], ...]
+
+# Webcam parameters
+webcam_id = 0 # your webcam id (0 is default)
+input_size = [1280, 720] # [W, H]. Lower resolution will be faster but less precise.
 
 
-[pose]
-pose_algo = 'BLAZEPOSE' # 'OPENPOSE' or 'BLAZEPOSE' 
-# OpenPose is more accurate and supports multi-person detection, but needs to be installed separately	
-# Coming soon: 'deeplabcut', 'alphapose'
-	
-	[pose.BLAZEPOSE]
-	# 0,1,2. 2 is slightly slower but more accurate
-	model_complexity = 2 
-		
-	[pose.OPENPOSE]
-	# Install OpenPose from https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/installation/0_index.md
-	# BODY_25 is standard, BODY_25B is more accurate but requires downloading the model from 
-	# https://github.com/CMU-Perceptual-Computing-Lab/openpose_train/blob/master/experimental_models/README.md
-	openpose_model = 'BODY_25' 
-	
-	# Installation path of openpose (between single quotes) 
-	openpose_path = 'D:\softs\openpose-1.6.0-binaries-win64-gpu-flir-3d_recommended\openpose'
-	
-
-[compute_angles]
-# Select joint angles among
-# ['Right ankle', 'Left ankle', 'Right knee', 'Left knee', 'Right hip', 'Left hip', 'Right shoulder', 'Left shoulder', 'Right elbow', 'Left elbow', 'Right wrist', 'Left wrist']
-joint_angles = ['Right ankle', 'Left ankle', 'Right knee', 'Left knee', 'Right hip', 'Left hip', 'Right shoulder', 'Left shoulder', 'Right elbow', 'Left elbow']
-
-# Select segment angles among
-# ['Right foot', 'Left foot', 'Right shank', 'Left shank', 'Right thigh', 'Left thigh', 'Trunk', 'Right arm', 'Left arm', 'Right forearm', 'Left forearm', 'Right hand', 'Left hand']
-segment_angles = ['Right foot', 'Left foot', 'Right shank', 'Left shank', 'Right thigh', 'Left thigh', 'Trunk', 'Right arm', 'Left arm', 'Right forearm', 'Left forearm']
-
-   	
-	
-
-# ADVANCED CONFIGURATION
-	
-[pose_advanced] # only for OPENPOSE
-overwrite_pose = false # If false, don't run openpose again if json pose files are found. 
+[process]
+multiperson = true # Multiperson involves tracking: will be faster if false
+show_realtime_results = true
 save_vid = true
 save_img = true
-interp_gap_smaller_than = 5 # do not interpolate bigger gaps
+save_pose = true
+save_angles = true
+
+
+##########################
+# ADVANCED CONFIGURATION #
+##########################
+[pose]
+# Pose detection parameters
+pose_model = 'body_with_feet' # Only body_with_feet is available for now
+mode = 'balanced' # 'lightweight', 'balanced', or 'performance'
+det_frequency = 1 # Run person detection only every N frames, and inbetween track previously detected bounding boxes (keypoint detection is still run on all frames). 
+                  # Equal to or greater than 1, can be as high as you want in simple uncrowded cases. Much faster, but might be less accurate. 
+tracking_mode = 'sports2d' # 'rtmlib' or 'sports2d'. 'rtmlib' is slightly faster but less accurate
+
+# Processing parameters
+keypoint_likelihood_threshold = 0.3 # Keypoints whose likelihood is lower will not be taken into account
+average_likelihood_threshold = 0.5 # Person will be ignored if average likelihood of good keypoints is lower than this value
+keypoint_number_threshold = 0.3 # Person will be ignored if the number of good keypoints is less than this fraction
+
+# Post-processing parameters
+detection_time_threshold = 1 # Person will be ignored if detected for less than this number of seconds
+interp_gap_smaller_than = 10 # do not interpolate bigger gaps
+fill_large_gaps_with = 'last_value' # 'last_value', 'nan', or 'zeros' 
 filter = true
-show_plots = false
+show_plots = true
 filter_type = 'butterworth' # butterworth, gaussian, LOESS, median
-   [pose_advanced.butterworth]
+   [pose.butterworth]
    order = 4 
-   cut_off_frequency = 6 # Hz
-   [pose_advanced.gaussian]
+   cut_off_frequency = 3 # Hz
+   [pose.gaussian]
    sigma_kernel = 1 #px
-   [pose_advanced.loess]
+   [pose.loess]
    nb_values_used = 5 # = fraction of data used * nb frames
-   [pose_advanced.median]
+   [pose.median]
    kernel_size = 3
 
 
-[compute_angles_advanced] # for OPENPOSE and BLAZEPOSE
-show_angles_on_img = true
-show_angles_on_vid = true
-filter = false
-show_plots = false
+[angles]
+display_angle_values_on = ['body','list'] # 'body', 'list', ['body', 'list'], []. Display angle values on the body, as a list in the upper left of the image, both, or do not display them.
+# Select joint angles among
+# ['Right ankle', 'Left ankle', 'Right knee', 'Left knee', 'Right hip', 'Left hip', 'Right shoulder', 'Left shoulder', 'Right elbow', 'Left elbow', 'Right wrist', 'Left wrist']
+joint_angles = ['Right ankle', 'Left ankle', 'Right knee', 'Left knee', 'Right hip', 'Left hip', 'Right shoulder', 'Left shoulder', 'Right elbow', 'Left elbow']
+# Select segment angles among
+# ['Right foot', 'Left foot', 'Right shank', 'Left shank', 'Right thigh', 'Left thigh', 'Pelvis', 'Trunk', 'Shoulders', 'Head', 'Right arm', 'Left arm', 'Right forearm', 'Left forearm']
+segment_angles = ['Right foot', 'Left foot', 'Right shank', 'Left shank', 'Right thigh', 'Left thigh', 'Pelvis', 'Trunk', 'Shoulders', 'Head', 'Right arm', 'Left arm', 'Right forearm', 'Left forearm']
+
+# Processing parameters
 flip_left_right = true # Same angles whether the participant faces left/right. Set it to false if you want timeseries to be continuous even when the participent switches their stance.
+
+# Post-processing parameters
+show_plots = true
+filter = true
 filter_type = 'butterworth' # butterworth, gaussian, LOESS, median
-   [compute_angles_advanced.butterworth]
+   [angles.butterworth]
    order = 4 
    cut_off_frequency = 6 # Hz
-   [compute_angles_advanced.gaussian]
+   [angles.gaussian]
    sigma_kernel = 1 #px
-   [compute_angles_advanced.loess]
+   [angles.loess]
    nb_values_used = 5 # = fraction of data used * nb frames
-   [compute_angles_advanced.median]
+   [angles.median]
    kernel_size = 3

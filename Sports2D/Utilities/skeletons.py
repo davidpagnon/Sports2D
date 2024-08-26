@@ -38,21 +38,60 @@ __author__ = "David Pagnon"
 __copyright__ = "Copyright 2021, Pose2Sim"
 __credits__ = ["David Pagnon"]
 __license__ = "BSD 3-Clause License"
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 __maintainer__ = "David Pagnon"
 __email__ = "contact@david-pagnon.com"
 __status__ = "Development"
 
 
-'''
-SKELETONS
-'''
-
+## SKELETONS
 '''CUSTOM SKELETON (e.g., from DeepLabCut detection)'''
 CUSTOM = Node("Root", id=0, children=[
     Node("Child1", id=1),
     Node("Child2", id=2),
     ])
+
+
+'''BodyWithFeet from HALPE_26 (full-body without hands, for RTMPose, AlphaPose, MMPose, etc.)
+https://github.com/MVIG-SJTU/AlphaPose/blob/master/docs/MODEL_ZOO.md
+https://github.com/open-mmlab/mmpose/tree/main/projects/rtmpose'''
+body_with_feet = Node("Hip", id=19, children=[
+    Node("RHip", id=12, children=[
+        Node("RKnee", id=14, children=[
+            Node("RAnkle", id=16, children=[
+                Node("RBigToe", id=21, children=[
+                    Node("RSmallToe", id=23),
+                ]),
+                Node("RHeel", id=25),
+            ]),
+        ]),
+    ]),
+    Node("LHip", id=11, children=[
+        Node("LKnee", id=13, children=[
+            Node("LAnkle", id=15, children=[
+                Node("LBigToe", id=20, children=[
+                    Node("LSmallToe", id=22),
+                ]),
+                Node("LHeel", id=24),
+            ]),
+        ]),
+    ]),
+    Node("Neck", id=18, children=[
+        Node("Head", id=17, children=[
+            Node("Nose", id=0),
+        ]),
+        Node("RShoulder", id=6, children=[
+            Node("RElbow", id=8, children=[
+                Node("RWrist", id=10),
+            ]),
+        ]),
+        Node("LShoulder", id=5, children=[
+            Node("LElbow", id=7, children=[
+                Node("LWrist", id=9),
+            ]),
+        ]),
+    ]),
+])
 
 
 '''BODY_25B (full-body without hands, experimental, from OpenPose)
@@ -244,47 +283,6 @@ BLAZEPOSE = Node("CHip", id=None, children=[
                 Node("LPinky", id=17),
                 Node("LIndex", id=19),
                 Node("LThumb", id=21),
-            ]),
-        ]),
-    ]),
-])
-
-
-'''HALPE_26 (full-body without hands, from AlphaPose)
-https://github.com/MVIG-SJTU/AlphaPose/blob/master/docs/MODEL_ZOO.md'''
-HALPE_26 = Node("Hip", id=19, children=[
-    Node("RHip", id=12, children=[
-        Node("RKnee", id=14, children=[
-            Node("RAnkle", id=16, children=[
-                Node("RBigToe", id=21, children=[
-                    Node("RSmallToe", id=23),
-                ]),
-                Node("RHeel", id=25),
-            ]),
-        ]),
-    ]),
-    Node("LHip", id=11, children=[
-        Node("LKnee", id=13, children=[
-            Node("LAnkle", id=15, children=[
-                Node("LBigToe", id=20, children=[
-                    Node("LSmallToe", id=22),
-                ]),
-                Node("LHeel", id=24),
-            ]),
-        ]),
-    ]),
-    Node("Neck", id=18, children=[
-        Node("Head", id=17, children=[
-            Node("Nose", id=0),
-        ]),
-        Node("RShoulder", id=6, children=[
-            Node("RElbow", id=8, children=[
-                Node("RWrist", id=10),
-            ]),
-        ]),
-        Node("LShoulder", id=5, children=[
-            Node("LElbow", id=7, children=[
-                Node("LWrist", id=9),
             ]),
         ]),
     ]),
@@ -491,4 +489,3 @@ MPII = Node("CHip", id=14, children=[
         ]),
     ]),
 ])
-

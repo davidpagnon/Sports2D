@@ -15,12 +15,17 @@
 
 
 ## INIT
+import re
 import sys
+import subprocess
+
 import numpy as np
+from scipy import interpolate
+import imageio_ffmpeg as ffmpeg
+
+from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget, QTabWidget, QVBoxLayout
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
-from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget, QTabWidget, QVBoxLayout
-from scipy import interpolate
 
 
 ## AUTHORSHIP INFORMATION
@@ -28,7 +33,7 @@ __author__ = "David Pagnon"
 __copyright__ = "Copyright 2023, Sports2D"
 __credits__ = ["David Pagnon"]
 __license__ = "BSD 3-Clause License"
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 __maintainer__ = "David Pagnon"
 __email__ = "contact@david-pagnon.com"
 __status__ = "Development"
@@ -49,11 +54,11 @@ class plotWindow():
     plt.plot(x2, y2)
     pw.addPlot("2", f)
     '''
-
     def __init__(self, parent=None):
-        self.app = QApplication(sys.argv)
+        self.app = QApplication.instance()
+        if not self.app:
+            self.app = QApplication(sys.argv)
         self.MainWindow = QMainWindow()
-        self.MainWindow.__init__()
         self.MainWindow.setWindowTitle("Multitabs figure")
         self.canvases = []
         self.figure_handles = []
@@ -84,8 +89,7 @@ class plotWindow():
         self.tab_handles.append(new_tab)
 
     def show(self):
-        self.app.exec_() 
-        
+        self.app.exec_()
         
 ## FUNCTIONS
 def interpolate_zeros_nans(col, *args):
@@ -133,3 +137,79 @@ def interpolate_zeros_nans(col, *args):
         col_interp = col.copy()
     
     return col_interp
+
+
+def natural_sort_key(s):
+    return [int(c) if c.isdigit() else c.lower() for c in re.split(r'(\d+)', s)]
+
+
+def resample_video(vid_output_path, fps, desired_framerate):
+    '''
+    Resample video to the desired fps using ffmpeg.
+    '''
+   
+    ffmpeg_path = ffmpeg.get_ffmpeg_exe()
+    new_vid_path = vid_output_path.parent / Path(vid_output_path.stem+'_2'+vid_output_path.suffix)
+    subprocess.run([ffmpeg_path, '-i', vid_output_path, '-filter:v', f'setpts={fps/desired_framerate}*PTS', '-r', str(desired_framerate), new_vid_path])
+    vid_output_path.unlink()
+    new_vid_path.rename(vid_output_path)
+
+
+def points2D_to_angles(points_list):
+    '''
+    If len(points_list)==2, computes clockwise angle of ab vector w.r.t. horizontal (e.g. RBigToe, RHeel) 
+    If len(points_list)==3, computes clockwise angle from a to c around b (e.g. Neck, Hip, Knee) 
+    If len(points_list)==4, computes clockwise angle between vectors ab and cd (e.g. Neck Hip, RKnee RHip)
+    
+    If parameters are float, returns a float between 0.0 and 360.0
+    If parameters are arrays, returns an array of floats between 0.0 and 360.0
+    '''
+
+    if len(points_list) < 2: # if not enough points, return None
+        return np.nan
+    
+    ax, ay = points_list[0]
+    bx, by = points_list[1]
+
+    if len(points_list)==2:
+        ux, uy = ax-bx, ay-by
+        vx, vy = 1,0
+    if len(points_list)==3:
+        cx, cy = points_list[2]
+        ux, uy = ax-bx, ay-by
+        vx, vy = cx-bx, cy-by
+
+    if len(points_list)==4:
+        cx, cy = points_list[2]
+        dx, dy = points_list[3]
+        ux, uy = bx-ax, by-ay
+        vx, vy = dx-cx, dy-cy
+
+    ang = np.arctan2(uy, ux) - np.arctan2(vy, vx)
+    ang_deg = np.degrees(ang)
+    # ang_deg = np.array(np.degrees(np.unwrap(ang*2)/2))
+    
+    return ang_deg
+
+
+def euclidean_distance(q1, q2):
+    '''
+    Euclidean distance between 2 points (N-dim).
+
+    INPUTS:
+    - q1: list of N_dimensional coordinates of point
+    - q2: idem
+
+    OUTPUTS:
+    - euc_dist: float. Euclidian distance between q1 and q2
+    '''
+
+    q1 = np.array(q1)
+    q2 = np.array(q2)
+    dist = q2 - q1
+
+    euc_dist = np.sqrt(np.sum( [d**2 for d in dist]))
+
+    return euc_dist
+
+    
