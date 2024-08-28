@@ -100,12 +100,80 @@
 
 
 ## INIT
+
+import argparse
 import toml
 from datetime import datetime
-import cv2
-import numpy as np
 from pathlib import Path
 import logging, logging.handlers
+import cv2
+import numpy as np
+
+from Sports2D import Sports2D
+
+
+## CONSTANTS
+DEFAULT_CONFIG =   {'project': {'video_input': 'Demo.mp4',
+                                'time_range': [],
+                                'video_dir': '',
+                                'webcam_id': 0,
+                                'input_size': [1280, 720]
+                                },
+                    'process': {'multiperson': True,
+                                'show_realtime_results': True,
+                                'save_vid': True,
+                                'save_img': True,
+                                'save_pose': True,
+                                'save_angles': True,
+                                'result_dir': ''
+                                },
+                    'pose':     { 'pose_model': 'body_with_feet',
+                                'mode': 'balanced',
+                                'det_frequency': 1,
+                                'tracking_mode': 'sports2d',
+                                'keypoint_likelihood_threshold': 0.3,
+                                'average_likelihood_threshold': 0.5,
+                                'keypoint_number_threshold': 0.3
+                                },
+                    'angles':   {'display_angle_values_on': ['body', 'list'],
+                                'joint_angles': [   'Right ankle',
+                                                    'Left ankle',
+                                                    'Right knee',
+                                                    'Left knee',
+                                                    'Right hip',
+                                                    'Left hip',
+                                                    'Right shoulder',
+                                                    'Left shoulder',
+                                                    'Right elbow',
+                                                    'Left elbow'],
+                                'segment_angles': [ 'Right foot',
+                                                    'Left foot',
+                                                    'Right shank',
+                                                    'Left shank',
+                                                    'Right thigh',
+                                                    'Left thigh',
+                                                    'Pelvis',
+                                                    'Trunk',
+                                                    'Shoulders',
+                                                    'Head',
+                                                    'Right arm',
+                                                    'Left arm',
+                                                    'Right forearm',
+                                                    'Left forearm'],
+                                'flip_left_right': True
+                                },
+                    'post-processing': {'interpolate': True,
+                                        'interp_gap_smaller_than': 10,
+                                        'fill_large_gaps_with': 'last_value',
+                                        'filter': True,
+                                        'show_plots': True,
+                                        'filter_type': 'butterworth',
+                                        'butterworth': {'order': 4, 'cut_off_frequency': 3},
+                                        'gaussian': {'sigma_kernel': 1},
+                                        'loess': {'nb_values_used': 5},
+                                        'median': {'kernel_size': 3}
+                                        }
+                    }
 
 
 ## AUTHORSHIP INFORMATION
@@ -181,6 +249,44 @@ def base_params(config_dict):
     return video_dir, video_files, frame_rates, time_ranges, result_dir
 
 
+def get_leaf_keys(config, prefix=''):
+    '''
+    Flatten configuration to map leaf keys to their full path
+    '''
+
+    leaf_keys = {}
+    for key, value in config.items():
+        if isinstance(value, dict):
+            leaf_keys.update(get_leaf_keys(value, prefix=prefix + key + '.'))
+        else:
+            leaf_keys[prefix + key] = value
+    return leaf_keys
+
+
+def update_nested_dict(config, key_path, value):
+    '''
+    Update a nested dictionary based on a key path string like 'process.multiperson'.
+    '''
+
+    keys = key_path.split('.')
+    d = config
+    for key in keys[:-1]:
+        d = d[key]
+    d[keys[-1]] = value
+
+
+def set_nested_value(config, flat_key, value):
+    '''
+    Update the nested dictionary based on flattened keys
+    '''
+
+    keys = flat_key.split('.')
+    d = config
+    for key in keys[:-1]:
+        d = d.setdefault(key, {})
+    d[keys[-1]] = value
+
+
 def process(config='Config_demo.toml'):
     '''
     Read video or webcam input
@@ -192,7 +298,10 @@ def process(config='Config_demo.toml'):
 
     from Sports2D.process import process_fun
     
-    config_dict = read_config_file(config)
+    if type(config) == dict:
+        config_dict = config
+    else:
+        config_dict = read_config_file(config)
     video_dir, video_files, frame_rates, time_ranges, result_dir = base_params(config_dict)
         
     result_dir.mkdir(parents=True, exist_ok=True)
@@ -216,3 +325,57 @@ def process(config='Config_demo.toml'):
         logging.info(f'\nProcessing {video_file} took {elapsed_time:.2f} s.')
 
     logging.shutdown()
+
+
+def main():
+    '''
+    Run Sports2D from command line with entry points
+    Run sports2d --help for more information
+
+    Usage:
+    - Run on Demo video with default parameters: 
+        sports2d
+    - Run on custom video with default parameters:
+        sports2d --video_input path_to_video.mp4
+    - Run on multiple videos with default parameters:
+        sports2d --video_input path_to_video1.mp4 path_to_video2.mp4
+    - Run on webcam with default parameters: 
+        sports2d --video_input webcam
+    - Run with custom parameters (all non specified are set to default): 
+        sports2d --show_plots False --video_input webcam
+    - Run with a toml configuration file: 
+        sports2d --config path_to_config.toml
+    '''
+
+    # Dynamically add arguments for each leaf key in the DEFAULT_CONFIG
+    parser = argparse.ArgumentParser(description='Process 2D sports videos')
+    parser.add_argument('--config', type=str, required=False, help='Path to the toml configuration file')
+    leaf_keys = get_leaf_keys(DEFAULT_CONFIG)
+    for key in leaf_keys:
+        leaf_name = key.split('.')[-1]
+        if leaf_name == 'video_input':
+            parser.add_argument(f'--{leaf_name}', type=str, nargs='+', help=f'Override for {leaf_name}')
+        else:
+            parser.add_argument(f'--{leaf_name}', type=str, help=f'Override for {leaf_name}')
+    args = parser.parse_args()
+
+    # If config.toml file is provided, load it, else, use default config
+    if args.config:
+        new_config = toml.load(args.config)
+    else:
+        new_config = DEFAULT_CONFIG.copy()
+        new_config.get('project').update({'video_dir': Path(__file__).resolve().parent / 'Demo'})
+
+    # Override dictionary with command-line arguments if provided
+    leaf_keys = get_leaf_keys(new_config)
+    for leaf_key, default_value in leaf_keys.items():
+        leaf_name = leaf_key.split('.')[-1]
+        cli_value = getattr(args, leaf_name)
+        if cli_value is not None:
+            set_nested_value(new_config, leaf_key, cli_value)
+
+    # Run process with the new configuration dictionary
+    Sports2D.process(new_config)
+
+if __name__ == "__main__":
+    main()
