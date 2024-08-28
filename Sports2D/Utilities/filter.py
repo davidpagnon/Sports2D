@@ -30,7 +30,7 @@ __author__ = "David Pagnon"
 __copyright__ = "Copyright 2021, Pose2Sim"
 __credits__ = ["David Pagnon"]
 __license__ = "BSD 3-Clause License"
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 __maintainer__ = "David Pagnon"
 __email__ = "contact@david-pagnon.com"
 __status__ = "Development"
@@ -54,8 +54,9 @@ def butterworth_filter_1d(col, args):
     '''
 
     order, cutoff, framerate = args
-    
-    b, a = signal.butter(order/2, cutoff/(framerate/2), 'low', analog = False) 
+
+    # Filter
+    b, a = signal.butter(order/2, cutoff/(framerate/2), 'low', analog = False)
     padlen = 3 * max(len(a), len(b))
     
     # split into sequences of not nans

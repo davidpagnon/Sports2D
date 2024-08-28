@@ -137,14 +137,14 @@ def base_params(config_dict):
     # videod_dir and result_dir
     video_dir = Path(config_dict.get('project').get('video_dir')).resolve()
     if video_dir == '': video_dir = Path.cwd()
-    result_dir = Path(config_dict.get('project').get('result_dir')).resolve()
+    result_dir = Path(config_dict.get('process').get('result_dir')).resolve()
     if result_dir == '': result_dir = Path.cwd()
 
     # video_files, frame_rates, time_ranges
     video_input = config_dict.get('project').get('video_input')
     if video_input == "webcam":
         video_files = ['webcam']  # No video files for webcam
-        frame_rate = [None]  # No frame rate for webcam
+        frame_rates = [None]  # No frame rate for webcam
         time_ranges = [None]
     else:
         # video_files
@@ -195,6 +195,7 @@ def process(config='Config_demo.toml'):
     config_dict = read_config_file(config)
     video_dir, video_files, frame_rates, time_ranges, result_dir = base_params(config_dict)
         
+    result_dir.mkdir(parents=True, exist_ok=True)
     with open(result_dir / 'logs.txt', 'a+') as log_f: pass
     logging.basicConfig(format='%(message)s', level=logging.INFO, force=True, 
         handlers = [logging.handlers.TimedRotatingFileHandler(result_dir / 'logs.txt', when='D', interval=7), logging.StreamHandler()]) 
@@ -206,12 +207,12 @@ def process(config='Config_demo.toml'):
         logging.info("\n\n---------------------------------------------------------------------")
         logging.info(f"Processing {video_file}{time_range_str}")
         logging.info(f"On {currentDateAndTime.strftime('%A %d. %B %Y, %H:%M:%S')}")
-        logging.info(f"Input directory: {video_dir}")
+        logging.info(f"{f'Video input directory: {video_dir}' if video_file != 'webcam' else ''}")
         logging.info("---------------------------------------------------------------------")
 
         process_fun(config_dict, video_file, time_range, frame_rate, result_dir)
 
         elapsed_time = (datetime.now() - currentDateAndTime).total_seconds()        
-        logging.info(f'Processing {video_file} took {elapsed_time:.2f} s.')
+        logging.info(f'\nProcessing {video_file} took {elapsed_time:.2f} s.')
 
     logging.shutdown()

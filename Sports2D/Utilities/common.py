@@ -18,6 +18,7 @@
 import re
 import sys
 import subprocess
+from pathlib import Path
 
 import numpy as np
 from scipy import interpolate
@@ -117,30 +118,75 @@ def interpolate_zeros_nans(col, *args):
     # Interpolate nans
     mask = ~(np.isnan(col) | col.eq(0)) # true where nans or zeros
     idx_good = np.where(mask)[0]
-    if len(idx_good)>5:
-        if 'kind' not in locals(): # 'linear', 'slinear', 'quadratic', 'cubic'
-            f_interp = interpolate.interp1d(idx_good, col[idx_good], kind="linear", fill_value='extrapolate', bounds_error=False)
-        else:
-            f_interp = interpolate.interp1d(idx_good, col[idx_good], kind=kind, fill_value='extrapolate', bounds_error=False)
-        col_interp = np.where(mask, col, f_interp(col.index)) #replace at false index with interpolated values
+    if len(idx_good) <= 4:
+        return col
     
-        # Reintroduce nans if lenght of sequence > N
-        idx_notgood = np.where(~mask)[0]
-        gaps = np.where(np.diff(idx_notgood) > 1)[0] + 1 # where the indices of true are not contiguous
-        sequences = np.split(idx_notgood, gaps)
-        if sequences[0].size>0:
-            for seq in sequences:
-                if len(seq) > N: # values to exclude from interpolation are set to false when they are too long 
-                    col_interp[seq] = np.nan
-                    
+    if 'kind' not in locals(): # 'linear', 'slinear', 'quadratic', 'cubic'
+        f_interp = interpolate.interp1d(idx_good, col[idx_good], kind="linear", bounds_error=False)
     else:
-        col_interp = col.copy()
+        f_interp = interpolate.interp1d(idx_good, col[idx_good], kind=kind, fill_value='extrapolate', bounds_error=False)
+    col_interp = np.where(mask, col, f_interp(col.index)) #replace at false index with interpolated values
+    
+    # Reintroduce nans if length of sequence > N
+    idx_notgood = np.where(~mask)[0]
+    gaps = np.where(np.diff(idx_notgood) > 1)[0] + 1 # where the indices of true are not contiguous
+    sequences = np.split(idx_notgood, gaps)
+    if sequences[0].size>0:
+        for seq in sequences:
+            if len(seq) > N: # values to exclude from interpolation are set to false when they are too long 
+                col_interp[seq] = np.nan
     
     return col_interp
 
 
 def natural_sort_key(s):
     return [int(c) if c.isdigit() else c.lower() for c in re.split(r'(\d+)', s)]
+
+
+def make_homogeneous(list_of_arrays):
+    '''
+    Make a list of arrays (or a list of lists) homogeneous by padding with nans
+
+    Example: foo = [[array([nan, 656.02643776]), array([nan, nan])],
+                    [array([1, 2, 3]), array([1, 2])]]
+    becomes foo_updated = array([[[nan, 656.02643776, nan], [nan, nan, nan]],
+                                [[1., 2., 3.], [1., 2., nan]]])
+    Or foo = [[1, 2, 3], [1, 2], [3, 4, 5]]
+    becomes foo_updated = array([[1., 2., 3.], [1., 2., nan], [3., 4., 5.]])
+
+    INPUTS:
+    - list_of_arrays: list of arrays or list of lists
+
+    OUTPUT:
+    - np.array(list_of_arrays): numpy array of padded arrays
+    '''
+    
+    def get_max_shape(list_of_arrays):
+        if isinstance(list_of_arrays[0], list):
+            # Maximum length at the current level plus the max shape at the next level
+            return [max(len(arr) for arr in list_of_arrays)] + get_max_shape(
+                [item for sublist in list_of_arrays for item in sublist])
+        else:
+            # Determine the maximum shape across all list_of_arrays at this level
+            return [len(list_of_arrays)] + [max(arr.shape[i] for arr in list_of_arrays) for i in range(list_of_arrays[0].ndim)]
+
+    def pad_with_nans(list_of_arrays, target_shape):
+        '''
+        Recursively pad list_of_arrays with nans to match the target shape.
+        '''
+        if isinstance(list_of_arrays, np.ndarray):
+            # Pad the current array to the target shape
+            pad_width = [(0, max_dim - curr_dim) for curr_dim, max_dim in zip(list_of_arrays.shape, target_shape)]
+            return np.pad(list_of_arrays.astype(float), pad_width, constant_values=np.nan)
+        # Recursively pad each array in the list
+        return [pad_with_nans(array, target_shape[1:]) for array in list_of_arrays]
+
+    # Pad all missing dimensions of arrays with nans
+    list_of_arrays = [np.array(arr, dtype=float) if not isinstance(arr, np.ndarray) else arr for arr in list_of_arrays]
+    max_shape = get_max_shape(list_of_arrays)
+    list_of_arrays = pad_with_nans(list_of_arrays, max_shape)
+
+    return np.array(list_of_arrays)
 
 
 def resample_video(vid_output_path, fps, desired_framerate):
@@ -211,5 +257,3 @@ def euclidean_distance(q1, q2):
     euc_dist = np.sqrt(np.sum( [d**2 for d in dist]))
 
     return euc_dist
-
-    

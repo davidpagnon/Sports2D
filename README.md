@@ -2,44 +2,49 @@
 [![Continuous integration](https://github.com/davidpagnon/sports2d/actions/workflows/continuous-integration.yml/badge.svg?branch=main)](https://github.com/davidpagnon/sports2d/actions/workflows/continuous-integration.yml)
 [![PyPI version](https://badge.fury.io/py/Sports2D.svg)](https://badge.fury.io/py/Sports2D)\
 [![Downloads](https://static.pepy.tech/badge/sports2d)](https://pepy.tech/project/sports2d)
+[![Stars](https://img.shields.io/github/stars/davidpagnon/sports2d)](https://github.com/davidpagnon/sports2d/stargazers)
 [![GitHub issues](https://img.shields.io/github/issues/davidpagnon/sports2d)](https://github.com/davidpagnon/sports2d/issues)
 [![GitHub issues-closed](https://img.shields.io/github/issues-closed/davidpagnon/sports2d)](https://GitHub.com/davidpagnon/sports2d/issues?q=is%3Aissue+is%3Aclosed)\
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10576574.svg)](https://zenodo.org/doi/10.5281/zenodo.7903962)
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://bit.ly/Sports2D_Colab)
-
-<!-- [![Stars](https://badgen.net/github/stars/davidpagnon/sports2d)](https://github.com/davidpagnon/sports2d/stargazers)
-[![GitHub issues](https://img.shields.io/github/issues/davidpagnon/sports2d)](https://github.com/davidpagnon/sports2d/issues)
-[![GitHub issues-closed](https://img.shields.io/github/issues-closed/davidpagnon/sports2d)](https://GitHub.com/davidpagnon/sports2d/issues?q=is%3Aissue+is%3Aclosed) 
-[![status](https://joss.theoj.org/papers/a31cb207a180f7ac9838d049e3a0de26/status.svg)](https://joss.theoj.org/papers/a31cb207a180f7ac9838d049e3a0de26)
+<!--[![status](https://joss.theoj.org/papers/a31cb207a180f7ac9838d049e3a0de26/status.svg)](https://joss.theoj.org/papers/a31cb207a180f7ac9838d049e3a0de26)
 -->
+
+<!-- [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://bit.ly/Sports2D_Colab)-->
+
 
 
 # Sports2D
 
-**`Sports2D` automatically computes 2D joint positions, as well as joint and segment angles from a video.**
+**`Sports2D` automatically computes 2D joint positions, as well as joint and segment angles from a video or a webcam.**
 
 </br>
 
-**`Announcement:` \
-User-friendly Colab version released! (and latest issues fixed, too)\
+> **`Announcement:` \
+> Complete rewriting of the code!**
+> - Faster and more accurate
+> - Works from a webcam
+> - Better visualization output 
+> - Batch process multiple videos at once
+> 
+> Note: Colab version broken for now. I'll fix it in the next few weeks.
+<!--User-friendly Colab version released! (and latest issues fixed, too)\
 Works on any smartphone!**\
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://bit.ly/Sports2D_Colab)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://bit.ly/Sports2D_Colab)-->
 
-**Batch processing enabled: process multiple videos at once!**
 
 </br>
 
 <img src='Content/demo_gif.gif' title='Demonstration of Sports2D with OpenPose.'  width="760">
 
 `Warning:` Angle estimation is only as good as the pose estimation algorithm, i.e., it is not perfect.\
-`Warning:` Results are acceptable only if the persons move in the 2D plane, from right to left or from left to right.\
-If you need research-grade markerless joint kinematics, consider using several cameras, and constraining angles to a biomechanically accurate model. See [Pose2Sim](https://github.com/perfanalytics/pose2sim) for example.\
-`Warning:` Google Colab does not follow the European GDPR requirements regarding data privacy. [Install locally](#installation) if this matters.
+`Warning:` Results are acceptable only if the persons move in the 2D plane (sagittal or frontal plane). The persons need to be filmed as parallel as possible to the motion plane.\
+If you need research-grade markerless joint kinematics, consider using several cameras, and constraining angles to a biomechanically accurate model. See **[Pose2Sim](https://github.com/perfanalytics/pose2sim)** for example.
 
-`Know issue`: Results won't be good with some iPhone videos in portrait mode (unless you are working on Colab). This is solved by priorly converting them with `ffmpeg -i video_input.mov video_output.mp4`, or even more simply with any random online video converter such as https://video-converter.com.
+<!--`Warning:` Google Colab does not follow the European GDPR requirements regarding data privacy. [Install locally](#installation) if this matters.-->
+
+<!--`Know issue`: Results won't be good with some iPhone videos in portrait mode (unless you are working on Colab). This is solved by priorly converting them with `ffmpeg -i video_input.mov video_output.mp4`, or even more simply with any random online video converter such as https://video-converter.com.-->
 
 
 ## Contents
@@ -58,16 +63,16 @@ If you need research-grade markerless joint kinematics, consider using several c
 
 ### Installation
 
-- OPTION 0: **Use Colab** \
+<!--- OPTION 0: **Use Colab** \
   User-friendly (but full) version, also works on a phone or a tablet.\
   [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://bit.ly/Sports2D_Colab)\
   YouTube tutorial:\
   <a href = "https://www.youtube.com/watch?v=Er5RpcJ8o1Y"><img src="Content/Video_tuto_Sports2D_Colab.png" width="380"></a>
   
-
+-->
 
 - OPTION 1: **Quick install** \
-    Open a terminal. Type `python -V` to make sure python '>=3.7 <=3.11' is installed, and then:
+    Open a terminal. Type `python -V` to make sure python '>=3.7 <=3.12' is installed, and then:
     ``` cmd
     pip install sports2d
     ```
@@ -76,7 +81,7 @@ If you need research-grade markerless joint kinematics, consider using several c
     Install [Miniconda](https://docs.conda.io/en/latest/miniconda.html):\
     Open an Anaconda prompt and create a virtual environment by typing:
     ``` cmd
-    conda create -n Sports2D python=3.10 -y
+    conda create -n Sports2D python=3.9 -y
     conda activate Sports2D
     pip install sports2d
     ```
@@ -97,9 +102,7 @@ Open a terminal, enter `pip show sports2d`, check sports2d package location. \
 Copy this path and go to the Demo folder by typing `cd <path>\Sports2D\Demo`. \
 Type `ipython`, and test the following code:
 ``` python
-from Sports2D import Sports2D
-Sports2D.detect_pose('Config_demo.toml')
-Sports2D.compute_angles('Config_demo.toml')
+from Sports2D import Sports2D; Sports2D.process('Config_demo.toml')
 ```
 
 <img src="Content/demo_blazepose_terminal.png" width="760">

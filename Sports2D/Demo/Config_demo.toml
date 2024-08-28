@@ -13,11 +13,10 @@
 
 [project]
 video_input = 'Demo.mp4' # 'webcam' or '<your_video.ext>', or ['<your_video1.ext>', '<your_video2.ext>', ...]
-result_dir = 'C:\Users\david\Downloads' # BETWEEN SINGLE QUOTES! # If empty, project dir is current dir
 
 # Video parameters
-video_dir = 'C:\Users\david\miniconda3\envs\Sports2D\Lib\site-packages\Sports2D\Demo' # BETWEEN SINGLE QUOTES! # If empty, result dir is current dir
 time_range = [] # [] for the whole video, or [start_time, end_time] (in seconds), or [[start_time1, end_time1], [start_time2, end_time2], ...]
+video_dir = '' # BETWEEN SINGLE QUOTES! # If empty, result dir is current dir
 
 # Webcam parameters
 webcam_id = 0 # your webcam id (0 is default)
@@ -31,6 +30,7 @@ save_vid = true
 save_img = true
 save_pose = true
 save_angles = true
+result_dir = '' # BETWEEN SINGLE QUOTES! # If empty, project dir is current dir
 
 
 ##########################
@@ -49,23 +49,6 @@ keypoint_likelihood_threshold = 0.3 # Keypoints whose likelihood is lower will n
 average_likelihood_threshold = 0.5 # Person will be ignored if average likelihood of good keypoints is lower than this value
 keypoint_number_threshold = 0.3 # Person will be ignored if the number of good keypoints is less than this fraction
 
-# Post-processing parameters
-detection_time_threshold = 1 # Person will be ignored if detected for less than this number of seconds
-interp_gap_smaller_than = 10 # do not interpolate bigger gaps
-fill_large_gaps_with = 'last_value' # 'last_value', 'nan', or 'zeros' 
-filter = true
-show_plots = true
-filter_type = 'butterworth' # butterworth, gaussian, LOESS, median
-   [pose.butterworth]
-   order = 4 
-   cut_off_frequency = 3 # Hz
-   [pose.gaussian]
-   sigma_kernel = 1 #px
-   [pose.loess]
-   nb_values_used = 5 # = fraction of data used * nb frames
-   [pose.median]
-   kernel_size = 3
-
 
 [angles]
 display_angle_values_on = ['body','list'] # 'body', 'list', ['body', 'list'], []. Display angle values on the body, as a list in the upper left of the image, both, or do not display them.
@@ -79,16 +62,21 @@ segment_angles = ['Right foot', 'Left foot', 'Right shank', 'Left shank', 'Right
 # Processing parameters
 flip_left_right = true # Same angles whether the participant faces left/right. Set it to false if you want timeseries to be continuous even when the participent switches their stance.
 
-# Post-processing parameters
-show_plots = true
+
+[post-processing]
+interpolate = true
+interp_gap_smaller_than = 10 # do not interpolate bigger gaps
+fill_large_gaps_with = 'last_value' # 'last_value', 'nan', or 'zeros' 
+
 filter = true
+show_plots = true # Crashes on the third opened window...
 filter_type = 'butterworth' # butterworth, gaussian, LOESS, median
-   [angles.butterworth]
+   [post-processing.butterworth]
    order = 4 
-   cut_off_frequency = 6 # Hz
-   [angles.gaussian]
+   cut_off_frequency = 3 # Hz
+   [post-processing.gaussian]
    sigma_kernel = 1 #px
-   [angles.loess]
+   [post-processing.loess]
    nb_values_used = 5 # = fraction of data used * nb frames
-   [angles.median]
+   [post-processing.median]
    kernel_size = 3

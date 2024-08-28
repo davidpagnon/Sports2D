@@ -67,10 +67,13 @@ Be aware that some angles only make sense in the frontal or the sagittal plane. 
 
 
 
+
+Can batch process several videos at a time
+
 For real-time analysis with a single camera, please try [Sports2D](https://github.com/davidpagnon/Sports2D). Note that on the other hand, you will lose a bit of accuracy and the motion will have to lie on the sagittal or frontal plane.
 
 
-Using rtmlib tracking possible but not always conclusive as it reassigns a new label every time a person disappears and reappears. We used the previously crafted Pose2Sim tracking method (here called 'sports2d'), which is slightly slower but more accurate. The user can choose which tracking method to use. 
+Using rtmlib tracking possible but not always conclusive as it reassigns a new label every time a person disappears and reappears. We used the previously crafted Pose2Sim tracking method (here called 'sports2d'), which is computed at a comparable speed but is much more accurate. The user can still choose the RTMLib method if they need it by specifying it in the Config.toml file. 
 
 Joint convention: edit from which point to which point
 
