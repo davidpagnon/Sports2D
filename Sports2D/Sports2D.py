@@ -7,22 +7,34 @@
     ## SPORTS2D                                                 ##
     ##############################################################
     
-    This repository provides a workflow to compute 2D markerless
-    joint and segment angles from videos. 
-    These angles can be plotted and processed with any 
-    spreadsheet software or programming language.
-    
-    This is a headless version, but apps will be released 
-    for Windows, Linux, MacOS, as well as Android and iOS.
-    Mobile versions will only support exploratory joint detection 
-    from BlazePose, hence less accurately and less tunable.
-    
-    If you need to detect several persons and want more accurate results, 
-    you can install and use OpenPose: 
-    https://github.com/CMU-Perceptual-Computing-Lab/openpose
-    
+    Use sports2d to compute your athlete's pose, joint, and segment angles
+
     -----
-    Sports2D installation:
+    Help
+    -----
+    See https://github.com/davidpagnon/Sports2D
+    Or run: sports2d --help
+    Or check: https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Demo/Config_demo.toml
+
+    -----
+    Usage
+    -----
+    - Run on Demo video with default parameters: 
+        sports2d
+    - Run on custom video with default parameters:
+        sports2d --video_input path_to_video.mp4
+    - Run on multiple videos with default parameters:
+        sports2d --video_input path_to_video1.mp4 path_to_video2.mp4
+    - Run on webcam with default parameters: 
+        sports2d --video_input webcam
+    - Run with custom parameters (all non specified are set to default): 
+        sports2d --show_plots False --time_range 0 2.1 --result_dir path_to_result_dir
+        sports2d --multiperson false --mode lightweight --det_frequency 50
+    - Run with a toml configuration file: 
+        sports2d --config path_to_config.toml
+   
+    -----
+    Installation
     -----
     Optional: 
     - Install Miniconda
@@ -49,58 +61,61 @@
     https://github.com/perfanalytics/pose2sim
     
     -----
-    Pose detection:
+    How it works
     -----
-    Detect joint centers from a video with OpenPose or BlazePose.
-    Save a 2D csv position file per person, and optionally json files, image files, and video files.
-    
-    If OpenPose is used, multiple persons can be consistently detected across frames.
-    Interpolates sequences of missing data if they are less than N frames long.
-    Optionally filters results with Butterworth, gaussian, median, or loess filter.
-    Optionally displays figures.
+    Detects 2D joint centers from a video or a webcam with RTMLib.
+    Computes selected joint and segment angles. 
+    Optionally saves processed image files and video file.
+    Optionally saves processed poses as a TRC file, and angles as a MOT file (OpenSim compatible).
 
-    If BlazePose is used, only one person can be detected.
-    No interpolation nor filtering options available. Not plotting available.
-    
-    -----
-    Angle computation:
-    -----
-    Compute joint and segment angles from csv position files.
-    Automatically adjust angles when person switches to face the other way.
-    Save a 2D csv angle file per person.
-    Optionally filters results with Butterworth, gaussian, median, or loess filter.
-    Optionally displays figures.
-    Optionally saves images and video with overlaid angles.
+    Further details. Sports2D:
+    - loads skeleton information
+    - reads stream from a video or a webcam
+    - sets up the RTMLib pose tracker from RTMlib with specified parameters
+    - detects poses within the selected time range
+    - tracks people so that their IDs are consistent across frames
+    - retrieves the keypoints with high enough confidence, and only keeps the persons with enough high-confidence keypoints
+    - computes joint and segment angles, and flips those on the left/right side them if the respective foot is pointing to the left
+    - draws bounding boxes around each person with their IDs
+    - draws joint and segment angles on the body, and writes the values either near the joint/segment, or on the upper-left of the image with a progress bar
+    - draws the skeleton and the keypoints, with a green to red color scale to account for their confidence
+    - optionally show processed images, saves them, or saves them as a video
+    - interpolates missing pose and angle sequences if gaps are not too large
+    - filters them with the selected filter and parameters
+    - optionally plots pose and angle data before and after processing for comparison
+    - optionally saves poses for each person as a trc file, and angles as a mot file
 
-    Joint angle conventions:
-    - Ankle dorsiflexion: Between heel and big toe, and ankle and knee
+    -----
+    Angle conventions
+    -----
+    Joint angles:
+    - Ankle dorsiflexion: Between heel and big toe, and ankle and knee + 90°
     - Knee flexion: Between hip, knee, and ankle 
     - Hip flexion: Between knee, hip, and shoulder
     - Shoulder flexion: Between hip, shoulder, and elbow
     - Elbow flexion: Between wrist, elbow, and shoulder
 
-    Segment angle conventions:
+    Segment angles:
     Angles are measured anticlockwise between the horizontal and the segment.
     - Foot: Between heel and big toe
     - Shank: Between ankle and knee
     - Thigh: Between hip and knee
+    - Pelvis: Between left and right hip
+    - Trunk: Between hip midpoint and shoulder midpoint
+    - Shoulders: Between left and right shoulder
     - Arm: Between shoulder and elbow
     - Forearm: Between elbow and wrist
-    - Trunk: Between hip midpoint and shoulder midpoint
-    
+
     -----
-    To-do list:
+    To-do list
     -----
-    - GUI applications for all platforms (with Kivy: https://kivy.org/)
-    - Pose refinement: click and move badly estimated 2D points (cf DeepLabCut: https://www.youtube.com/watch?v=bEuBKB7eqmk)
-    - Include OpenPose in Sports2D (dockerize it cf https://github.com/stanfordnmbl/mobile-gaitlab/blob/master/demo/Dockerfile)
+    - GUI applications for all platforms
     - Constrain points to OpenSim skeletal model for better angle estimation (cf Pose2Sim but in 2D https://github.com/perfanalytics/pose2sim)
-    
+    - Pose refinement: click and move badly estimated 2D points (cf DeepLabCut: https://www.youtube.com/watch?v=bEuBKB7eqmk)
 '''
 
 
 ## INIT
-
 import argparse
 import toml
 from datetime import datetime
@@ -113,8 +128,8 @@ from Sports2D import Sports2D
 
 
 ## CONSTANTS
-DEFAULT_CONFIG =   {'project': {'video_input': 'Demo.mp4',
-                                'time_range': [],
+DEFAULT_CONFIG =   {'project': {'video_input': ['Demo.mp4'],
+                                'time_range': [0.0, 7.63],
                                 'video_dir': '',
                                 'webcam_id': 0,
                                 'input_size': [1280, 720]
@@ -127,7 +142,7 @@ DEFAULT_CONFIG =   {'project': {'video_input': 'Demo.mp4',
                                 'save_angles': True,
                                 'result_dir': ''
                                 },
-                    'pose':     { 'pose_model': 'body_with_feet',
+                    'pose':     {'pose_model': 'body_with_feet',
                                 'mode': 'balanced',
                                 'det_frequency': 1,
                                 'tracking_mode': 'sports2d',
@@ -174,6 +189,43 @@ DEFAULT_CONFIG =   {'project': {'video_input': 'Demo.mp4',
                                         'median': {'kernel_size': 3}
                                         }
                     }
+
+CONFIG_HELP =   {'video_input': "webcam, or video_path.mp4, or video1_path.avi video2_path.mp4 ...",
+                'time_range': "start_time, end_time. In seconds. Whole video if not specified",
+                'video_dir': "Current directory if not specified",
+                'webcam_id': "webcam ID. 0 if not specified",
+                'input_size': "width, height. 1280, 720 if not specified. Lower resolution will be faster but less precise",
+                'multiperson': "Multiperson involves tracking: will be faster if set to false. true if not specified",
+                'show_realtime_results': "show results in real-time. true if not specified",
+                'save_vid': "save video with overlaid angles. true if not specified",
+                'save_img': "save images with overlaid angles. true if not specified",
+                'save_pose': "save pose as trc files. true if not specified",
+                'save_angles': "save angles as mot files. true if not specified",
+                'result_dir': "Current directory if not specified",
+                'pose_model': "Only body_with_feet is available for now. body_with_feet if not specified",
+                'mode': "light, balanced, or performance. balanced if not specified",
+                'det_frequency': "Run person detection only every N frames, and inbetween track previously detected bounding boxes. keypoint detection is still run on all frames.\n\
+                                 Equal to or greater than 1, can be as high as you want in simple uncrowded cases. Much faster, but might be less accurate. 1 if not specified: detection runs on all frames",
+                'tracking_mode': "sports2d or rtmlib. sports2d is generally much more accurate and comparable in speed. sports2d if not specified",
+                'keypoint_likelihood_threshold': "Detected keypoints are not retained if likelihood is below this threshold. 0.3 if not specified",
+                'average_likelihood_threshold': "Detected persons are not retained if average keypoint likelihood is below this threshold. 0.5 if not specified",
+                'keypoint_number_threshold': "Detected persons are not retained if number of detected keypoints is below this threshold. 0.3 if not specified, i.e., i.e., 30 percent",
+                'display_angle_values_on': "body, list, or body list. body list if not specified",
+                'joint_angles': "Right ankle, Left ankle, Right knee, Left knee, Right hip, Left hip, Right shoulder, Left shoulder, Right elbow, Left elbow if not specified",
+                'segment_angles': "Right foot, Left foot, Right shank, Left shank, Right thigh, Left thigh, Pelvis, Trunk, Shoulders, Head, Right arm, Left arm, Right forearm, Left forearm if not specified",
+                'flip_left_right': "true or false. true to get consistent angles with people facing both left and right sides. Set it to false if you want timeseries to be continuous even when the participent switches their stance. true if not specified",
+                'interpolate': "Interpolate missing data. true if not specified",
+                'interp_gap_smaller_than': "Interpolate sequences of missing data if they are less than N frames long. 10 if not specified",
+                'fill_large_gaps_with': "last_value, nan, or zeros. last_value if not specified",
+                'filter': "Filter results. true if not specified",
+                'show_plots': "Show plots. true if not specified",
+                'filter_type': "butterworth, gaussian, median, or loess. butterworth if not specified",
+                'order': "Order of the Butterworth filter. 4 if not specified", 
+                'cut_off_frequency': "Cut-off frequency of the Butterworth filter. 3 if not specified",
+                'sigma_kernel': "Sigma of the gaussian filter. 1 if not specified",
+                'nb_values_used': "Number of values used for the loess filter. 5 if not specified",
+                'kernel_size': "Kernel size of the median filter. 3 if not specified"
+                }
 
 
 ## AUTHORSHIP INFORMATION
@@ -287,6 +339,21 @@ def set_nested_value(config, flat_key, value):
     d[keys[-1]] = value
 
 
+def str2bool(v):
+    '''
+    Convert a string to a boolean value.
+    '''
+    
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+    
+
 def process(config='Config_demo.toml'):
     '''
     Read video or webcam input
@@ -316,7 +383,6 @@ def process(config='Config_demo.toml'):
         logging.info("\n\n---------------------------------------------------------------------")
         logging.info(f"Processing {video_file}{time_range_str}")
         logging.info(f"On {currentDateAndTime.strftime('%A %d. %B %Y, %H:%M:%S')}")
-        logging.info(f"{f'Video input directory: {video_dir}' if video_file != 'webcam' else ''}")
         logging.info("---------------------------------------------------------------------")
 
         process_fun(config_dict, video_file, time_range, frame_rate, result_dir)
@@ -329,8 +395,12 @@ def process(config='Config_demo.toml'):
 
 def main():
     '''
-    Run Sports2D from command line with entry points
-    Run sports2d --help for more information
+    Use sports2d to compute your athlete's pose, joint, and segment angles
+
+    Help:
+    See https://github.com/davidpagnon/Sports2D
+    Or run: sports2d --help
+    Or check: https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Demo/Config_demo.toml
 
     Usage:
     - Run on Demo video with default parameters: 
@@ -342,21 +412,24 @@ def main():
     - Run on webcam with default parameters: 
         sports2d --video_input webcam
     - Run with custom parameters (all non specified are set to default): 
-        sports2d --show_plots False --video_input webcam
+        sports2d --show_plots False --time_range 0 2.1 --result_dir path_to_result_dir
+        sports2d --multiperson false --mode lightweight --det_frequency 50
     - Run with a toml configuration file: 
         sports2d --config path_to_config.toml
     '''
 
     # Dynamically add arguments for each leaf key in the DEFAULT_CONFIG
-    parser = argparse.ArgumentParser(description='Process 2D sports videos')
+    parser = argparse.ArgumentParser(description="Use sports2d to compute your athlete's pose, joint, and segment angles. See https://github.com/davidpagnon/Sports2D")
     parser.add_argument('--config', type=str, required=False, help='Path to the toml configuration file')
     leaf_keys = get_leaf_keys(DEFAULT_CONFIG)
     for key in leaf_keys:
         leaf_name = key.split('.')[-1]
-        if leaf_name == 'video_input':
-            parser.add_argument(f'--{leaf_name}', type=str, nargs='+', help=f'Override for {leaf_name}')
+        if type(leaf_keys[key]) == bool:
+            parser.add_argument(f'--{leaf_name}', type=str2bool, help=CONFIG_HELP[leaf_name])
+        elif type(leaf_keys[key]) == list:
+            parser.add_argument(f'--{leaf_name}', type=type(leaf_keys[key][0]), nargs='+', help=CONFIG_HELP[leaf_name])
         else:
-            parser.add_argument(f'--{leaf_name}', type=str, help=f'Override for {leaf_name}')
+            parser.add_argument(f'--{leaf_name}', type=type(leaf_keys[key]), help=CONFIG_HELP[leaf_name])
     args = parser.parse_args()
 
     # If config.toml file is provided, load it, else, use default config
@@ -376,6 +449,7 @@ def main():
 
     # Run process with the new configuration dictionary
     Sports2D.process(new_config)
+
 
 if __name__ == "__main__":
     main()

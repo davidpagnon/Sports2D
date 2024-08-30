@@ -12,7 +12,7 @@
 
 
 [project]
-video_input = 'Demo.mp4' # 'webcam' or '<your_video.ext>', or ['<your_video1.ext>', '<your_video2.ext>', ...]
+video_input = 'Demo.mp4' # 'webcam' or '<video_path.ext>', or ['video1_path.mp4', 'video2_path.avi>', ...]
 
 # Video parameters
 time_range = [] # [] for the whole video, or [start_time, end_time] (in seconds), or [[start_time1, end_time1], [start_time2, end_time2], ...]
@@ -42,7 +42,7 @@ pose_model = 'body_with_feet' # Only body_with_feet is available for now
 mode = 'balanced' # 'lightweight', 'balanced', or 'performance'
 det_frequency = 1 # Run person detection only every N frames, and inbetween track previously detected bounding boxes (keypoint detection is still run on all frames). 
                   # Equal to or greater than 1, can be as high as you want in simple uncrowded cases. Much faster, but might be less accurate. 
-tracking_mode = 'sports2d' # 'rtmlib' or 'sports2d'. 'rtmlib' is slightly faster but less accurate
+tracking_mode = 'sports2d' # 'rtmlib' or 'sports2d'. 'sports2d' is generally much more accurate and comparable in speed
 
 # Processing parameters
 keypoint_likelihood_threshold = 0.3 # Keypoints whose likelihood is lower will not be taken into account

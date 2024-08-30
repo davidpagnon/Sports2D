@@ -7,10 +7,10 @@
     ## Compute pose and angles from video or webcam input       ##
     ##############################################################
     
-    Detect 2D joint centers from a video or a webcam with RTMLib.
-    Compute selected joint and segment angles. 
-    Optionally save processed image files and video file.
-    Optionally save processed poses as a TRC file, and angles as a MOT file (OpenSim compatible).
+    Detects 2D joint centers from a video or a webcam with RTMLib.
+    Computes selected joint and segment angles. 
+    Optionally saves processed image files and video file.
+    Optionally saves processed poses as a TRC file, and angles as a MOT file (OpenSim compatible).
 
     This scripts:
     - loads skeleton information
@@ -96,9 +96,9 @@ angle_dict = {
     'Left shank': [['LAnkle', 'LKnee'], 'horizontal', 0, -1],
     'Right thigh': [['RKnee', 'RHip'], 'horizontal', 0, -1],
     'Left thigh': [['LKnee', 'LHip'], 'horizontal', 0, -1],
-    'Pelvis': [['RHip', 'LHip'], 'horizontal', 180, -1],
-    'Trunk': [['Neck', 'Hip'], 'horizontal', 180, -1],
-    'Shoulders': [['RShoulder', 'LShoulder'], 'horizontal', 0, -1],
+    'Pelvis': [['LHip', 'RHip'], 'horizontal', 0, -1],
+    'Trunk': [['Neck', 'Hip'], 'horizontal', 0, -1],
+    'Shoulders': [['LShoulder', 'RShoulder'], 'horizontal', 0, -1],
     'Head': [['Head', 'Neck'], 'horizontal', 0, -1],
     'Right arm': [['RElbow', 'RShoulder'], 'horizontal', 0, -1],
     'Left arm': [['LElbow', 'LShoulder'], 'horizontal', 0, -1],
@@ -331,12 +331,19 @@ def compute_angle(ang_name, person_X_flipped, person_Y, angle_dict, keypoints_id
 
     ang_params = angle_dict.get(ang_name)
     if ang_params is not None:
-        angle_coords = [[person_X_flipped[keypoints_ids[keypoints_names.index(kpt)]], person_Y[keypoints_ids[keypoints_names.index(kpt)]]] for kpt in ang_params[0] if kpt in keypoints_names]
+        if ang_name in ['Pelvis', 'Trunk', 'Shoulders']:
+            angle_coords = [[np.abs(person_X_flipped[keypoints_ids[keypoints_names.index(kpt)]]), person_Y[keypoints_ids[keypoints_names.index(kpt)]]] for kpt in ang_params[0] if kpt in keypoints_names]
+        else:
+            angle_coords = [[person_X_flipped[keypoints_ids[keypoints_names.index(kpt)]], person_Y[keypoints_ids[keypoints_names.index(kpt)]]] for kpt in ang_params[0] if kpt in keypoints_names]
         ang = points2D_to_angles(angle_coords)
         ang += ang_params[2]
         ang *= ang_params[3]
-        ang = ang-360 if ang>180 else ang
-        ang = ang+360 if ang<-180 else ang
+        if ang_name in ['Pelvis', 'Shoulders']:
+            ang = ang-180 if ang>90 else ang
+            ang = ang+180 if ang<-90 else ang
+        else:
+            ang = ang-360 if ang>180 else ang
+            ang = ang+360 if ang<-180 else ang
     else:
         ang = np.nan
 
@@ -640,6 +647,7 @@ def draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_
                         ang_coords = np.array([[X[keypoints_ids[keypoints_names.index(kpt)]], Y[keypoints_ids[keypoints_names.index(kpt)]]] for kpt in ang_params[0] if kpt in keypoints_names])
                         X_flipped_coords = [X_flipped[keypoints_ids[keypoints_names.index(kpt)]] for kpt in ang_params[0] if kpt in keypoints_names]
                         flip = -1 if any(x_flipped < 0 for x_flipped in X_flipped_coords) else 1
+                        flip = 1 if ang_name in ['Pelvis', 'Trunk', 'Shoulders'] else flip
                         right_angle = True if ang_params[2]==90 else False
                         
                         # Draw angle
@@ -747,7 +755,7 @@ def write_angle_on_body(img, ang, app_point, vec1, vec2, dist=40, color=(255,255
 
     INPUTS:
     - img: opencv image
-    - ang: float. The angle to display
+    - ang: float. The angle value to display
     - app_point: np.array. The point where the angle is displayed
     - vec1: np.array. The unit vector of the first segment
     - vec2: np.array. The unit vector of the second segment
@@ -1192,9 +1200,9 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             if show_realtime_results or save_vid or save_img:
                 img = frame.copy()
                 img = draw_bounding_box(img, valid_X, valid_Y, colors=colors)
+                img = draw_keypts(img, valid_X, valid_Y, scores, cmap_str='RdYlGn')
                 img = draw_skel(img, valid_X, valid_Y, model, colors=colors)
                 img = draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_ids, keypoints_names, angle_names, display_angle_values_on=display_angle_values_on, colors=colors)
-                img = draw_keypts(img, valid_X, valid_Y, scores, cmap_str='RdYlGn')
 
                 if show_realtime_results:
                     cv2.imshow(f'{video_file} Sports2D', img)
