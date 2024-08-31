@@ -270,7 +270,6 @@ def base_params(config_dict):
         # frame_rates
         frame_rates = []
         for video_file in video_files:
-            print(str(video_dir / video_file))
             video = cv2.VideoCapture(str(video_dir / video_file))
             frame_rate = video.get(cv2.CAP_PROP_FPS)
             try:
