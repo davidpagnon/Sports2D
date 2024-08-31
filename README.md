@@ -23,9 +23,10 @@
 
 > **`Announcement:` \
 > Complete rewriting of the code!**
-> - Faster and more accurate
+> - Faster, more accurate
 > - Works from a webcam
 > - Better visualization output 
+> - More flexible, easier to run
 > - Batch process multiple videos at once
 > 
 > Note: Colab version broken for now. I'll fix it in the next few weeks.
@@ -51,13 +52,14 @@ If you need research-grade markerless joint kinematics, consider using several c
 1. [Installation and Demonstration](#installation-and-demonstration)
    1. [Installation](#installation)
    2. [Demonstration: Detect pose and compute 2D angles](#demonstration-detect-pose-and-compute-2d-angles)
+   3. [Play with the parameters](#play-with-the-parameters)
 2. [Go further](#go-further)
-   1. [Use on your own videos](#use-on-your-own-videos)
-   2. [Use OpenPose for multi-person, more accurate analysis](#use-openpose-for-multi-person-more-accurate-analysis)
-   3. [Advanced-settings](#advanced-settings)
-   4. [How it works](#how-it-works)
+   1. [Too slow for you?](#too-slow-for-you)
+   2. [What you get is what you need](#what-you-get-is-what-you-need)
+   3. [How it works](#how-it-works)
 3. [How to cite and how to contribute](#how-to-cite-and-how-to-contribute)
 
+<br>
 
 ## Installation and Demonstration
 
@@ -72,7 +74,7 @@ If you need research-grade markerless joint kinematics, consider using several c
 -->
 
 - OPTION 1: **Quick install** \
-    Open a terminal. Type `python -V` to make sure python '>=3.7 <=3.12' is installed, and then:
+    Open a terminal. Type `python -V` to make sure python >=3.7 <=3.12 is installed, and then:
     ``` cmd
     pip install sports2d
     ```
@@ -94,117 +96,135 @@ If you need research-grade markerless joint kinematics, consider using several c
      pip install .
      ```
 
+<br>
 
 ### Demonstration: Detect pose and compute 2D angles
 
-If you installed via conda, type `conda activate Sports2D` in the Anaconda prompt. Otherwise, skip to the next line.\
-Open a terminal, enter `pip show sports2d`, check sports2d package location. \
-Copy this path and go to the Demo folder by typing `cd <path>\Sports2D\Demo`. \
-Type `ipython`, and test the following code:
-``` python
-from Sports2D import Sports2D; Sports2D.process('Config_demo.toml')
+Just open a command line and run:
+``` cmd
+sports2d
 ```
 
-<img src="Content/demo_blazepose_terminal.png" width="760">
+You should see the joint positions and angles being displayed in real time.\
+Check the folder where you run that command line to find the resulting `video`, `images`, `TRC pose` and `MOT angle` files (which can be opened with any spreadsheet software), and `logs`.
 
+***Important:*** If you did the conda install, you first need to activate the environment: run `conda activate sports2d` in the Anaconda prompt.
 
-You should obtain a video with the overlaid 2D joint positions, and angle text values. This output is also provided as an image folder.\
-You should additionally obtain the same information as time series, stored in .csv files. These files can be opened with any spreadsheet software, or with the Pandas Python library for example.\
-In addition, you will get the original OpenPose-like json coordinates files.
+<img src="Content/Demo_results.png" width="760">
+<img src="Content/Demo_terminal.png" width="760">
 
-<img src="Content/demo_blazepose_results.png" width="760">
+<br>
 
+### Play with the parameters
+
+For a full list of the available parameters, check the [Config_Demo.toml](https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Demo/Config_demo.toml) file or type:
+``` cmd
+sports2d --help
+```
+<br>
+
+- Run on Demo video with default parameters: 
+  ``` cmd
+  sports2d
+  ```
+- Run on custom video with default parameters:
+  ``` cmd
+  sports2d --video_input path_to_video.mp4
+  ```
+- Run on multiple videos with default parameters:
+  ``` cmd
+  sports2d --video_input path_to_video1.mp4 path_to_video2.mp4
+  ```
+- Run on webcam with default parameters: 
+  ``` cmd
+  sports2d --video_input webcam
+  ```
+- Run with custom parameters (all non specified are set to default): 
+  ``` cmd
+  sports2d --show_plots False --time_range 0 2.1 --result_dir path_to_result_dir
+  ```
+  ``` cmd
+  sports2d --multiperson false --mode lightweight --det_frequency 50
+  ```
+- Run with a toml configuration file: 
+  ``` cmd
+  sports2d --config path_to_config.toml
+  ```
+- Run within a Python script: 
+  ``` python
+  from Sports2D import Sports2D; Sports2D.process('Config_demo.toml')
+  ```
+
+<br>
 
 ## Go further
 
-### Use on your own videos
+### Too slow for you?
 
-1. Copy-paste `Config_demo.toml` in the directory of your videos.
+**Quick fixes:**
+- Use `--multiperson false`: Can be used if one single person is present in the video. Otherwise, persons' IDs may be mixed up.
+- Use `--mode lightweight`: Will use a lighter version of RTMPose, which is faster but less accurate.
+- Use `--det_frequency 50`: Will detect poses only every 50 frames, and track keypoints inbetween, which is faster.
 
-2. Open it with any text editor.\
-Replace the `video_files` value with the name of your videos.
+**Use your GPU**:\
+Will be much faster, with no impact on accuracy. However, the installation takes about 6 GB of additional storage space.
 
-3. Open a terminal or an Anaconda prompt, type:
-   ``` cmd
-   cd path/to/video/directory
-   conda activate Sports2D &:: skip if you did not install with Anaconda
-   ipython
-   ```
-   ``` python
-   from Sports2D import Sports2D
-   Sports2D.detect_pose('Config_demo.toml')
-   Sports2D.compute_angles('Config_demo.toml')
-   ```
+> Go to the [ONNXruntime requirement page](https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html#requirements), check the latest CUDA and cuDNN requirements. Then go to the [pyTorch website]( https://pytorch.org/get-started/locally) and install the latest version that satisfies these requirements (beware that torch 2.4 ships with cuDNN 9, while torch 2.3 installs cuDNN 8). For example:
+> ``` cmd
+> pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+> ```
+> ***Note:*** Issues were reported with the default command. However, this has been tested and works:
+`pip install torch==2.3.1 torchvision==0.18.1 torchaudio==2.3.1 --index-url https://download.pytorch.org/whl/cu118`
+>  Then install ONNX Runtime with GPU support:
+> ```
+> pip install onnxruntime-gpu
+> ```
 
-*Optionally:* If your videos are not in the same folder as `Config_demo.toml`, specify their location in `video_dir`.\
-Similarly, if you launch Sports2D in an other directory, specify the location of the config file this way: `Sports2D.detect_pose(<path_to_Config_demo.toml>)`\
-In `pose`, specify the use of BlazePose or OpenPose as joint detectors: this will be detailed in the next section.\
-In `compute_angles`, select your angles of interest.
+<br>
 
+### What you get is what you need
+- Choose whether you want video, images, trc pose file, and angle mot file: for example, use\
+`--save_vid false --save_img true --save_trc false --save_mot true`
+- Choose which angles you need: for example, use\
+`--joint_angles 'right knee' 'left knee' --segment_angles None` 
+- Choose where to display the angles: either as a list on the upper-left of the image, or near the joint/segment, or both: for example, use\
+`--display_angle_values_on body`
+- Choose where to save the results: for example, use\
+`--result_dir path_to_result_dir`
+- Choose a fraction of the video to analyze (in seconds): for example, use\
+`--time_range 0 2.1`
 
-### Use OpenPose for multi-person, more accurate analysis
-
-OpenPose is slower than BlazePose, but usually more accurate. It also allows for the detection of multiple persons, whose indices are consistent across frames. 
-
-1. **Install OpenPose** (instructions [there](https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/installation/0_index.md)). \
-*Windows portable demo works fine.*
-
-2. If you want even more accurate results, use the BODY_25B experimental model instead of the standard BODY_25 one. This requires manually [downloading the model](https://github.com/CMU-Perceptual-Computing-Lab/openpose_train/blob/master/experimental_models/README.md). You can optionally download from there the BODY_135 model which will let you compute wrist flexion and hand segment angle, however this will be much slower.
-
-3. In `Config_demo.toml` → `pose.OPENPOSE`, specify your OpenPose model, and the path where you downloaded OpenPose.
-
-*N.B.:* If you want to benefit from the capabilities of OpenPose but do not manage to install it, you can use the `Colab notebook` version.
-Note that your data will be sent to the Google servers, which do not follow the European GDPR requirements regarding privacy.
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://bit.ly/Sports2D_Colab)
-
-<img src="Content/demo_openpose_results.png" width="760">
-
-### Advanced settings
-
-1. `Config_demo.toml` → `pose_advanced`: These settings are only taken into account if OpenPose is used.
-   1. `load_pose`: If you need to change some settings but have already run a pose estimation, you can set this to `true` in order to not regenerate the json pose files.
-
-   2. `save_vid` and `save_img`: You can choose whether you want to save the resulting video and images. If set to `false`, only pose and angle `.csv` files will be generated.
-
-   3. `interp_gap_smaller_than`: Gaps are interpolated only if they are not too wide.
-   
-   4. `filter`: `true` or `false`. If `true`, you can choose among `Butterworth`, `Gaussian`, `LOESS`, or `Median`, and specify their parameters.\
-   Beware that the appearance of the unfiltered skeleton may not match the filtered coordinates and angles.
-
-   5. `show_plots`: Displays a window with tabs corresponding to the coordinates of each detected point. This may cause Python to crash.
-
-2. `Config_demo.toml` → `compute_angles_advanced`: These settings are taken into account both with BlazePose and OpenPose.
-   1. `save_vid` and `save_img`: Cf `pose_advanced`.
-
-   2. `filter`: Cf `pose_advanced`.
-
-   3. `show_plots`: Cf `pose_advanced`.
-
-   <img src="Content/demo_show_plots.png" width="760">
-
-*N.B.:* The settings and results of all analyses are stored int the `logs.txt` file, which can be found in in the sports2d installation folder (`pip show sports2d` to find the path).
-
-
+<br>
 
 ### How it works
 
-#### Pose detection:
+Sports2D:
+- Detects 2D joint centers from a video or a webcam with RTMLib.
+- Computes selected joint and segment angles. 
+- Optionally saves processed image files and video file.
+- Optionally saves processed poses as a TRC file, and angles as a MOT f- (OpenSim compatible).
 
-BlazePose or OpenPose are used to detect joint centers from a video.
+<br>
 
-- If `BlazePose` is used, only one person can be detected.\
-  No interpolation nor filtering options are available. Not plotting available.
+**Okay but how does it work, really?**\
+Sports2D:
+- Loads skeleton information from skeletons.py
+- Reads stream from a video or a webcam
+- Sets up the RTMLib pose tracker from RTMlib with specified parameters
+- Detects poses within the selected time range
+- Tracks people so that their IDs are consistent across frames. A person is associated to another in the next frame when they are at a small distance. Our tracker is more robust than the RTMlib one.
+- Retrieves the keypoints with high enough confidence, and only keeps the persons with enough high-confidence keypoints
+- Computes joint and segment angles, and flips those on the left/right side them if the respective foot is pointing to the left
+- Draws bounding boxes around each person with their IDs
+- Draws joint and segment angles on the body, and writes the values either near the joint/segment, or on the upper-left of the image with a progress bar
+- Draws the skeleton and the keypoints, with a green to red color scale to account for their confidence
+- Optionally show processed images, saves them, or saves them as a video
+- Interpolates missing pose and angle sequences if gaps are not too large
+- Filters them with the selected filter (among `Butterworth`, `Gaussian`, `LOESS`, or `Median`) and their parameters
+- Optionally plots pose and angle data before and after processing for comparison
+- Optionally saves poses for each person as a trc file, and angles as a mot file
 
-- If `OpenPose` is used, multiple persons can be consistently detected across frames. A person is associated to another in the next frame when they are at a small distance.\
-  Sequences of missing data are interpolated if they are less than N frames long.\
-  Resulting coordinates can be filtered with Butterworth, gaussian, median, or loess filter. They can also be plotted.
-
-
-#### Angle computation:
-
-Joint and segment angles are computed from csv position files.\
-If a person suddenly faces the other way, this change of direction is taken into account.\
-Resulting angles can be filtered in the same way as point coordinates, and they can also be plotted.
+<br>
 
 **Joint angle conventions:**
 - Ankle dorsiflexion: Between heel and big toe, and ankle and knee.\
@@ -221,14 +241,18 @@ Resulting angles can be filtered in the same way as point coordinates, and they 
 **Segment angle conventions:**\
 Angles are measured anticlockwise between the horizontal and the segment.
 - Foot: Between heel and big toe
-- Shank: Between knee and ankle
+- Shank: Between ankle and knee
 - Thigh: Between hip and knee
+- Pelvis: Between left and right hip
+- Trunk: Between hip midpoint and shoulder midpoint
+- Shoulders: Between left and right shoulder
 - Arm: Between shoulder and elbow
 - Forearm: Between elbow and wrist
-- Trunk: Between shoulder midpoint and hip midpoint
 
-<img src="Content/joint_convention.png" width="380">
 
+<img src="Content/joint_convention.png" width="760">
+
+<br> 
 
 ## How to cite and how to contribute
 
@@ -255,18 +279,14 @@ If you want to contribute to Sports2D, please follow [this guide](https://docs.g
 - [x] **Only interpolate small gaps**.
 - [x] **Filtering and plotting tools**.
 - [x] Handle sudden **changes of direction**.
-- [x] **Colab version** for those who cannot install OpenPose.
-- [x] **Colab version** more user-friendly, usable on a smartphone.
 - [x] **Batch processing** for the analysis of multiple videos at once.
+- [ ] **Colab version** more user-friendly, usable on a smartphone.
+- [ ] **GUI applications** for Windows, Mac, and Linux, as well as for Android and iOS.
 - [ ] **Convert positions to meters** by providing the distance [between two clicked points](https://stackoverflow.com/questions/74248955/how-to-display-the-coordinates-of-the-points-clicked-on-the-image-in-google-cola)
-- [ ] **Implement [AlphaPose](https://github.com/MVIG-SJTU/AlphaPose)** which might be more accurate on broadcasted videos.
 - [ ] Perform **Inverse kinematics and dynamics** with OpenSim (cf. [Pose2Sim](https://github.com/perfanalytics/pose2sim), but in 2D). Update [this model](https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Utilities/2D_gait.osim) (add arms, markers, remove muscles and contact spheres). Add pipeline example.
 </br>
 
 - [ ] **Track other points and angles** with classic tracking methods (cf. [Kinovea](https://www.kinovea.org/features.html)), or by training a model (cf. [DeepLabCut](https://deeplabcut.github.io/DeepLabCut/README.html)).
 - [ ] **Pose refinement**. Click and move badly estimated 2D points. See [DeepLabCut](https://www.youtube.com/watch?v=bEuBKB7eqmk) for inspiration.
 - [ ] Add tools for annotating images, undistort them, take perspective into account, etc. (cf. [Kinovea](https://www.kinovea.org/features.html)).
-- [ ] Check other methods for sorting people across frames ([STAF](https://github.com/soulslicer/STAF/tree/staf) or [LivePoseTracker](https://github.com/ortegatron/liveposetracker).
-- [ ] **GUI applications** for Windows, Mac, and Linux, as well as for Android and iOS (minimal version on mobile device, with only BlazePose). Code with [Kivy](https://kivy.org).
-- [ ] **Include OpenPose** in Sports2D executable files. [Dockerize](https://github.com/stanfordnmbl/mobile-gaitlab/blob/master/demo/Dockerfile) it? 
-- [ ] Full test on **MacOS**.
+

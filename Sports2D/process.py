@@ -74,38 +74,38 @@ from Sports2D.Utilities.skeletons import *
 ## CONSTANTS
 angle_dict = { 
     # joint angles
-    'Right ankle': [['RKnee', 'RAnkle', 'RBigToe', 'RHeel'], 'dorsiflexion', 90, 1],
-    'Left ankle': [['LKnee', 'LAnkle', 'LBigToe', 'LHeel'], 'dorsiflexion', 90, 1],
-    'Right knee': [['RAnkle', 'RKnee', 'RHip'], 'flexion', -180, 1],
-    'Left knee': [['LAnkle', 'LKnee', 'LHip'], 'flexion', -180, 1],
-    'Right hip': [['RKnee', 'RHip', 'Hip', 'Neck'], 'flexion', 0, -1],
-    'Left hip': [['LKnee', 'LHip', 'Hip', 'Neck'], 'flexion', 0, -1],
+    'right ankle': [['RKnee', 'RAnkle', 'RBigToe', 'RHeel'], 'dorsiflexion', 90, 1],
+    'left ankle': [['LKnee', 'LAnkle', 'LBigToe', 'LHeel'], 'dorsiflexion', 90, 1],
+    'right knee': [['RAnkle', 'RKnee', 'RHip'], 'flexion', -180, 1],
+    'left knee': [['LAnkle', 'LKnee', 'LHip'], 'flexion', -180, 1],
+    'right hip': [['RKnee', 'RHip', 'Hip', 'Neck'], 'flexion', 0, -1],
+    'left hip': [['LKnee', 'LHip', 'Hip', 'Neck'], 'flexion', 0, -1],
     # 'Lumbar': [['Neck', 'Hip', 'RHip', 'LHip'], 'flexion', -180, -1],
     # 'Neck': [['Head', 'Neck', 'RShoulder', 'LShoulder'], 'flexion', -180, -1],
-    'Right shoulder': [['RElbow', 'RShoulder', 'Hip', 'Neck'], 'flexion', 0, -1],
-    'Left shoulder': [['LElbow', 'LShoulder', 'Hip', 'Neck'], 'flexion', 0, -1],
-    'Right elbow': [['RWrist', 'RElbow', 'RShoulder'], 'flexion', 180, -1],
-    'Left elbow': [['LWrist', 'LElbow', 'LShoulder'], 'flexion', 180, -1],
-    'Right wrist': [['RElbow', 'RWrist', 'RIndex'], 'flexion', -180, 1],
-    'Left wrist': [['LElbow', 'LIndex', 'LWrist'], 'flexion', -180, 1],
+    'right shoulder': [['RElbow', 'RShoulder', 'Hip', 'Neck'], 'flexion', 0, -1],
+    'left shoulder': [['LElbow', 'LShoulder', 'Hip', 'Neck'], 'flexion', 0, -1],
+    'right elbow': [['RWrist', 'RElbow', 'RShoulder'], 'flexion', 180, -1],
+    'left elbow': [['LWrist', 'LElbow', 'LShoulder'], 'flexion', 180, -1],
+    'right wrist': [['RElbow', 'RWrist', 'RIndex'], 'flexion', -180, 1],
+    'left wrist': [['LElbow', 'LIndex', 'LWrist'], 'flexion', -180, 1],
 
     # segment angles
-    'Right foot': [['RBigToe', 'RHeel'], 'horizontal', 0, -1],
-    'Left foot': [['LBigToe', 'LHeel'], 'horizontal', 0, -1],
-    'Right shank': [['RAnkle', 'RKnee'], 'horizontal', 0, -1],
-    'Left shank': [['LAnkle', 'LKnee'], 'horizontal', 0, -1],
-    'Right thigh': [['RKnee', 'RHip'], 'horizontal', 0, -1],
-    'Left thigh': [['LKnee', 'LHip'], 'horizontal', 0, -1],
+    'right foot': [['RBigToe', 'RHeel'], 'horizontal', 0, -1],
+    'left foot': [['LBigToe', 'LHeel'], 'horizontal', 0, -1],
+    'right shank': [['RAnkle', 'RKnee'], 'horizontal', 0, -1],
+    'left shank': [['LAnkle', 'LKnee'], 'horizontal', 0, -1],
+    'right thigh': [['RKnee', 'RHip'], 'horizontal', 0, -1],
+    'left thigh': [['LKnee', 'LHip'], 'horizontal', 0, -1],
     'Pelvis': [['LHip', 'RHip'], 'horizontal', 0, -1],
     'Trunk': [['Neck', 'Hip'], 'horizontal', 0, -1],
     'Shoulders': [['LShoulder', 'RShoulder'], 'horizontal', 0, -1],
     'Head': [['Head', 'Neck'], 'horizontal', 0, -1],
-    'Right arm': [['RElbow', 'RShoulder'], 'horizontal', 0, -1],
-    'Left arm': [['LElbow', 'LShoulder'], 'horizontal', 0, -1],
-    'Right forearm': [['RWrist', 'RElbow'], 'horizontal', 0, -1],
-    'Left forearm': [['LWrist', 'LElbow'], 'horizontal', 0, -1],
-    'Right hand': [['RIndex', 'RWrist'], 'horizontal', 0, -1],
-    'Left hand': [['LIndex', 'LWrist'], 'horizontal', 0, -1]
+    'right arm': [['RElbow', 'RShoulder'], 'horizontal', 0, -1],
+    'left arm': [['LElbow', 'LShoulder'], 'horizontal', 0, -1],
+    'right forearm': [['RWrist', 'RElbow'], 'horizontal', 0, -1],
+    'left forearm': [['LWrist', 'LElbow'], 'horizontal', 0, -1],
+    'right hand': [['RIndex', 'RWrist'], 'horizontal', 0, -1],
+    'left hand': [['LIndex', 'LWrist'], 'horizontal', 0, -1]
     }
 
 colors = [(255, 0, 0), (0, 0, 255), (255, 255, 0), (255, 0, 255), (0, 255, 255), (0, 0, 0), (255, 255, 255),
@@ -161,15 +161,15 @@ def setup_webcam(webcam_id, save_vid, vid_output_path, input_size):
     if save_vid:
         fps = cap.get(cv2.CAP_PROP_FPS)
         # fourcc MJPG produces very large files but is faster. If it is too slow, consider using it and then converting the video to h264
-        try:
-            fourcc = cv2.VideoWriter_fourcc(*'avc1') # =h264. better compression and quality but may fail on some systems
-            out_vid = cv2.VideoWriter(vid_output_path, fourcc, fps, (cam_width, cam_height))
-            if not out_vid.isOpened():
-                raise ValueError("Failed to open video writer with 'avc1' (h264)")
-        except Exception:
-            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-            out_vid = cv2.VideoWriter(vid_output_path, fourcc, fps, (cam_width, cam_height))
-            logging.info("Failed to open video writer with 'avc1' (h264). Using 'mp4v' instead.")
+        # try:
+        #     fourcc = cv2.VideoWriter_fourcc(*'avc1') # =h264. better compression and quality but may fail on some systems
+        #     out_vid = cv2.VideoWriter(vid_output_path, fourcc, fps, (cam_width, cam_height))
+        #     if not out_vid.isOpened():
+        #         raise ValueError("Failed to open video writer with 'avc1' (h264)")
+        # except Exception:
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out_vid = cv2.VideoWriter(vid_output_path, fourcc, fps, (cam_width, cam_height))
+            # logging.info("Failed to open video writer with 'avc1' (h264). Using 'mp4v' instead.")
 
     return cap, out_vid, cam_width, cam_height, fps
 
@@ -206,15 +206,15 @@ def setup_video(video_file_path, save_vid, vid_output_path):
     out_vid = None
     if save_vid:
         fps = cap.get(cv2.CAP_PROP_FPS)
-        try:
-            fourcc = cv2.VideoWriter_fourcc(*'avc1') # =h264. better compression and quality but may fail on some systems
-            out_vid = cv2.VideoWriter(vid_output_path, fourcc, fps, (cam_width, cam_height))
-            if not out_vid.isOpened():
-                raise ValueError("Failed to open video writer with 'avc1' (h264)")
-        except Exception:
-            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-            out_vid = cv2.VideoWriter(vid_output_path, fourcc, fps, (cam_width, cam_height))
-            logging.info("Failed to open video writer with 'avc1' (h264). Using 'mp4v' instead.")
+        # try:
+        #     fourcc = cv2.VideoWriter_fourcc(*'avc1') # =h264. better compression and quality but may fail on some systems
+        #     out_vid = cv2.VideoWriter(vid_output_path, fourcc, fps, (cam_width, cam_height))
+        #     if not out_vid.isOpened():
+        #         raise ValueError("Failed to open video writer with 'avc1' (h264)")
+        # except Exception:
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out_vid = cv2.VideoWriter(vid_output_path, fourcc, fps, (cam_width, cam_height))
+            # logging.info("Failed to open video writer with 'avc1' (h264). Using 'mp4v' instead.")
         
     return cap, out_vid, cam_width, cam_height, fps
 
@@ -1037,6 +1037,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     joint_angle_names = config_dict.get('angles').get('joint_angles')
     segment_angle_names = config_dict.get('angles').get('segment_angles')
     angle_names = joint_angle_names + segment_angle_names
+    angle_names = [angle_name.lower() for angle_name in angle_names]
     display_angle_values_on = config_dict.get('angles').get('display_angle_values_on')
     flip_left_right = config_dict.get('angles').get('flip_left_right')
 
@@ -1233,9 +1234,9 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 logging.info(f"Rewriting webcam video based on the averate framerate {actual_framerate}.")
                 resample_video(vid_output_path, fps, actual_framerate)
                 fps = actual_framerate
-            logging.info(f"Processed video saved to {vid_output_path}.")
+            logging.info(f"Processed video saved to {vid_output_path.resolve()}.")
         if save_img:
-            logging.info(f"Processed images saved to {img_output_dir}.")
+            logging.info(f"Processed images saved to {img_output_dir.resolve()}.")
         if show_realtime_results:
             cv2.destroyAllWindows()
     
@@ -1298,7 +1299,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                                 filter_options[3] = cutoff
                         else: 
                             args = ''
-                        args = f'Butterworth filter, {filter_options[2]}th order, {filter_options[3]} Hz. ' + args
+                        args = f'Butterworth filter, {filter_options[2]}th order, {filter_options[3]} Hz.'
                         filter_options[4] = fps
                     if filter_type == 'gaussian':
                         args = f'Gaussian filter, Sigma kernel {filter_options[5]}.'
@@ -1312,7 +1313,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
 
                 # Build TRC file
                 trc_data = make_trc_with_XYZ(all_frames_X_person_filt, all_frames_Y_person_filt, all_frames_Z_person, all_frames_time, str(pose_path_person))
-                logging.info(f'Pose saved to {pose_path_person}.')
+                logging.info(f'Pose saved to {pose_path_person.resolve()}.')
 
                 # Plotting coordinates before and after interpolation and filtering
                 if show_plots:
@@ -1378,7 +1379,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
 
                 # Build mot file
                 angle_data = make_mot_with_angles(all_frames_angles_person_filt, all_frames_time, str(angles_path_person))
-                logging.info(f'Angles saved to {angles_path_person}.')
+                logging.info(f'Angles saved to {angles_path_person.resolve()}.')
 
                 # Plotting angles before and after interpolation and filtering
                 if show_plots:

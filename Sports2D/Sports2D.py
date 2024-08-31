@@ -41,14 +41,7 @@
     - Open a Anaconda Prompt and type: 
     `conda create -n Sports2D python>=3.7`
     `conda activate Sports2D`
-    pip install 
-    
-    - Open a python prompt and type `pip install sports2d`
-    - `pip show sports2d`
-    - Adjust your settings (in particular video path) in `Config_demo.toml`
-    - ```from Sports2D import Sports2D
-    Sports2D.detect_pose('Config_demo.toml')
-    Sports2D.compute_angles('Config_demo.toml')```
+    pip install .
     
     -----
     /!\ Warning /!\
@@ -100,9 +93,9 @@
     - Foot: Between heel and big toe
     - Shank: Between ankle and knee
     - Thigh: Between hip and knee
-    - Pelvis: Between left and right hip
-    - Trunk: Between hip midpoint and shoulder midpoint
-    - Shoulders: Between left and right shoulder
+    - Pelvis: Between right and left hip
+    - Trunk: Between hip midpoint and neck
+    - Shoulders: Between right and left shoulder
     - Arm: Between shoulder and elbow
     - Forearm: Between elbow and wrist
 
@@ -427,7 +420,7 @@ def main():
         if type(leaf_keys[key]) == bool:
             parser.add_argument(f'--{leaf_name}', type=str2bool, help=CONFIG_HELP[leaf_name])
         elif type(leaf_keys[key]) == list:
-            parser.add_argument(f'--{leaf_name}', type=type(leaf_keys[key][0]), nargs='+', help=CONFIG_HELP[leaf_name])
+            parser.add_argument(f'--{leaf_name}', type=type(leaf_keys[key][0]), nargs='*', help=CONFIG_HELP[leaf_name])
         else:
             parser.add_argument(f'--{leaf_name}', type=type(leaf_keys[key]), help=CONFIG_HELP[leaf_name])
     args = parser.parse_args()

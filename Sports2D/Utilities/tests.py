@@ -14,6 +14,7 @@
 
 ## INIT
 import toml
+import subprocess
 
 
 ## AUTHORSHIP INFORMATION
@@ -29,9 +30,19 @@ __status__ = "Development"
 
 ## FUNCTIONS
 def test_workflow():
+    '''
+    Test the workflow of Sports2D.
+    '''
 
+    # From python
     config_dict = toml.load('../Config_demo.toml')
     config_dict.get("process").update({"show_realtime_results":False})
     config_dict.get("post-processing").update({"show_plots":False})
-
     from Sports2D import Sports2D; Sports2D.process(config_dict)
+
+    # From command line (CLI)
+    subprocess.run(["python", "sports2d", "--show_realtime_results", "False", "--show_plots", "False"])
+    
+    # From command line (CLI) with config file
+    subprocess.run(["python", "sports2d", "-c", "../Config_demo.toml", "--show_realtime_results", "False", "--show_plots", "False"])
+
