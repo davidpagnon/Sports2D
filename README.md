@@ -123,10 +123,6 @@ sports2d --help
 ```
 <br>
 
-- Run on Demo video with default parameters: 
-  ``` cmd
-  sports2d
-  ```
 - Run on custom video with default parameters:
   ``` cmd
   sports2d --video_input path_to_video.mp4
