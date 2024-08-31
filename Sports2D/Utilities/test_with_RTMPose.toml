@@ -2,35 +2,24 @@
 ## SPORTS2D PROJECT PARAMETERS                                               ##
 ###############################################################################
 
-# For continuous integration (check whether Sports2D still works at each code modification) 
-
-
 # Configure your project parameters here
 
+# Then open an Anaconda prompt and enter:
+# conda activate Sports2D
+# ipython
+# from Sports2D import Sports2D
+# Sports2D.detect_pose('Config_demo.toml')
+# Sports2D.compute_angles('Config_demo.toml')
+
+
 [project]
-video_dir = '../Demo' # BETWEEN SINGLE QUOTES! # If empty, project dir is current dir
-video_files = 'demo.mp4'
+video_dir = '../Demo' # BETWEEN SINGLE QUOTES! # If empty, result dir is current dir
+video_input = 'demo.mp4' # 'webcam' or 'your_video_name.extenstion'
 result_dir = '../Demo' # BETWEEN SINGLE QUOTES! # If empty, project dir is current dir
 
-
 [pose]
-pose_algo = 'BLAZEPOSE' # 'OPENPOSE' or 'BLAZEPOSE' 
-# OpenPose is more accurate and supports multi-person detection, but needs to be installed separately	
-# Coming soon: 'deeplabcut', 'alphapose'
-	
-	[pose.BLAZEPOSE]
-	# 0,1,2. 2 is slightly slower but more accurate
-	model_complexity = 2 
-		
-	[pose.OPENPOSE]
-	# Install OpenPose from https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/installation/0_index.md
-	# BODY_25 is standard, BODY_25B is more accurate but requires downloading the model from 
-	# https://github.com/CMU-Perceptual-Computing-Lab/openpose_train/blob/master/experimental_models/README.md
-	openpose_model = 'BODY_25B' 
-	
-	# Installation path of openpose (between single quotes) 
-	openpose_path = 'D:\softs\openpose-1.6.0-binaries-win64-gpu-flir-3d_recommended\openpose'
-	
+display_detection = false
+time_range = []
 
 [compute_angles]
 # Select joint angles among
@@ -42,16 +31,23 @@ joint_angles = ['Right ankle', 'Left ankle', 'Right knee', 'Left knee', 'Right h
 segment_angles = ['Right foot', 'Left foot', 'Right shank', 'Left shank', 'Right thigh', 'Left thigh', 'Trunk', 'Right arm', 'Left arm', 'Right forearm', 'Left forearm']
 
    	
-	
-
 # ADVANCED CONFIGURATION
 	
-[pose_advanced] # only for OPENPOSE
-load_pose = true # proceeds to detection only if pose files not foundsave_vid = true
+[pose_advanced]
+webcam_id = 0 # your webcam id (0 is default)
+input_size = 'auto' # 'auto' or [W, H]. Full image resolution: 'auto'. Custom resolution: list of two integers. Lower resolution will be faster but less precise.
+overwrite_pose = true # If false, don't run openpose again if json pose files are found.
+det_frequency = 10 # detect person every det_frequency (1 = 1 frame)
+mode = "lightweight" # # lightweight, balanced, performance
+keypoints_threshold = 0.4 #If only part of a person is on screen, increase this number to ensure that only correctly detected keypoints are used.
+min_detection_time = 1 # If lower than this, person will be ignored(sec)
+						#For webcams, it is possible to detect the wrong person if the person is only partially detected (usually less than a second).
+						
+save_vid = true
 save_img = true
 interp_gap_smaller_than = 5 # do not interpolate bigger gaps
 filter = true
-show_plots = false
+show_plots = true
 filter_type = 'butterworth' # butterworth, gaussian, LOESS, median
    [pose_advanced.butterworth]
    order = 4 
@@ -63,14 +59,13 @@ filter_type = 'butterworth' # butterworth, gaussian, LOESS, median
    [pose_advanced.median]
    kernel_size = 3
 
-
-[compute_angles_advanced] # for OPENPOSE and BLAZEPOSE
-save_img = true
-save_vid = true
+[compute_angles_advanced]
+show_angles_on_img = true
+show_angles_on_vid = true
 filter = true
-show_plots = false
-flip_left_right = true
-filter_type = 'loess' # butterworth, gaussian, LOESS, median
+show_plots = true
+flip_left_right = true # Same angles whether the participant faces left/right. Set it to false if you want timeseries to be continuous even when the participent switches their stance.
+filter_type = 'butterworth' # butterworth, gaussian, LOESS, median
    [compute_angles_advanced.butterworth]
    order = 4 
    cut_off_frequency = 6 # Hz
