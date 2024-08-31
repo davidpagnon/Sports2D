@@ -41,7 +41,7 @@ https://github.com/user-attachments/assets/1c6e2d6b-d0cf-4165-864e-d9f01c0b8a0e
 
 `Warning:` Angle estimation is only as good as the pose estimation algorithm, i.e., it is not perfect.\
 `Warning:` Results are acceptable only if the persons move in the 2D plane (sagittal or frontal plane). The persons need to be filmed as parallel as possible to the motion plane.\
-If you need research-grade markerless joint kinematics, consider using several cameras, and constraining angles to a biomechanically accurate model. See **[Pose2Sim](https://github.com/perfanalytics/pose2sim)** for example.
+If you need 3D research-grade markerless joint kinematics, consider using several cameras, and constraining angles to a biomechanically accurate model. See **[Pose2Sim](https://github.com/perfanalytics/pose2sim)** for example.
 
 <!--`Warning:` Google Colab does not follow the European GDPR requirements regarding data privacy. [Install locally](#installation) if this matters.-->
 
@@ -183,23 +183,23 @@ Will be much faster, with no impact on accuracy. However, the installation takes
 <br>
 
 ### What you get is what you need
-- Choose whether you want video, images, trc pose file, and angle mot file: for example, use
+- Choose whether you want video, images, trc pose file, and angle mot file. For example:
   ```cmd
   sports2d --save_vid false --save_img true --save_trc false --save_mot true
   ```
-- Choose which angles you need: for example, use
+- Choose which angles you needfile. For example:
   ```cmd
   sports2d --joint_angles 'right knee' 'left knee' --segment_angles None
   ```
-- Choose where to display the angles: either as a list on the upper-left of the image, or near the joint/segment, or both: for example, use
+- Choose where to display the angles: either as a list on the upper-left of the image, or near the joint/segment, or bothfile. For example:
   ```cmd
   sports2d --display_angle_values_on body
   ```
-- Choose where to save the results: for example, use
+- Choose where to save the resultsfile. For example:
   ```cmd
   sports2d --result_dir path_to_result_dir
   ```
-- Choose a fraction of the video to analyze (in seconds): for example, use
+- Choose a fraction of the video to analyze (in seconds)file. For example:
   ```cmd
   sports2d --time_range 0 2.1
   ```
@@ -212,7 +212,7 @@ Sports2D:
 - Detects 2D joint centers from a video or a webcam with RTMLib.
 - Computes selected joint and segment angles. 
 - Optionally saves processed image files and video file.
-- Optionally saves processed poses as a TRC file, and angles as a MOT f- (OpenSim compatible).
+- Optionally saves processed poses as a TRC file, and angles as a MOT file (OpenSim compatible).
 
 <br>
 
