@@ -160,6 +160,8 @@ def setup_webcam(webcam_id, save_vid, vid_output_path, input_size):
     out_vid = None
     if save_vid:
         fps = cap.get(cv2.CAP_PROP_FPS)
+        if frame_rate == 0:
+            frame_rate = 30
         # fourcc MJPG produces very large files but is faster. If it is too slow, consider using it and then converting the video to h264
         # try:
         #     fourcc = cv2.VideoWriter_fourcc(*'avc1') # =h264. better compression and quality but may fail on some systems
@@ -206,6 +208,8 @@ def setup_video(video_file_path, save_vid, vid_output_path):
     out_vid = None
     if save_vid:
         fps = cap.get(cv2.CAP_PROP_FPS)
+        if frame_rate == 0:
+            frame_rate = 30
         # try:
         #     fourcc = cv2.VideoWriter_fourcc(*'avc1') # =h264. better compression and quality but may fail on some systems
         #     out_vid = cv2.VideoWriter(vid_output_path, fourcc, fps, (cam_width, cam_height))

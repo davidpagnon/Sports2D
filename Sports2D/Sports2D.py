@@ -270,15 +270,14 @@ def base_params(config_dict):
         # frame_rates
         frame_rates = []
         for video_file in video_files:
-            print(str(video_dir / video_file))
             video = cv2.VideoCapture(str(video_dir / video_file))
+            if not video.isOpened():
+                raise FileNotFoundError(f'Error: Could not open {video_dir/video_file}. Check that the file exists.')
             frame_rate = video.get(cv2.CAP_PROP_FPS)
-            try:
-                1/frame_rate
-                frame_rates.append(frame_rate)
-            except ZeroDivisionError:
-                print('Frame rate could not be retrieved: check that your video exists at the correct path')
-                raise
+            if frame_rate == 0:
+                frame_rate = 30
+                logging.warning(f'Error: Could not retrieve frame rate from {video_dir/video_file}. Defaulting to 30fps.')
+            frame_rates.append(frame_rate)
             video.release()
 
         # time_ranges
