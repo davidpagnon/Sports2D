@@ -263,9 +263,9 @@ def base_params(config_dict):
         # video_files
         video_files = config_dict.get('project').get('video_input')
         if isinstance(video_files, str):
-            video_files = [Path(video_files)]
+            video_files = [video_dir / Path(video_files)]
         else: 
-            video_files = [Path(v) for v in video_files]
+            video_files = [video_dir / Path(v) for v in video_files]
 
         # frame_rates
         frame_rates = []

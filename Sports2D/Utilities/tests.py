@@ -40,7 +40,8 @@ def test_workflow():
     config_dict.get("process").update({"show_realtime_results":False})
     config_dict.get("post-processing").update({"show_plots":False})
     
-    from Sports2D import Sports2D; Sports2D.process(config_dict)
+    from Sports2D import Sports2D
+    Sports2D.process(config_dict)
 
     # From command line (CLI)
     subprocess.run(["python", "sports2d", "--show_realtime_results", "False", "--show_plots", "False"])
