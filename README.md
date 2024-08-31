@@ -37,7 +37,7 @@ Works on any smartphone!**\
 
 </br>
 
-<img src='Content/demo_gif.gif' title='Demonstration of Sports2D with OpenPose.'  width="760">
+https://github.com/user-attachments/assets/1c6e2d6b-d0cf-4165-864e-d9f01c0b8a0e
 
 `Warning:` Angle estimation is only as good as the pose estimation algorithm, i.e., it is not perfect.\
 `Warning:` Results are acceptable only if the persons move in the 2D plane (sagittal or frontal plane). The persons need to be filmed as parallel as possible to the motion plane.\
@@ -183,16 +183,26 @@ Will be much faster, with no impact on accuracy. However, the installation takes
 <br>
 
 ### What you get is what you need
-- Choose whether you want video, images, trc pose file, and angle mot file: for example, use\
-`--save_vid false --save_img true --save_trc false --save_mot true`
-- Choose which angles you need: for example, use\
-`--joint_angles 'right knee' 'left knee' --segment_angles None` 
-- Choose where to display the angles: either as a list on the upper-left of the image, or near the joint/segment, or both: for example, use\
-`--display_angle_values_on body`
-- Choose where to save the results: for example, use\
-`--result_dir path_to_result_dir`
-- Choose a fraction of the video to analyze (in seconds): for example, use\
-`--time_range 0 2.1`
+- Choose whether you want video, images, trc pose file, and angle mot file: for example, use
+  ```cmd
+  sports2d --save_vid false --save_img true --save_trc false --save_mot true
+  ```
+- Choose which angles you need: for example, use
+  ```cmd
+  sports2d --joint_angles 'right knee' 'left knee' --segment_angles None
+  ```
+- Choose where to display the angles: either as a list on the upper-left of the image, or near the joint/segment, or both: for example, use
+  ```cmd
+  sports2d --display_angle_values_on body
+  ```
+- Choose where to save the results: for example, use
+  ```cmd
+  sports2d --result_dir path_to_result_dir
+  ```
+- Choose a fraction of the video to analyze (in seconds): for example, use
+  ```cmd
+  sports2d --time_range 0 2.1
+  ```
 
 <br>
 
