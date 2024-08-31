@@ -36,8 +36,10 @@ def test_workflow():
 
     # From python
     config_dict = toml.load('../Demo/Config_demo.toml')
+    config_dict.get("process").update({"video_dir":'../Demo'})
     config_dict.get("process").update({"show_realtime_results":False})
     config_dict.get("post-processing").update({"show_plots":False})
+    
     from Sports2D import Sports2D; Sports2D.process(config_dict)
 
     # From command line (CLI)
