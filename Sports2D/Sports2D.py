@@ -271,7 +271,7 @@ def base_params(config_dict):
         # frame_rates
         frame_rates = []
         for video_file in video_files:
-            video = cv2.VideoCapture(str(video_dir / video_file))
+            video = cv2.VideoCapture(str(video_dir / video_file)) if video_dir else cv2.VideoCapture(str(video_file))
             if not video.isOpened():
                 raise FileNotFoundError(f'Error: Could not open {video_dir/video_file}. Check that the file exists.')
             frame_rate = video.get(cv2.CAP_PROP_FPS)
