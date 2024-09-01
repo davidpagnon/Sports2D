@@ -15,6 +15,7 @@
 ## INIT
 import toml
 import subprocess
+from pathlib import Path
 
 
 ## AUTHORSHIP INFORMATION
@@ -48,5 +49,6 @@ def test_workflow():
     subprocess.run(demo_cmd, check=True, capture_output=True, text=True)
     
     # From command line (CLI) with config file
-    demo_config_cmd = ["sports2d", "--config", "../Config_demo.toml", "--show_realtime_results", "False", "--show_plots", "False"]
+    config_path = Path(__file__).resolve().parent / 'Demo' / 'Config_demo.toml'
+    demo_config_cmd = ["sports2d", "--config", config_path, "--show_realtime_results", "False", "--show_plots", "False"]
     subprocess.run(demo_config_cmd, check=True, capture_output=True, text=True)
