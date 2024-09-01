@@ -105,13 +105,20 @@ Just open a command line and run:
 sports2d
 ```
 
-You should see the joint positions and angles being displayed in real time.\
+You should see the joint positions and angles being displayed in real time.
+
 Check the folder where you run that command line to find the resulting `video`, `images`, `TRC pose` and `MOT angle` files (which can be opened with any spreadsheet software), and `logs`.
 
-***Important:*** If you did the conda install, you first need to activate the environment: run `conda activate sports2d` in the Anaconda prompt.
+***Important:*** If you ran the conda install, you first need to activate the environment: run `conda activate sports2d` in the Anaconda prompt.
 
 <img src="Content/Demo_results.png" width="760">
 <img src="Content/Demo_terminal.png" width="760">
+
+***Note:***\
+The Demo video is voluntarily challenging to demonstrate the robustness of the process after sorting, interpolation and filtering. It contains:
+- One person walking in the sagittal plane
+- One person in the frontal plane. This person then performs a flip while being backlit, both of which are challenging for the pose detection algorithm
+- One tiny person flickering in the background who needs to be ignored
 
 <br>
 
@@ -207,28 +214,24 @@ Will be much faster, with no impact on accuracy. However, the installation takes
 Sports2D:
 - Detects 2D joint centers from a video or a webcam with RTMLib.
 - Computes selected joint and segment angles. 
-- Optionally saves processed image files and video file.
-- Optionally saves processed poses as a TRC file, and angles as a MOT file (OpenSim compatible).
+- Optionally saves processed image files and video file. Optionally saves processed poses as a TRC file, and angles as a MOT file (OpenSim compatible).
 
 <br>
 
 **Okay but how does it work, really?**\
 Sports2D:
-- Loads skeleton information from skeletons.py
-- Reads stream from a video or a webcam
-- Sets up the RTMLib pose tracker from RTMlib with specified parameters
-- Detects poses within the selected time range
-- Tracks people so that their IDs are consistent across frames. A person is associated to another in the next frame when they are at a small distance. Our tracker is more robust than the RTMlib one.
-- Retrieves the keypoints with high enough confidence, and only keeps the persons with enough high-confidence keypoints
-- Computes joint and segment angles, and flips those on the left/right side them if the respective foot is pointing to the left
-- Draws bounding boxes around each person with their IDs
-- Draws joint and segment angles on the body, and writes the values either near the joint/segment, or on the upper-left of the image with a progress bar
-- Draws the skeleton and the keypoints, with a green to red color scale to account for their confidence
-- Optionally show processed images, saves them, or saves them as a video
-- Interpolates missing pose and angle sequences if gaps are not too large
-- Filters them with the selected filter (among `Butterworth`, `Gaussian`, `LOESS`, or `Median`) and their parameters
-- Optionally plots pose and angle data before and after processing for comparison
-- Optionally saves poses for each person as a trc file, and angles as a mot file
+1. Reads stream from a webcam, from one video, or from a list of videos. Selects the specified time range to process.
+2. Sets up the RTMLib pose tracker from RTMlib with specified parameters. It can be run in lightweight, balanced, or performance mode, and for faster inference, keypoints can be tracked for a certain number of frames instead of detected. Any RTMPose model can be used. 
+3. Tracks people so that their IDs are consistent across frames. A person is associated to another in the next frame when they are at a small distance. IDs remain consistent even if the person disappears from a few frames. This carefully crafted `sports2d` tracker runs at a comparable speed as the RTMlib one but is much more robust. The user can still choose the RTMLib method if they need it by specifying it in the Config.toml file. .
+4. Retrieves the keypoints with high enough confidence, and only keeps the persons with enough average high-confidence.
+5. Computes the selected joint and segment angles, and flips them on the left/right side if the respective foot is pointing to the left/right. 
+5. Draws bounding boxes around each person and writes their IDs\
+  Draws the skeleton and the keypoints, with a green to red color scale to account for their confidence\
+  Draws joint and segment angles on the body, and writes the values either near the joint/segment, or on the upper-left of the image with a progress bar
+6. Interpolates missing pose and angle sequences if gaps are not too large. Filters them with the selected filter (among `Butterworth`, `Gaussian`, `LOESS`, or `Median`) and their parameters
+7. Optionally show processed images, saves them, or saves them as a video\
+  Optionally plots pose and angle data before and after processing for comparison\
+  Optionally saves poses for each person as a TRC file, and angles as a MOT file 
 
 <br>
 
@@ -252,6 +255,7 @@ Angles are measured anticlockwise between the horizontal and the segment.
 - Pelvis: Between left and right hip
 - Trunk: Between hip midpoint and shoulder midpoint
 - Shoulders: Between left and right shoulder
+- Head: Between neck and top of the head
 - Arm: Between shoulder and elbow
 - Forearm: Between elbow and wrist
 
