@@ -36,7 +36,8 @@ def test_workflow():
     '''
 
     # From python
-    config_dict = toml.load('../Demo/Config_demo.toml')
+    python_config_path = Path.cwd().parent / 'Demo' / 'Config_demo.toml'
+    config_dict = toml.load(python_config_path)
     config_dict.get("project").update({"video_dir":'../Demo'})
     config_dict.get("process").update({"show_realtime_results":False})
     config_dict.get("post-processing").update({"show_plots":False})
@@ -49,6 +50,6 @@ def test_workflow():
     subprocess.run(demo_cmd, check=True, capture_output=True, text=True)
     
     # From command line (CLI) with config file
-    config_path = Path(__file__).resolve().parent / 'Demo' / 'Config_demo.toml'
-    demo_config_cmd = ["sports2d", "--config", config_path, "--show_realtime_results", "False", "--show_plots", "False"]
+    cli_config_path = Path(__file__).resolve().parent.parent / 'Demo' / 'Config_demo.toml'
+    demo_config_cmd = ["sports2d", "--config", cli_config_path, "--show_realtime_results", "False", "--show_plots", "False"]
     subprocess.run(demo_config_cmd, check=True, capture_output=True, text=True)
