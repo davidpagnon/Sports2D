@@ -55,9 +55,10 @@ def test_workflow():
     cli_config_path = Path(__file__).resolve().parent.parent / 'Demo' / 'Config_demo.toml'
     cli_video_file = Path(__file__).resolve().parent.parent / 'Demo' / 'demo.mp4'
     config_dict = toml.load(cli_config_path)
-    print(config_dict)
+    print('cli_video_file: ', cli_video_file)
     config_dict.get("project").update({"video_input": cli_video_file})
     with open(cli_config_path, 'w') as f: toml.dump(config_dict, f)
+    print('config_dict: ', config_dict)
 
     demo_config_cmd = ["sports2d", "--config", cli_config_path, "--show_realtime_results", "False", "--show_plots", "False"]
     subprocess.run(demo_config_cmd, check=True, capture_output=True, text=True)
