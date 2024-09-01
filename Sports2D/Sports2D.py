@@ -379,6 +379,8 @@ def process(config='Config_demo.toml'):
         logging.info(f"On {currentDateAndTime.strftime('%A %d. %B %Y, %H:%M:%S')}")
         logging.info("---------------------------------------------------------------------")
 
+        print('process ', video_file)
+        print(config_dict)
         process_fun(config_dict, video_file, time_range, frame_rate, result_dir)
 
         elapsed_time = (datetime.now() - currentDateAndTime).total_seconds()        
@@ -442,6 +444,7 @@ def main():
             set_nested_value(new_config, leaf_key, cli_value)
 
     # Run process with the new configuration dictionary
+    print('after nesting ', new_config)
     Sports2D.process(new_config)
 
 
