@@ -1155,12 +1155,6 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 else:
                     if 'prev_keypoints' not in locals(): prev_keypoints = keypoints
                     prev_keypoints, keypoints, scores = sort_people_sports2d(prev_keypoints, keypoints, scores)
-                    # print("frame_count", frame_count)
-                    # print('keypoints', repr(keypoints))
-                    # keypoints, scores = sort_people_sports2d(prev_keypoints, keypoints, scores)
-                    # print('sorted_keypoints', repr(keypoints))
-                    # prev_keypoints = keypoints
-
             else: # single person
                 keypoints, scores = np.array([keypoints[0]]), np.array([scores[0]])
             
