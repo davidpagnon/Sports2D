@@ -183,7 +183,8 @@ DEFAULT_CONFIG =   {'project': {'video_input': ['Demo.mp4'],
                                         }
                     }
 
-CONFIG_HELP =   {'video_input': "webcam, or video_path.mp4, or video1_path.avi video2_path.mp4 ...",
+CONFIG_HELP =   {'config': "Path to a toml configuration file",
+                'video_input': "webcam, or video_path.mp4, or video1_path.avi video2_path.mp4 ...",
                 'time_range': "start_time, end_time. In seconds. Whole video if not specified",
                 'video_dir': "Current directory if not specified",
                 'webcam_id': "webcam ID. 0 if not specified",
@@ -413,7 +414,7 @@ def main():
 
     # Dynamically add arguments for each leaf key in the DEFAULT_CONFIG
     parser = argparse.ArgumentParser(description="Use sports2d to compute your athlete's pose, joint, and segment angles. See https://github.com/davidpagnon/Sports2D")
-    parser.add_argument('--config', type=str, required=False, help='Path to the toml configuration file')
+    parser.add_argument('--config', type=str, required=False, help='Path to a toml configuration file')
     leaf_keys = get_leaf_keys(DEFAULT_CONFIG)
     for key in leaf_keys:
         leaf_name = key.split('.')[-1]

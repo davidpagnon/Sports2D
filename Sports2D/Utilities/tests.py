@@ -44,9 +44,9 @@ def test_workflow():
     Sports2D.process(config_dict)
 
     # From command line (CLI)
-    demo_cmd = ["python", "sports2d", "--show_realtime_results", "False", "--show_plots", "False"]
+    demo_cmd = ["sports2d", "--show_realtime_results", "False", "--show_plots", "False"]
     subprocess.run(demo_cmd, check=True, capture_output=True, text=True)
     
     # From command line (CLI) with config file
-    demo_config_cmd = ["python", "sports2d", "-c", "../Config_demo.toml", "--show_realtime_results", "False", "--show_plots", "False"]
+    demo_config_cmd = ["sports2d", "-c", "../Config_demo.toml", "--show_realtime_results", "False", "--show_plots", "False"]
     subprocess.run(demo_config_cmd, check=True, capture_output=True, text=True)
