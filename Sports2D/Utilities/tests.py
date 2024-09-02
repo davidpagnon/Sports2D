@@ -54,7 +54,7 @@ def test_workflow():
     # From command line (CLI) with config file
     cli_config_path = Path(__file__).resolve().parent.parent / 'Demo' / 'Config_demo.toml'
     config_dict = toml.load(cli_config_path)
-    cli_video_file = 'demo.mp4'
+    cli_video_file = Path(__file__).resolve().parent.parent / 'Demo' / 'demo.mp4'
     config_dict.get("project").update({"video_input": cli_video_file})
     with open(cli_config_path, 'w') as f: toml.dump(config_dict, f)
 
