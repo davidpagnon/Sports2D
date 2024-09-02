@@ -12,7 +12,7 @@
 
 
 [project]
-video_input = 'demo.mp4' # 'webcam' or '<video_path.ext>', or ['video1_path.mp4', 'video2_path.avi>', ...]
+video_input = 'demo.mp4' # 'webcam' or '<video_path.ext>', or ['video1_path.mp4', 'video2_path.avi>', ...]. Beware that images won't be saved if paths contain non ASCII characters.
 
 # Video parameters
 time_range = [] # [] for the whole video, or [start_time, end_time] (in seconds), or [[start_time1, end_time1], [start_time2, end_time2], ...]
@@ -52,6 +52,8 @@ keypoint_number_threshold = 0.3 # Person will be ignored if the number of good k
 
 [angles]
 display_angle_values_on = ['body','list'] # 'body', 'list', ['body', 'list'], []. Display angle values on the body, as a list in the upper left of the image, both, or do not display them.
+fontSize = 0.3
+
 # Select joint angles among
 # ['Right ankle', 'Left ankle', 'Right knee', 'Left knee', 'Right hip', 'Left hip', 'Right shoulder', 'Left shoulder', 'Right elbow', 'Left elbow', 'Right wrist', 'Left wrist']
 joint_angles = ['right ankle', 'left ankle', 'right knee', 'Left knee', 'Right hip', 'Left hip', 'Right shoulder', 'Left shoulder', 'Right elbow', 'Left elbow']

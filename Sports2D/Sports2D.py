@@ -144,6 +144,7 @@ DEFAULT_CONFIG =   {'project': {'video_input': ['demo.mp4'],
                                 'keypoint_number_threshold': 0.3
                                 },
                     'angles':   {'display_angle_values_on': ['body', 'list'],
+                                'fontSize': 0.3,
                                 'joint_angles': [   'Right ankle',
                                                     'Left ankle',
                                                     'Right knee',
@@ -184,7 +185,7 @@ DEFAULT_CONFIG =   {'project': {'video_input': ['demo.mp4'],
                     }
 
 CONFIG_HELP =   {'config': "Path to a toml configuration file",
-                'video_input': "webcam, or video_path.mp4, or video1_path.avi video2_path.mp4 ...",
+                'video_input': "webcam, or video_path.mp4, or video1_path.avi video2_path.mp4 ... Beware that images won't be saved if paths contain non ASCII characters",
                 'time_range': "start_time, end_time. In seconds. Whole video if not specified",
                 'video_dir': "Current directory if not specified",
                 'webcam_id': "webcam ID. 0 if not specified",
@@ -205,6 +206,7 @@ CONFIG_HELP =   {'config': "Path to a toml configuration file",
                 'average_likelihood_threshold': "Detected persons are not retained if average keypoint likelihood is below this threshold. 0.5 if not specified",
                 'keypoint_number_threshold': "Detected persons are not retained if number of detected keypoints is below this threshold. 0.3 if not specified, i.e., i.e., 30 percent",
                 'display_angle_values_on': "body, list, or body list. body list if not specified",
+                'fontSize': "Font size for angle values. 0.3 if not specified",
                 'joint_angles': "Right ankle, Left ankle, Right knee, Left knee, Right hip, Left hip, Right shoulder, Left shoulder, Right elbow, Left elbow if not specified",
                 'segment_angles': "Right foot, Left foot, Right shank, Left shank, Right thigh, Left thigh, Pelvis, Trunk, Shoulders, Head, Right arm, Left arm, Right forearm, Left forearm if not specified",
                 'flip_left_right': "true or false. true to get consistent angles with people facing both left and right sides. Set it to false if you want timeseries to be continuous even when the participent switches their stance. true if not specified",
@@ -256,7 +258,7 @@ def base_params(config_dict):
 
     # video_files, frame_rates, time_ranges
     video_input = config_dict.get('project').get('video_input')
-    if video_input == "webcam":
+    if video_input == "webcam" or video_input == ["webcam"]:
         video_files = ['webcam']  # No video files for webcam
         frame_rates = [None]  # No frame rate for webcam
         time_ranges = [None]

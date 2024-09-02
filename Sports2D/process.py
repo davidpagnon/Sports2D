@@ -113,7 +113,6 @@ colors = [(255, 0, 0), (0, 0, 255), (255, 255, 0), (255, 0, 255), (0, 255, 255),
             (255, 125, 125), (125, 255, 125), (125, 125, 255), (255, 255, 125), (255, 125, 255), (125, 255, 255), (125, 125, 125),
             (255, 0, 125), (255, 125, 0), (0, 125, 255), (0, 255, 125), (125, 0, 255), (125, 255, 0), (0, 255, 0)]
 thickness = 1
-fontSize = 0.3
 
 
 ## AUTHORSHIP INFORMATION
@@ -505,7 +504,7 @@ def draw_dotted_line(img, start, direction, length, color=(0, 255, 0), gap=7, do
         cv2.line(img, tuple(line_start.astype(int)), tuple(line_end.astype(int)), color, thickness)
 
 
-def draw_bounding_box(img, X, Y, colors=[(255, 0, 0), (0, 255, 0), (0, 0, 255)]):
+def draw_bounding_box(img, X, Y, colors=[(255, 0, 0), (0, 255, 0), (0, 0, 255)], fontSize=0.3, thickness=1):
     '''
     Draw bounding boxes and person ID around list of lists of X and Y coordinates.
     Bounding boxes have a different color for each person.
@@ -536,7 +535,7 @@ def draw_bounding_box(img, X, Y, colors=[(255, 0, 0), (0, 255, 0), (0, 0, 255)])
             cv2.rectangle(img, (x_min-25, y_min-25), (x_max+25, y_max+25), color, thickness) 
         
             # Write person ID
-            cv2.putText(img, str(i), (x_min, y_min), cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2, cv2.LINE_AA) 
+            cv2.putText(img, str(i), (x_min-30, y_min-30), cv2.FONT_HERSHEY_SIMPLEX, fontSize+1, color, 2, cv2.LINE_AA) 
     
     return img
 
@@ -608,7 +607,7 @@ def draw_keypts(img, X, Y, scores, cmap_str='RdYlGn'):
     return img
 
 
-def draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_ids, keypoints_names, angle_names, display_angle_values_on= ['body', 'list'], colors=[(255, 0, 0), (0, 255, 0), (0, 0, 255)]):
+def draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_ids, keypoints_names, angle_names, display_angle_values_on= ['body', 'list'], colors=[(255, 0, 0), (0, 255, 0), (0, 0, 255)], fontSize=0.3, thickness=1):
     '''
     Draw angles on the image.
     Angles are displayed as a list on the image and/or on the body.
@@ -635,7 +634,7 @@ def draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_
         if not np.isnan(X).all():
             # person label
             if 'list' in display_angle_values_on:
-                person_label_position = (int(10 + fontSize*200/0.3*person_id), 15)
+                person_label_position = (int(10 + fontSize*150/0.3*person_id), int(fontSize*50))
                 cv2.putText(img, f'person {person_id}', person_label_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (255,255,255), thickness+1, cv2.LINE_AA)
                 cv2.putText(img, f'person {person_id}', person_label_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, c, thickness, cv2.LINE_AA)
             
@@ -656,18 +655,18 @@ def draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_
                         if 'body' in display_angle_values_on:
                             if len(ang_coords) == 2: # segment angle
                                 app_point, vec = draw_segment_angle(img, ang_coords, flip)
-                                write_angle_on_body(img, ang, app_point, vec, np.array([1,0]), dist=20, color=(255,255,255))
+                                write_angle_on_body(img, ang, app_point, vec, np.array([1,0]), dist=20, color=(255,255,255), fontSize=fontSize, thickness=thickness)
                             
                             else: # joint angle
                                 app_point, vec1, vec2 = draw_joint_angle(img, ang_coords, flip, right_angle)
-                                write_angle_on_body(img, ang, app_point, vec1, vec2, dist=40, color=(0,255,0))
+                                write_angle_on_body(img, ang, app_point, vec1, vec2, dist=40, color=(0,255,0), fontSize=fontSize, thickness=thickness)
 
                         # Write angle as a list on image with progress bar
                         if 'list' in display_angle_values_on:
                             if len(ang_coords) == 2: # segment angle
-                                ang_label_line = write_angle_as_list(img, ang, ang_name, person_label_position, ang_label_line, color = (255,255,255))
+                                ang_label_line = write_angle_as_list(img, ang, ang_name, person_label_position, ang_label_line, color = (255,255,255), fontSize=fontSize, thickness=thickness)
                             else:
-                                ang_label_line = write_angle_as_list(img, ang, ang_name, person_label_position, ang_label_line, color = (0,255,0))
+                                ang_label_line = write_angle_as_list(img, ang, ang_name, person_label_position, ang_label_line, color = (0,255,0), fontSize=fontSize, thickness=thickness)
 
     return img
 
@@ -751,7 +750,7 @@ def draw_joint_angle(img, ang_coords, flip, right_angle):
         return app_point, unit_segment_direction, unit_parentsegment_direction
 
 
-def write_angle_on_body(img, ang, app_point, vec1, vec2, dist=40, color=(255,255,255)):
+def write_angle_on_body(img, ang, app_point, vec1, vec2, dist=40, color=(255,255,255), fontSize=0.3, thickness=1):
     '''
     Write the angle on the body.
 
@@ -777,7 +776,7 @@ def write_angle_on_body(img, ang, app_point, vec1, vec2, dist=40, color=(255,255
     cv2.putText(img, f'{ang:.1f}', text_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize, color, thickness, cv2.LINE_AA)
 
 
-def write_angle_as_list(img, ang, ang_name, person_label_position, ang_label_line, color=(255,255,255)):
+def write_angle_as_list(img, ang, ang_name, person_label_position, ang_label_line, color=(255,255,255), fontSize=0.3, thickness=1):
     '''
     Write the angle as a list on the image with a progress bar.
 
@@ -796,16 +795,17 @@ def write_angle_as_list(img, ang, ang_name, person_label_position, ang_label_lin
     
     if not np.any(np.isnan(ang)):
         # angle names and values
-        ang_label_position = (person_label_position[0], person_label_position[1]+ang_label_line*15)
+        ang_label_position = (person_label_position[0], person_label_position[1]+int((ang_label_line)*40*fontSize))
+        ang_value_position = (ang_label_position[0]+int(250*fontSize), ang_label_position[1])
         cv2.putText(img, f'{ang_name}:', ang_label_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize, (0, 0, 0), thickness+1, cv2.LINE_AA)
         cv2.putText(img, f'{ang_name}:', ang_label_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize, color, thickness, cv2.LINE_AA)
-        cv2.putText(img, f'{ang:.1f}', (ang_label_position[0]+100, ang_label_position[1]), cv2.FONT_HERSHEY_SIMPLEX, fontSize, (0, 0, 0), thickness+1, cv2.LINE_AA)
-        cv2.putText(img, f'{ang:.1f}', (ang_label_position[0]+100, ang_label_position[1]), cv2.FONT_HERSHEY_SIMPLEX, fontSize, color, thickness, cv2.LINE_AA)
+        cv2.putText(img, f'{ang:.1f}', ang_value_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize, (0, 0, 0), thickness+1, cv2.LINE_AA)
+        cv2.putText(img, f'{ang:.1f}', ang_value_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize, color, thickness, cv2.LINE_AA)
         
         # progress bar
         ang_percent = int(ang*50/180)
-        y_crop, y_crop_end = 1+15*ang_label_line, 16+15*ang_label_line
-        x_crop, x_crop_end = ang_label_position[0]+115, ang_label_position[0]+115+ang_percent
+        y_crop, y_crop_end = ang_value_position[1] - int(35*fontSize), ang_value_position[1]
+        x_crop, x_crop_end = ang_label_position[0]+int(300*fontSize), ang_label_position[0]+int(300*fontSize)+int(ang_percent*fontSize/0.3)
         if ang_percent < 0:
             x_crop, x_crop_end = x_crop_end, x_crop
         img_crop = img[y_crop:y_crop_end, x_crop:x_crop_end]
@@ -966,6 +966,8 @@ def angle_plots(angle_data_unfiltered, angle_data):
 
         pw.addPlot(angle, f)
 
+    pw.show()
+
 
 def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     '''
@@ -991,7 +993,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     - optionally plots pose and angle data before and after processing for comparison
     - optionally saves poses for each person as a trc file, and angles as a mot file
         
-    /!\ Warning /!\
+    /!\ Warning /!\d
     - The pose detection is only as good as the pose estimation algorithm, i.e., it is not perfect.
     - It will lead to reliable results only if the persons move in the 2D plane (sagittal or frontal plane).
     - The persons need to be filmed as perpendicularly as possible from their side.
@@ -1023,7 +1025,6 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     save_img = config_dict.get('process').get('save_img')
     save_pose = config_dict.get('process').get('save_pose')
     save_angles = config_dict.get('process').get('save_angles')
-    result_dir = Path(config_dict.get('process').get('result_dir'))
 
     # Pose_advanced settings
     pose_model = config_dict.get('pose').get('pose_model')
@@ -1041,6 +1042,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     angle_names = joint_angle_names + segment_angle_names
     angle_names = [angle_name.lower() for angle_name in angle_names]
     display_angle_values_on = config_dict.get('angles').get('display_angle_values_on')
+    fontSize = config_dict.get('angles').get('fontSize')
+    thickness = 1 if fontSize < 0.8 else 2
     flip_left_right = config_dict.get('angles').get('flip_left_right')
 
     # Post-processing settings
@@ -1074,7 +1077,6 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     vid_output_path = output_dir / f'{output_dir_name}_Sports2D.mp4'
     pose_output_path = output_dir / f'{output_dir_name}_px.trc'
     angles_output_path = output_dir / f'{output_dir_name}_angles.mot'
-
     output_dir.mkdir(parents=True, exist_ok=True)
     if save_img:
         img_output_dir.mkdir(parents=True, exist_ok=True)
@@ -1142,8 +1144,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     all_frames_angles.append([])
                 continue
             else:
-                cv2.putText(frame, f"Press 'q' to quit", (cam_width-150, cam_height-20), cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (255,255,255), thickness+1, cv2.LINE_AA)
-                cv2.putText(frame, f"Press 'q' to quit", (cam_width-150, cam_height-20), cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (0,0,255), thickness, cv2.LINE_AA)
+                cv2.putText(frame, f"Press 'q' to quit", (cam_width-int(400*fontSize), cam_height-20), cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (255,255,255), thickness+1, cv2.LINE_AA)
+                cv2.putText(frame, f"Press 'q' to quit", (cam_width-int(400*fontSize), cam_height-20), cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (0,0,255), thickness, cv2.LINE_AA)
             
             # Detect poses
             keypoints, scores = pose_tracker(frame)
@@ -1196,10 +1198,10 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             # Draw keypoints and skeleton
             if show_realtime_results or save_vid or save_img:
                 img = frame.copy()
-                img = draw_bounding_box(img, valid_X, valid_Y, colors=colors)
+                img = draw_bounding_box(img, valid_X, valid_Y, colors=colors, fontSize=fontSize, thickness=thickness)
                 img = draw_keypts(img, valid_X, valid_Y, scores, cmap_str='RdYlGn')
                 img = draw_skel(img, valid_X, valid_Y, model, colors=colors)
-                img = draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_ids, keypoints_names, angle_names, display_angle_values_on=display_angle_values_on, colors=colors)
+                img = draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_ids, keypoints_names, angle_names, display_angle_values_on=display_angle_values_on, colors=colors, fontSize=fontSize, thickness=thickness)
 
                 if show_realtime_results:
                     cv2.imshow(f'{video_file} Sports2D', img)
@@ -1208,7 +1210,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 if save_vid:
                     out_vid.write(img)
                 if save_img:
-                    cv2.imwrite(str(img_output_dir / f'{output_dir_name}_{frame_count:06d}.png'), img)
+                    cv2.imwrite(str((img_output_dir / f'{output_dir_name}_{frame_count:06d}.png')), img)
 
             if save_pose:
                 all_frames_X.append(np.array(valid_X))
