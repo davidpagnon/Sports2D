@@ -447,8 +447,7 @@ def main():
     if video_dir == '': video_dir = Path.cwd()
     print('2video_dir', video_dir)
     video_input = new_config.get('project').get('video_input')
-    print('3video_input', video_input)
-    video_files = [Path(video_input)]
+    video_files = [Path(video_input[0])]
     print('4video_files str', video_files)
     if video_dir:
         print('5video_dir', str(video_dir / video_files[0]))
