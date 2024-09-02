@@ -264,13 +264,19 @@ def base_params(config_dict):
         # video_files
         video_files = config_dict.get('project').get('video_input')
         if isinstance(video_files, str):
+            print('VIDEO FILE IS STRING')
             video_files = [Path(video_files)]
         else: 
+            print('VIDEO FILE IS NOT STRING') 
             video_files = [Path(v) for v in video_files]
+        print('video_files base_params: ', video_files)
 
         # frame_rates
         frame_rates = []
         for video_file in video_files:
+            print('video_dir: ', video_dir)
+            print('video_file: ', video_file)
+            print('video_dir/video_file: ', str(video_dir / video_file))
             video = cv2.VideoCapture(str(video_dir / video_file)) if video_dir else cv2.VideoCapture(str(video_file))
             if not video.isOpened():
                 raise FileNotFoundError(f'Error: Could not open {video_dir/video_file}. Check that the file exists.')
