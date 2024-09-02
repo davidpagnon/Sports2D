@@ -264,19 +264,13 @@ def base_params(config_dict):
         # video_files
         video_files = config_dict.get('project').get('video_input')
         if isinstance(video_files, str):
-            print('VIDEO FILE IS STRING')
             video_files = [Path(video_files)]
         else: 
-            print('VIDEO FILE IS NOT STRING') 
             video_files = [Path(v) for v in video_files]
-        print('video_files base_params: ', video_files)
 
         # frame_rates
         frame_rates = []
         for video_file in video_files:
-            print('video_dir: ', video_dir)
-            print('video_file: ', video_file)
-            print('video_dir/video_file: ', str(video_dir / video_file))
             video = cv2.VideoCapture(str(video_dir / video_file)) if video_dir else cv2.VideoCapture(str(video_file))
             if not video.isOpened():
                 raise FileNotFoundError(f'Error: Could not open {video_dir/video_file}. Check that the file exists.')
@@ -369,8 +363,6 @@ def process(config='Config_demo.toml'):
         config_dict = config
     else:
         config_dict = read_config_file(config)
-    print('config_dict: ', config_dict['project']['video_input'])
-    print('config_dict: ', config_dict['project']['video_dir'])
     video_dir, video_files, frame_rates, time_ranges, result_dir = base_params(config_dict)
         
     result_dir.mkdir(parents=True, exist_ok=True)
@@ -387,8 +379,6 @@ def process(config='Config_demo.toml'):
         logging.info(f"On {currentDateAndTime.strftime('%A %d. %B %Y, %H:%M:%S')}")
         logging.info("---------------------------------------------------------------------")
 
-        print('process ', video_file)
-        print(config_dict)
         process_fun(config_dict, video_file, time_range, frame_rate, result_dir)
 
         elapsed_time = (datetime.now() - currentDateAndTime).total_seconds()        
@@ -452,7 +442,6 @@ def main():
             set_nested_value(new_config, leaf_key, cli_value)
 
     # Run process with the new configuration dictionary
-    print('after nesting ', new_config)
     Sports2D.process(new_config)
 
 
