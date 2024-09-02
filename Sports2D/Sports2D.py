@@ -443,19 +443,6 @@ def main():
             set_nested_value(new_config, leaf_key, cli_value)
 
     # Run process with the new configuration dictionary
-    video_dir = Path(new_config.get('project').get('video_dir')).resolve()
-    if video_dir == '': video_dir = Path.cwd()
-    print('2video_dir', video_dir)
-    video_input = new_config.get('project').get('video_input')
-    video_files = [Path(video_input[0])]
-    print('4video_files str', video_files)
-    if video_dir:
-        print('5video_dir', str(video_dir / video_files[0]))
-    else:
-        print('novid_dir', str(video_files[0]))
-
-
-        
     Sports2D.process(new_config)
 
 
