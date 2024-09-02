@@ -444,10 +444,10 @@ def main():
 
     # Run process with the new configuration dictionary
     video_dir = Path(new_config.get('project').get('video_dir')).resolve()
-    print('1video_dir', video_dir)
     if video_dir == '': video_dir = Path.cwd()
     print('2video_dir', video_dir)
     video_input = new_config.get('project').get('video_input')
+    print('3video_input', video_input)
     video_files = [Path(video_input)]
     print('4video_files str', video_files)
     if video_dir:
