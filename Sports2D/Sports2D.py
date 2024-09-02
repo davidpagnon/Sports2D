@@ -444,6 +444,7 @@ def main():
             set_nested_value(new_config, leaf_key, cli_value)
 
     # Run process with the new configuration dictionary
+    print('OKKHL', new_config)
     Sports2D.process(new_config)
 
 
