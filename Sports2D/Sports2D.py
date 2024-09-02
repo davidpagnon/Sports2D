@@ -370,7 +370,7 @@ def process(config='Config_demo.toml'):
     else:
         config_dict = read_config_file(config)
     print('config_dict: ', config_dict['project']['video_input'])
-    print('config_dict: ', config_dict)['project']['video_dir']
+    print('config_dict: ', config_dict['project']['video_dir'])
     video_dir, video_files, frame_rates, time_ranges, result_dir = base_params(config_dict)
         
     result_dir.mkdir(parents=True, exist_ok=True)
