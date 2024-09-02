@@ -252,9 +252,7 @@ def base_params(config_dict):
 
     # videod_dir and result_dir
     video_dir = Path(config_dict.get('project').get('video_dir')).resolve()
-    print('1video_dir', video_dir)
     if video_dir == '': video_dir = Path.cwd()
-    print('2video_dir', video_dir)
     result_dir = Path(config_dict.get('process').get('result_dir')).resolve()
     if result_dir == '': result_dir = Path.cwd()
 
@@ -447,6 +445,18 @@ def main():
 
     # Run process with the new configuration dictionary
     print('OKKHL', new_config)
+    video_dir = Path(new_config.get('project').get('video_dir')).resolve()
+    print('1video_dir', video_dir)
+    if video_dir == '': video_dir = Path.cwd()
+    print('2video_dir', video_dir)
+    video_input = new_config.get('project').get('video_input')
+    print('3video_input', video_input)
+    if isinstance(video_files, str):
+        video_files = [Path(video_files)]
+        print('4video_files: str', video_files)
+    else: 
+        video_files = [Path(v) for v in video_files]
+        print('5video_files: list', video_files)
     Sports2D.process(new_config)
 
 
