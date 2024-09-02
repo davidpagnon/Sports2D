@@ -76,16 +76,19 @@ A detailed installation and usage guide can be found on the repository: https://
 <br>
 
 [**The Demo video]{.ul} that Sports2D is tested on is voluntarily challenging, in order to demonstrate the robustness of the process after sorting, interpolation and filtering. It contains:
+
 * One person walking in the sagittal plane
 *  One person in the frontal plane. This person then performs a flip while being backlit, both of which are challenging for the pose detection algorithm
 * One tiny person flickering in the background who needs to be ignored
 
 <br>
 
-[Joint and segment angle estimation]{.ul}:\
+[Joint and segment angle estimation]{.ul}:
+
 Specific joint and segment angles can be chosen. They are consistent regardless of the direction the participant is facing: the participant is considered to look to the left when their toes are to the left of their heels, and to the right otherwise. Resulting angles can be filtered in the same way as point coordinates, and they can also be plotted.
 
 Joint angle conventions are as follows (\autoref{fig:joint_angle_conventions}):
+
 * Ankle dorsiflexion: Between heel and big toe, and ankle and knee.\
   *-90° when the foot is aligned with the shank.*
 * Knee flexion: Between hip, knee, and ankle.\
@@ -98,6 +101,7 @@ Joint angle conventions are as follows (\autoref{fig:joint_angle_conventions}):
   *0° when the forearm is aligned with the arm.*
 
 Segment angles are measured anticlockwise between the horizontal and the segment lines:
+
 * Foot: Between heel and big toe.
 * Shank: Between knee and ankle.
 * Thigh: Between hip and knee.
