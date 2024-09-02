@@ -252,7 +252,9 @@ def base_params(config_dict):
 
     # videod_dir and result_dir
     video_dir = Path(config_dict.get('project').get('video_dir')).resolve()
+    print('1video_dir', video_dir)
     if video_dir == '': video_dir = Path.cwd()
+    print('2video_dir', video_dir)
     result_dir = Path(config_dict.get('process').get('result_dir')).resolve()
     if result_dir == '': result_dir = Path.cwd()
 
