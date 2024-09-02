@@ -264,11 +264,10 @@ def base_params(config_dict):
         time_ranges = [None]
     else:
         # video_files
-        video_files = config_dict.get('project').get('video_input')
-        if isinstance(video_files, str):
-            video_files = [Path(video_files)]
+        if isinstance(video_input, str):
+            video_files = [Path(video_input)]
         else: 
-            video_files = [Path(v) for v in video_files]
+            video_files = [Path(v) for v in video_input]
 
         # frame_rates
         frame_rates = []
@@ -451,12 +450,14 @@ def main():
     print('2video_dir', video_dir)
     video_input = new_config.get('project').get('video_input')
     print('3video_input', video_input)
-    if isinstance(video_files, str):
-        video_files = [Path(video_files)]
-        print('4video_files: str', video_files)
+    if isinstance(video_input, str):
+        video_files = [Path(video_input)]
+        print('4video_files str', video_files)
     else: 
-        video_files = [Path(v) for v in video_files]
-        print('5video_files: list', video_files)
+        video_files = [Path(v) for v in video_input]
+        print('5video_files list', video_files)
+
+        
     Sports2D.process(new_config)
 
 
