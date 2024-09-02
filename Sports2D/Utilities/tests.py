@@ -62,5 +62,5 @@ def test_workflow():
     with open(cli_config_path, 'w') as f: toml.dump(config_dict, f)
     print('config_dict: ', config_dict)
 
-    demo_config_cmd = ["sports2d", "--config", cli_config_path, "--show_realtime_results", "False", "--show_plots", "False"]
+    demo_config_cmd = ["sports2d", "--config", str(cli_config_path), "--show_realtime_results", "False", "--show_plots", "False"]
     subprocess.run(demo_config_cmd, check=True, capture_output=True, text=True)
