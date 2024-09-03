@@ -257,3 +257,23 @@ def euclidean_distance(q1, q2):
     euc_dist = np.sqrt(np.sum( [d**2 for d in dist]))
 
     return euc_dist
+
+
+def dynamic_fontSize(width, height, base_font_size=0.3, min_font_size=0.2, max_font_size=1, scale_factor=1.5):
+    '''
+    Dynamically adjust font size according to both the area and the aspect ratio
+    '''
+
+    # Current demo video resolution (assuming it is the optimal resolution for the base font size=0.3)
+    base_width = 1768
+    base_height = 994
+    base_resolution = base_width * base_height
+    resolution = width * height
+
+    # Consider the area of the video
+    area_scale_factor = resolution / base_resolution
+    adjusted_font_size = base_font_size * area_scale_factor
+    if resolution < base_resolution:
+        adjusted_font_size = base_font_size * area_scale_factor * scale_factor
+    
+    return max(min(adjusted_font_size, max_font_size), min_font_size)

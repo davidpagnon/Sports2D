@@ -52,7 +52,7 @@ keypoint_number_threshold = 0.3 # Person will be ignored if the number of good k
 
 [angles]
 display_angle_values_on = ['body','list'] # 'body', 'list', ['body', 'list'], []. Display angle values on the body, as a list in the upper left of the image, both, or do not display them.
-fontSize = 0.3
+fontSize = 'auto' # 'auto' or your preference
 
 # Select joint angles among
 # ['Right ankle', 'Left ankle', 'Right knee', 'Left knee', 'Right hip', 'Left hip', 'Right shoulder', 'Left shoulder', 'Right elbow', 'Left elbow', 'Right wrist', 'Left wrist']

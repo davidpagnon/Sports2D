@@ -1043,7 +1043,6 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     angle_names = [angle_name.lower() for angle_name in angle_names]
     display_angle_values_on = config_dict.get('angles').get('display_angle_values_on')
     fontSize = config_dict.get('angles').get('fontSize')
-    thickness = 1 if fontSize < 0.8 else 2
     flip_left_right = config_dict.get('angles').get('flip_left_right')
 
     # Post-processing settings
@@ -1108,6 +1107,10 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         cv2.namedWindow(f'{video_file} Sports2D', cv2.WINDOW_NORMAL + cv2.WINDOW_KEEPRATIO)
         cv2.setWindowProperty(f'{video_file} Sports2D', cv2.WND_PROP_ASPECT_RATIO, cv2.WINDOW_FULLSCREEN)
 
+    # Set up front size and thickness
+    if fontSize == 'auto' or fontSize == 'Auto':
+        fontSize = dynamic_fontSize(cam_width, cam_height)
+    thickness = 1 if fontSize < 0.8 else 2
 
     # Set up pose tracker
     tracking_rtmlib = True if (tracking_mode == 'rtmlib' and tracking) else False
