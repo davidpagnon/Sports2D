@@ -51,11 +51,11 @@ If you need 3D research-grade markerless joint kinematics, consider using severa
 ## Contents
 1. [Installation and Demonstration](#installation-and-demonstration)
    1. [Installation](#installation)
-   2. [Demonstration: Detect pose and compute 2D angles](#demonstration-detect-pose-and-compute-2d-angles)
+   2. [Demonstration](#demonstration)
    3. [Play with the parameters](#play-with-the-parameters)
 2. [Go further](#go-further)
    1. [Too slow for you?](#too-slow-for-you)
-   2. [What you get is what you need](#what-you-get-is-what-you-need)
+   2. [What you need is what you get](#what-you-need-is-what-you-get)
    3. [How it works](#how-it-works)
 3. [How to cite and how to contribute](#how-to-cite-and-how-to-contribute)
 
@@ -98,7 +98,7 @@ If you need 3D research-grade markerless joint kinematics, consider using severa
 
 <br>
 
-### Demonstration: Detect pose and compute 2D angles
+### Demonstration
 
 Just open a command line and run:
 ``` cmd
@@ -117,7 +117,7 @@ Check the folder where you run that command line to find the resulting `video`, 
 ***Note:***\
 The Demo video is voluntarily challenging to demonstrate the robustness of the process after sorting, interpolation and filtering. It contains:
 - One person walking in the sagittal plane
-- One person in the frontal plane. This person then performs a flip while being backlit, both of which are challenging for the pose detection algorithm
+- One person doing jumping jacks in the frontal plane. This person then performs a flip while being backlit, both of which are challenging for the pose detection algorithm
 - One tiny person flickering in the background who needs to be ignored
 
 <br>
@@ -169,23 +169,25 @@ sports2d --help
 - Use `--mode lightweight`: Will use a lighter version of RTMPose, which is faster but less accurate.
 - Use `--det_frequency 50`: Will detect poses only every 50 frames, and track keypoints inbetween, which is faster.
 
+<br> 
+
 **Use your GPU**:\
 Will be much faster, with no impact on accuracy. However, the installation takes about 6 GB of additional storage space.
 
-> Go to the [ONNXruntime requirement page](https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html#requirements), check the latest CUDA and cuDNN requirements. Then go to the [pyTorch website]( https://pytorch.org/get-started/locally) and install the latest version that satisfies these requirements (beware that torch 2.4 ships with cuDNN 9, while torch 2.3 installs cuDNN 8). For example:
-> ``` cmd
-> pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
-> ```
-> ***Note:*** Issues were reported with the default command. However, this has been tested and works:
-`pip install torch==2.3.1 torchvision==0.18.1 torchaudio==2.3.1 --index-url https://download.pytorch.org/whl/cu118`
->  Then install ONNX Runtime with GPU support:
-> ```
-> pip install onnxruntime-gpu
-> ```
+1. Go to the [ONNXruntime requirement page](https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html#requirements), check the latest CUDA and cuDNN requirements. Then go to the [pyTorch website]( https://pytorch.org/get-started/locally) and install the latest version that satisfies these requirements (beware that torch 2.4 ships with cuDNN 9, while torch 2.3 installs cuDNN 8). For example:
+   ``` cmd
+   pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+   ```
+<!-- > ***Note:*** Issues were reported with the default command. However, this has been tested and works:
+`pip install torch==2.3.1 torchvision==0.18.1 torchaudio==2.3.1 --index-url https://download.pytorch.org/whl/cu118` -->
+2. Then install ONNX Runtime with GPU support:
+   ```
+   pip install onnxruntime-gpu
+   ```
 
 <br>
 
-### What you get is what you need
+### What you need is what you get
 - Choose whether you want video, images, trc pose file, and angle mot file. For example:
   ```cmd
   sports2d --save_vid false --save_img true --save_trc false --save_mot true
@@ -290,7 +292,7 @@ If you want to contribute to Sports2D, please follow [this guide](https://docs.g
 - [x] **Filtering and plotting tools**.
 - [x] Handle sudden **changes of direction**.
 - [x] **Batch processing** for the analysis of multiple videos at once.
-- [ ] **Colab version** more user-friendly, usable on a smartphone.
+- [ ] **Colab version**: more user-friendly, usable on a smartphone.
 - [ ] **GUI applications** for Windows, Mac, and Linux, as well as for Android and iOS.
 - [ ] **Convert positions to meters** by providing the distance [between two clicked points](https://stackoverflow.com/questions/74248955/how-to-display-the-coordinates-of-the-points-clicked-on-the-image-in-google-cola)
 - [ ] Perform **Inverse kinematics and dynamics** with OpenSim (cf. [Pose2Sim](https://github.com/perfanalytics/pose2sim), but in 2D). Update [this model](https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Utilities/2D_gait.osim) (add arms, markers, remove muscles and contact spheres). Add pipeline example.
