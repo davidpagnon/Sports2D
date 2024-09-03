@@ -259,7 +259,7 @@ def euclidean_distance(q1, q2):
     return euc_dist
 
 
-def dynamic_fontSize(width, height, base_font_size=0.3, min_font_size=0.2, max_font_size=1, scale_factor=1.5):
+def dynamic_fontSize(width, height, base_font_size=0.3, min_font_size=0.2, max_font_size=1, scale_factor=1.7):
     '''
     Dynamically adjust font size according to both the area and the aspect ratio
     '''
@@ -268,12 +268,17 @@ def dynamic_fontSize(width, height, base_font_size=0.3, min_font_size=0.2, max_f
     base_width = 1768
     base_height = 994
     base_resolution = base_width * base_height
+
+    # input video resolution
     resolution = width * height
 
     # Consider the area of the video
     area_scale_factor = resolution / base_resolution
     adjusted_font_size = base_font_size * area_scale_factor
+
+    # If font size is too small, it is hard to read
     if resolution < base_resolution:
         adjusted_font_size = base_font_size * area_scale_factor * scale_factor
     
+    # I believe that the font size should be at least 0.2 and maximum range is 1 (through several tests)
     return max(min(adjusted_font_size, max_font_size), min_font_size)
