@@ -72,7 +72,7 @@ from Sports2D.Utilities.skeletons import *
 
 
 ## CONSTANTS
-angle_dict = { 
+angle_dict = { # lowercase!
     # joint angles
     'right ankle': [['RKnee', 'RAnkle', 'RBigToe', 'RHeel'], 'dorsiflexion', 90, 1],
     'left ankle': [['LKnee', 'LAnkle', 'LBigToe', 'LHeel'], 'dorsiflexion', 90, 1],
@@ -80,8 +80,8 @@ angle_dict = {
     'left knee': [['LAnkle', 'LKnee', 'LHip'], 'flexion', -180, 1],
     'right hip': [['RKnee', 'RHip', 'Hip', 'Neck'], 'flexion', 0, -1],
     'left hip': [['LKnee', 'LHip', 'Hip', 'Neck'], 'flexion', 0, -1],
-    # 'Lumbar': [['Neck', 'Hip', 'RHip', 'LHip'], 'flexion', -180, -1],
-    # 'Neck': [['Head', 'Neck', 'RShoulder', 'LShoulder'], 'flexion', -180, -1],
+    # 'lumbar': [['Neck', 'Hip', 'RHip', 'LHip'], 'flexion', -180, -1],
+    # 'neck': [['Head', 'Neck', 'RShoulder', 'LShoulder'], 'flexion', -180, -1],
     'right shoulder': [['RElbow', 'RShoulder', 'Hip', 'Neck'], 'flexion', 0, -1],
     'left shoulder': [['LElbow', 'LShoulder', 'Hip', 'Neck'], 'flexion', 0, -1],
     'right elbow': [['RWrist', 'RElbow', 'RShoulder'], 'flexion', 180, -1],
@@ -96,10 +96,10 @@ angle_dict = {
     'left shank': [['LAnkle', 'LKnee'], 'horizontal', 0, -1],
     'right thigh': [['RKnee', 'RHip'], 'horizontal', 0, -1],
     'left thigh': [['LKnee', 'LHip'], 'horizontal', 0, -1],
-    'Pelvis': [['LHip', 'RHip'], 'horizontal', 0, -1],
-    'Trunk': [['Neck', 'Hip'], 'horizontal', 0, -1],
-    'Shoulders': [['LShoulder', 'RShoulder'], 'horizontal', 0, -1],
-    'Head': [['Head', 'Neck'], 'horizontal', 0, -1],
+    'pelvis': [['LHip', 'RHip'], 'horizontal', 0, -1],
+    'trunk': [['Neck', 'Hip'], 'horizontal', 0, -1],
+    'shoulders': [['LShoulder', 'RShoulder'], 'horizontal', 0, -1],
+    'head': [['Head', 'Neck'], 'horizontal', 0, -1],
     'right arm': [['RElbow', 'RShoulder'], 'horizontal', 0, -1],
     'left arm': [['LElbow', 'LShoulder'], 'horizontal', 0, -1],
     'right forearm': [['RWrist', 'RElbow'], 'horizontal', 0, -1],
@@ -332,14 +332,14 @@ def compute_angle(ang_name, person_X_flipped, person_Y, angle_dict, keypoints_id
 
     ang_params = angle_dict.get(ang_name)
     if ang_params is not None:
-        if ang_name in ['Pelvis', 'Trunk', 'Shoulders']:
+        if ang_name in ['pelvis', 'trunk', 'shoulders']:
             angle_coords = [[np.abs(person_X_flipped[keypoints_ids[keypoints_names.index(kpt)]]), person_Y[keypoints_ids[keypoints_names.index(kpt)]]] for kpt in ang_params[0] if kpt in keypoints_names]
         else:
             angle_coords = [[person_X_flipped[keypoints_ids[keypoints_names.index(kpt)]], person_Y[keypoints_ids[keypoints_names.index(kpt)]]] for kpt in ang_params[0] if kpt in keypoints_names]
         ang = points2D_to_angles(angle_coords)
         ang += ang_params[2]
         ang *= ang_params[3]
-        if ang_name in ['Pelvis', 'Shoulders']:
+        if ang_name in ['pelvis', 'shoulders']:
             ang = ang-180 if ang>90 else ang
             ang = ang+180 if ang<-90 else ang
         else:
@@ -648,7 +648,7 @@ def draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_
                         ang_coords = np.array([[X[keypoints_ids[keypoints_names.index(kpt)]], Y[keypoints_ids[keypoints_names.index(kpt)]]] for kpt in ang_params[0] if kpt in keypoints_names])
                         X_flipped_coords = [X_flipped[keypoints_ids[keypoints_names.index(kpt)]] for kpt in ang_params[0] if kpt in keypoints_names]
                         flip = -1 if any(x_flipped < 0 for x_flipped in X_flipped_coords) else 1
-                        flip = 1 if ang_name in ['Pelvis', 'Trunk', 'Shoulders'] else flip
+                        flip = 1 if ang_name in ['pelvis', 'trunk', 'shoulders'] else flip
                         right_angle = True if ang_params[2]==90 else False
                         
                         # Draw angle
