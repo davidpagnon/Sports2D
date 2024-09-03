@@ -22,7 +22,7 @@
 </br>
 
 > **`Announcement:` \
-> Complete rewriting of the code!** Run `pip install sports2d -U` to get the latest version.\
+> Complete rewriting of the code!** Run `pip install sports2d -U` to get the latest version.
 > - Faster, more accurate
 > - Works from a webcam
 > - Better visualization output 
