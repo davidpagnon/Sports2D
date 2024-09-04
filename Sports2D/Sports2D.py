@@ -432,7 +432,8 @@ def main():
         new_config = toml.load(args.config)
     else:
         new_config = DEFAULT_CONFIG.copy()
-        new_config.get('project').update({'video_dir': Path(__file__).resolve().parent / 'Demo'})
+        if not new_config.get('project').get('video_input'):
+            new_config.get('project').update({'video_dir': Path(__file__).resolve().parent / 'Demo'})
 
     # Override dictionary with command-line arguments if provided
     leaf_keys = get_leaf_keys(new_config)
