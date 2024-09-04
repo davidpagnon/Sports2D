@@ -62,14 +62,14 @@ A detailed installation and usage guide can be found on the repository: https://
 
 1. Reads stream from a webcam, from one video, or from a list of videos. It selects an optional specified time range to process.
 2. Sets up the RTMLib pose tracker with specified parameters. It can be run in lightweight, balanced, or performance mode, and for faster inference, keypoints can be tracked for a certain number of frames instead of detected. Any RTMPose model can be used. 
-3. Tracks people so that their IDs are consistent across frames. A person is associated to another in the next frame when they are at a small distance. IDs remain consistent even if the person disappears from a few frames. This carefully crafted `sports2d` tracker runs at a comparable speed as the RTMlib one but is much more robust. The user can still choose the RTMLib method if they need it by specifying it in the Config.toml file. .
+3. Tracks people so that their IDs are consistent across frames. A person is associated to another in the next frame when they are at a small distance. IDs remain consistent even if the person disappears for a few frames. This carefully crafted `sports2d` tracker runs at a comparable speed as the RTMlib one but is much more robust. The user can still choose the RTMLib method if they need it by using the `tracking_mode` argument.
 4. Retrieves the keypoints with high enough confidence, and only keeps the persons with enough average high-confidence.
 5. Computes the selected joint and segment angles, and flips them on the left/right side if the respective foot is pointing to the left/right. The user can select which angles they want to compute, display, and save.
 5. Draws bounding boxes around each person and writes their IDs\
    Draws the skeleton and the keypoints, with a green to red color scale to account for their confidence\
    Draws joint and segment angles on the body, and writes the values either near the joint/segment, or on the upper-left of the image with a progress bar
 6. Interpolates missing pose and angle sequences if gaps are not too large. Filters them with the selected filter (among `Butterworth`, `Gaussian`, `LOESS`, or `Median`) and their parameters
-7. Optionally show processed images, saves them, or saves them as a video\
+7. Optionally shows processed images, saves them, or saves them as a video\
    Optionally plots pose and angle data before and after processing for comparison\
    Optionally saves poses for each person as a TRC file, and angles as a MOT file 
 
