@@ -1107,7 +1107,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         cv2.setWindowProperty(f'{video_file} Sports2D', cv2.WND_PROP_ASPECT_RATIO, cv2.WINDOW_FULLSCREEN)
 
     # Set up front size and thickness
-    if fontSize.lower() == 'auto':
+    if isinstance(fontSize, str) and fontSize.lower() == 'auto':
         fontSize = dynamic_fontSize(cam_width, cam_height)
     thickness = dynamic_thickness(fontSize)
 
