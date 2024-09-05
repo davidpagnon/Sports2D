@@ -259,7 +259,7 @@ def euclidean_distance(q1, q2):
     return euc_dist
 
 
-def dynamic_fontSize(width, height, base_font_size=0.3, min_font_size=0.2, max_font_size=1, scale_factor=1.5, base_thickness=1):
+def dynamic_fontSize(width, height, base_font_size=0.3, min_font_size=0.2, max_font_size=1, scale_factor=1.5):
     '''
     Dynamically adjust font size according to both the area and the aspect ratio
     '''
