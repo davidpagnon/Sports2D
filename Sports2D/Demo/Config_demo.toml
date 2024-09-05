@@ -51,7 +51,7 @@ keypoint_number_threshold = 0.3 # Person will be ignored if the number of good k
 
 
 [angles]
-display_angle_values_on = ['body','list'] # 'body', 'list', ['body', 'list'], []. Display angle values on the body, as a list in the upper left of the image, both, or do not display them.
+display_angle_values_on = ['body','list'] # 'body', 'list', ['body', 'list'], None. Display angle values on the body, as a list in the upper left of the image, both, or do not display them.
 fontSize = 0.3
 
 # Select joint angles among
@@ -71,7 +71,7 @@ interp_gap_smaller_than = 10 # do not interpolate bigger gaps
 fill_large_gaps_with = 'last_value' # 'last_value', 'nan', or 'zeros' 
 
 filter = true
-show_plots = true # Crashes on the third opened window...
+show_graphs = true # Show plots of raw and processed results
 filter_type = 'butterworth' # butterworth, gaussian, LOESS, median
    [post-processing.butterworth]
    order = 4 

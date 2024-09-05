@@ -652,13 +652,16 @@ def draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_
                         right_angle = True if ang_params[2]==90 else False
                         
                         # Draw angle
+                        if len(ang_coords) == 2: # segment angle
+                            app_point, vec = draw_segment_angle(img, ang_coords, flip)
+                        else: # joint angle
+                            app_point, vec1, vec2 = draw_joint_angle(img, ang_coords, flip, right_angle)
+    
+                        # Write angle on body
                         if 'body' in display_angle_values_on:
                             if len(ang_coords) == 2: # segment angle
-                                app_point, vec = draw_segment_angle(img, ang_coords, flip)
                                 write_angle_on_body(img, ang, app_point, vec, np.array([1,0]), dist=20, color=(255,255,255), fontSize=fontSize, thickness=thickness)
-                            
                             else: # joint angle
-                                app_point, vec1, vec2 = draw_joint_angle(img, ang_coords, flip, right_angle)
                                 write_angle_on_body(img, ang, app_point, vec1, vec2, dist=40, color=(0,255,0), fontSize=fontSize, thickness=thickness)
 
                         # Write angle as a list on image with progress bar

@@ -175,7 +175,7 @@ DEFAULT_CONFIG =   {'project': {'video_input': ['demo.mp4'],
                                         'interp_gap_smaller_than': 10,
                                         'fill_large_gaps_with': 'last_value',
                                         'filter': True,
-                                        'show_plots': True,
+                                        'show_graphs': True,
                                         'filter_type': 'butterworth',
                                         'butterworth': {'order': 4, 'cut_off_frequency': 3},
                                         'gaussian': {'sigma_kernel': 1},
@@ -184,43 +184,43 @@ DEFAULT_CONFIG =   {'project': {'video_input': ['demo.mp4'],
                                         }
                     }
 
-CONFIG_HELP =   {'config': "Path to a toml configuration file",
-                'video_input': "webcam, or video_path.mp4, or video1_path.avi video2_path.mp4 ... Beware that images won't be saved if paths contain non ASCII characters",
-                'time_range': "start_time, end_time. In seconds. Whole video if not specified",
-                'video_dir': "Current directory if not specified",
-                'webcam_id': "webcam ID. 0 if not specified",
-                'input_size': "width, height. 1280, 720 if not specified. Lower resolution will be faster but less precise",
-                'multiperson': "Multiperson involves tracking: will be faster if set to false. true if not specified",
-                'show_realtime_results': "show results in real-time. true if not specified",
-                'save_vid': "save processed video. true if not specified",
-                'save_img': "save processed images. true if not specified",
-                'save_pose': "save pose as trc files. true if not specified",
-                'save_angles': "save angles as mot files. true if not specified",
-                'result_dir': "Current directory if not specified",
-                'pose_model': "Only body_with_feet is available for now. body_with_feet if not specified",
-                'mode': "light, balanced, or performance. balanced if not specified",
-                'det_frequency': "Run person detection only every N frames, and inbetween track previously detected bounding boxes. keypoint detection is still run on all frames.\n\
-                                 Equal to or greater than 1, can be as high as you want in simple uncrowded cases. Much faster, but might be less accurate. 1 if not specified: detection runs on all frames",
-                'tracking_mode': "sports2d or rtmlib. sports2d is generally much more accurate and comparable in speed. sports2d if not specified",
-                'keypoint_likelihood_threshold': "Detected keypoints are not retained if likelihood is below this threshold. 0.3 if not specified",
-                'average_likelihood_threshold': "Detected persons are not retained if average keypoint likelihood is below this threshold. 0.5 if not specified",
-                'keypoint_number_threshold': "Detected persons are not retained if number of detected keypoints is below this threshold. 0.3 if not specified, i.e., i.e., 30 percent",
-                'display_angle_values_on': "body, list, or body list. body list if not specified",
-                'fontSize': "Font size for angle values. 0.3 if not specified",
-                'joint_angles': '"Right ankle" "Left ankle" "Right knee" "Left knee" "Right hip" "Left hip" "Right shoulder" "Left shoulder" "Right elbow" "Left elbow" if not specified',
-                'segment_angles': '"Right foot" "Left foot" "Right shank" "Left shank" "Right thigh" "Left thigh" "Pelvis" "Trunk" "Shoulders" "Head" "Right arm" "Left arm" "Right forearm" "Left forearm" if not specified',
-                'flip_left_right': "true or false. true to get consistent angles with people facing both left and right sides. Set it to false if you want timeseries to be continuous even when the participent switches their stance. true if not specified",
-                'interpolate': "Interpolate missing data. true if not specified",
-                'interp_gap_smaller_than': "Interpolate sequences of missing data if they are less than N frames long. 10 if not specified",
-                'fill_large_gaps_with': "last_value, nan, or zeros. last_value if not specified",
-                'filter': "Filter results. true if not specified",
-                'show_plots': "Show plots. true if not specified",
-                'filter_type': "butterworth, gaussian, median, or loess. butterworth if not specified",
-                'order': "Order of the Butterworth filter. 4 if not specified", 
-                'cut_off_frequency': "Cut-off frequency of the Butterworth filter. 3 if not specified",
-                'sigma_kernel': "Sigma of the gaussian filter. 1 if not specified",
-                'nb_values_used': "Number of values used for the loess filter. 5 if not specified",
-                'kernel_size': "Kernel size of the median filter. 3 if not specified"
+CONFIG_HELP =   {'config': ["c", "Path to a toml configuration file"],
+                'video_input': ["i", "webcam, or video_path.mp4, or video1_path.avi video2_path.mp4 ... Beware that images won't be saved if paths contain non ASCII characters"],
+                'webcam_id': ["w", "webcam ID. 0 if not specified"],
+                'time_range': ["t", "start_time, end_time. In seconds. Whole video if not specified"],
+                'video_dir': ["d", "Current directory if not specified"],
+                'result_dir': ["r", "Current directory if not specified"],
+                'show_realtime_results': ["R", "show results in real-time. true if not specified"],
+                'display_angle_values_on': ["a", '"body", "list", "body" "list", or "None". body list if not specified'],
+                'show_graphs': ["G", "Show plots of raw and processed results. true if not specified"],
+                'joint_angles': ["j", '"Right ankle" "Left ankle" "Right knee" "Left knee" "Right hip" "Left hip" "Right shoulder" "Left shoulder" "Right elbow" "Left elbow" if not specified'],
+                'segment_angles': ["s", '"Right foot" "Left foot" "Right shank" "Left shank" "Right thigh" "Left thigh" "Pelvis" "Trunk" "Shoulders" "Head" "Right arm" "Left arm" "Right forearm" "Left forearm" if not specified'],
+                'save_vid': ["V", "save processed video. true if not specified"],
+                'save_img': ["I", "save processed images. true if not specified"],
+                'save_pose': ["P", "save pose as trc files. true if not specified"],
+                'save_angles': ["A", "save angles as mot files. true if not specified"],
+                'pose_model': ["p", "Only body_with_feet is available for now. body_with_feet if not specified"],
+                'mode': ["m", "light, balanced, or performance. balanced if not specified"],
+                'det_frequency': ["f", "Run person detection only every N frames, and inbetween track previously detected bounding boxes. keypoint detection is still run on all frames.\n\
+                                 Equal to or greater than 1, can be as high as you want in simple uncrowded cases. Much faster, but might be less accurate. 1 if not specified: detection runs on all frames"],
+                'multiperson': ["M", "Multiperson involves tracking: will be faster if set to false. true if not specified"],
+                'tracking_mode': ["", "sports2d or rtmlib. sports2d is generally much more accurate and comparable in speed. sports2d if not specified"],
+                'input_size': ["", "width, height. 1280, 720 if not specified. Lower resolution will be faster but less precise"],
+                'keypoint_likelihood_threshold': ["", "Detected keypoints are not retained if likelihood is below this threshold. 0.3 if not specified"],
+                'average_likelihood_threshold': ["", "Detected persons are not retained if average keypoint likelihood is below this threshold. 0.5 if not specified"],
+                'keypoint_number_threshold': ["", "Detected persons are not retained if number of detected keypoints is below this threshold. 0.3 if not specified, i.e., i.e., 30 percent"],
+                'fontSize': ["", "Font size for angle values. 0.3 if not specified"],
+                'flip_left_right': ["", "true or false. true to get consistent angles with people facing both left and right sides. Set it to false if you want timeseries to be continuous even when the participent switches their stance. true if not specified"],
+                'interpolate': ["", "Interpolate missing data. true if not specified"],
+                'interp_gap_smaller_than': ["", "Interpolate sequences of missing data if they are less than N frames long. 10 if not specified"],
+                'fill_large_gaps_with': ["", "last_value, nan, or zeros. last_value if not specified"],
+                'filter': ["", "Filter results. true if not specified"],
+                'filter_type': ["", "butterworth, gaussian, median, or loess. butterworth if not specified"],
+                'order': ["", "Order of the Butterworth filter. 4 if not specified"],
+                'cut_off_frequency': ["", "Cut-off frequency of the Butterworth filter. 3 if not specified"],
+                'sigma_kernel': ["", "Sigma of the gaussian filter. 1 if not specified"],
+                'nb_values_used': ["", "Number of values used for the loess filter. 5 if not specified"],
+                'kernel_size': ["", "Kernel size of the median filter. 3 if not specified"]
                 }
 
 
@@ -415,16 +415,19 @@ def main():
 
     # Dynamically add arguments for each leaf key in the DEFAULT_CONFIG
     parser = argparse.ArgumentParser(description="Use sports2d to compute your athlete's pose, joint, and segment angles. See https://github.com/davidpagnon/Sports2D")
-    parser.add_argument('--config', type=str, required=False, help='Path to a toml configuration file')
+    parser.add_argument('-C', '--config', type=str, required=False, help='Path to a toml configuration file')
+
     leaf_keys = get_leaf_keys(DEFAULT_CONFIG)
-    for key in leaf_keys:
-        leaf_name = key.split('.')[-1]
-        if type(leaf_keys[key]) == bool:
-            parser.add_argument(f'--{leaf_name}', type=str2bool, help=CONFIG_HELP[leaf_name])
-        elif type(leaf_keys[key]) == list:
-            parser.add_argument(f'--{leaf_name}', type=type(leaf_keys[key][0]), nargs='*', help=CONFIG_HELP[leaf_name])
+    leaf_keys = {k.split('.')[-1]:v for k,v in leaf_keys.items()}
+    for leaf_name in list(CONFIG_HELP.keys())[1:]:
+        short_key = CONFIG_HELP[leaf_name][0]
+        arg_str = [f'-{short_key}', f'--{leaf_name}'] if short_key else [f'--{leaf_name}']
+        if type(leaf_keys[leaf_name]) == bool:
+            parser.add_argument(*arg_str, type=str2bool, help=CONFIG_HELP[leaf_name][1])
+        elif type(leaf_keys[leaf_name]) == list:
+            parser.add_argument(*arg_str, type=type(leaf_keys[leaf_name][0]), nargs='*', help=CONFIG_HELP[leaf_name][1])
         else:
-            parser.add_argument(f'--{leaf_name}', type=type(leaf_keys[key]), help=CONFIG_HELP[leaf_name])
+            parser.add_argument(*arg_str, type=type(leaf_keys[leaf_name]), help=CONFIG_HELP[leaf_name][1])
     args = parser.parse_args()
 
     # If config.toml file is provided, load it, else, use default config
