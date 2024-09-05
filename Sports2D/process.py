@@ -112,7 +112,6 @@ colors = [(255, 0, 0), (0, 0, 255), (255, 255, 0), (255, 0, 255), (0, 255, 255),
             (125, 0, 0), (0, 125, 0), (0, 0, 125), (125, 125, 0), (125, 0, 125), (0, 125, 125), 
             (255, 125, 125), (125, 255, 125), (125, 125, 255), (255, 255, 125), (255, 125, 255), (125, 255, 255), (125, 125, 125),
             (255, 0, 125), (255, 125, 0), (0, 125, 255), (0, 255, 125), (125, 0, 255), (125, 255, 0), (0, 255, 0)]
-thickness = 1
 
 
 ## AUTHORSHIP INFORMATION
@@ -480,7 +479,7 @@ def sort_people_rtmlib(pose_tracker, keypoints, scores):
     return sorted_keypoints, sorted_scores
 
 
-def draw_dotted_line(img, start, direction, length, color=(0, 255, 0), gap=7, dot_length=3, thickness=thickness):
+def draw_dotted_line(img, start, direction, length, color=(0, 255, 0), gap=7, dot_length=3, thickness=1):
     '''
     Draw a dotted line with on a cv2 image
 
@@ -540,7 +539,7 @@ def draw_bounding_box(img, X, Y, colors=[(255, 0, 0), (0, 255, 0), (0, 0, 255)],
     return img
 
 
-def draw_skel(img, X, Y, model, colors=[(255, 0, 0), (0, 255, 0), (0, 0, 255)]):
+def draw_skel(img, X, Y, model, colors=[(255, 0, 0), (0, 255, 0), (0, 0, 255)], thickness=1):
     '''
     Draws keypoints and skeleton for each person.
     Skeletons have a different color for each person.
@@ -576,7 +575,7 @@ def draw_skel(img, X, Y, model, colors=[(255, 0, 0), (0, 255, 0), (0, 0, 255)]):
     return img
 
 
-def draw_keypts(img, X, Y, scores, cmap_str='RdYlGn'):
+def draw_keypts(img, X, Y, scores, cmap_str='RdYlGn', thickness=1):
     '''
     Draws keypoints and skeleton for each person.
     Keypoints' colors depend on their score.
@@ -654,11 +653,11 @@ def draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_
                         # Draw angle
                         if 'body' in display_angle_values_on:
                             if len(ang_coords) == 2: # segment angle
-                                app_point, vec = draw_segment_angle(img, ang_coords, flip)
+                                app_point, vec = draw_segment_angle(img, ang_coords, flip, thickness=thickness)
                                 write_angle_on_body(img, ang, app_point, vec, np.array([1,0]), dist=20, color=(255,255,255), fontSize=fontSize, thickness=thickness)
                             
                             else: # joint angle
-                                app_point, vec1, vec2 = draw_joint_angle(img, ang_coords, flip, right_angle)
+                                app_point, vec1, vec2 = draw_joint_angle(img, ang_coords, flip, right_angle, thickness=thickness)
                                 write_angle_on_body(img, ang, app_point, vec1, vec2, dist=40, color=(0,255,0), fontSize=fontSize, thickness=thickness)
 
                         # Write angle as a list on image with progress bar
@@ -671,7 +670,7 @@ def draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_
     return img
 
 
-def draw_segment_angle(img, ang_coords, flip):
+def draw_segment_angle(img, ang_coords, flip, thickness=1):
     '''
     Draw a segment angle on the image.
 
@@ -702,7 +701,7 @@ def draw_segment_angle(img, ang_coords, flip):
         return app_point, unit_segment_direction
 
 
-def draw_joint_angle(img, ang_coords, flip, right_angle):
+def draw_joint_angle(img, ang_coords, flip, right_angle, thickness=1):
     '''
     Draw a joint angle on the image.
 
@@ -1043,7 +1042,6 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     angle_names = [angle_name.lower() for angle_name in angle_names]
     display_angle_values_on = config_dict.get('angles').get('display_angle_values_on')
     fontSize = config_dict.get('angles').get('fontSize')
-    thickness = 1 if fontSize < 0.8 else 2
     flip_left_right = config_dict.get('angles').get('flip_left_right')
 
     # Post-processing settings
@@ -1108,6 +1106,10 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         cv2.namedWindow(f'{video_file} Sports2D', cv2.WINDOW_NORMAL + cv2.WINDOW_KEEPRATIO)
         cv2.setWindowProperty(f'{video_file} Sports2D', cv2.WND_PROP_ASPECT_RATIO, cv2.WINDOW_FULLSCREEN)
 
+    # Set up front size and thickness
+    if isinstance(fontSize, str) and fontSize.lower() == 'auto': # I add isinstance to avoid errors when running pytest (I guess, when the function runs twice).
+        fontSize = dynamic_fontSize(cam_width, cam_height)
+    thickness = dynamic_thickness(fontSize)
 
     # Set up pose tracker
     tracking_rtmlib = True if (tracking_mode == 'rtmlib' and tracking) else False
@@ -1199,8 +1201,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             if show_realtime_results or save_vid or save_img:
                 img = frame.copy()
                 img = draw_bounding_box(img, valid_X, valid_Y, colors=colors, fontSize=fontSize, thickness=thickness)
-                img = draw_keypts(img, valid_X, valid_Y, scores, cmap_str='RdYlGn')
-                img = draw_skel(img, valid_X, valid_Y, model, colors=colors)
+                img = draw_keypts(img, valid_X, valid_Y, scores, cmap_str='RdYlGn', thickness=thickness)
+                img = draw_skel(img, valid_X, valid_Y, model, colors=colors, thickness=thickness)
                 img = draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_ids, keypoints_names, angle_names, display_angle_values_on=display_angle_values_on, colors=colors, fontSize=fontSize, thickness=thickness)
 
                 if show_realtime_results:
