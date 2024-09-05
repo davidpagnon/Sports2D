@@ -1055,7 +1055,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     fill_large_gaps_with = config_dict.get('post-processing').get('fill_large_gaps_with')
 
     do_filter = config_dict.get('post-processing').get('filter')
-    show_plots = config_dict.get('post-processing').get('show_plots')
+    show_plots = config_dict.get('post-processing').get('show_graphs')
     filter_type = config_dict.get('post-processing').get('filter_type')
     butterworth_filter_order = config_dict.get('post-processing').get('butterworth').get('order')
     butterworth_filter_cutoff = config_dict.get('post-processing').get('butterworth').get('cut_off_frequency')

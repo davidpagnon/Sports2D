@@ -144,7 +144,7 @@ sports2d --help
   ```
 - Run with custom parameters (all non specified are set to default): 
   ``` cmd
-  sports2d --show_plots False --time_range 0 2.1 --result_dir path_to_result_dir
+  sports2d --show_graphs False --time_range 0 2.1 --result_dir path_to_result_dir
   ```
   ``` cmd
   sports2d --multiperson false --mode lightweight --det_frequency 50
