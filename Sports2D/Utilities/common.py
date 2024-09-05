@@ -259,7 +259,7 @@ def euclidean_distance(q1, q2):
     return euc_dist
 
 
-def dynamic_fontSize(width, height, base_font_size=0.3, min_font_size=0.2, max_font_size=1, scale_factor=1.5):
+def dynamic_fontSize(width, height, base_font_size=0.3, min_font_size=0.2, max_font_size=1, scale_factor=1.5, base_thickness=1):
     '''
     Dynamically adjust font size according to both the area and the aspect ratio
     '''
@@ -282,3 +282,9 @@ def dynamic_fontSize(width, height, base_font_size=0.3, min_font_size=0.2, max_f
     
     # I believe that the font size should be at least 0.2 and maximum range is 1 (through several tests)
     return max(min(adjusted_font_size, max_font_size), min_font_size)
+
+def dynamic_thickness(font_size, base_thickness=1, thickness_scale=1/0.3, min_thickness=1):
+    '''
+    Dynamically adjust the thickness of the lines according to the font size
+    '''
+    return int(max(font_size * thickness_scale * base_thickness, min_thickness))
