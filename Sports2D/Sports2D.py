@@ -28,7 +28,7 @@
     - Run on webcam with default parameters: 
         sports2d --video_input webcam
     - Run with custom parameters (all non specified are set to default): 
-        sports2d --show_graphs False --time_range 0 2.1 --result_dir path_to_result_dir
+        sports2d --show_plots False --time_range 0 2.1 --result_dir path_to_result_dir
         sports2d --multiperson false --mode lightweight --det_frequency 50
     - Run with a toml configuration file: 
         sports2d --config path_to_config.toml
@@ -123,7 +123,7 @@ from Sports2D import Sports2D
 
 ## CONSTANTS
 DEFAULT_CONFIG =   {'project': {'video_input': ['demo.mp4'],
-                                'time_range': [0, sys.maxsize],
+                                'time_range': [],
                                 'video_dir': '',
                                 'webcam_id': 0,
                                 'input_size': [1280, 720]
@@ -408,7 +408,7 @@ def main():
     - Run on webcam with default parameters: 
         sports2d --video_input webcam
     - Run with custom parameters (all non specified are set to default): 
-        sports2d --show_graphs False --time_range 0 2.1 --result_dir path_to_result_dir
+        sports2d --show_plots False --time_range 0 2.1 --result_dir path_to_result_dir
         sports2d --multiperson false --mode lightweight --det_frequency 50
     - Run with a toml configuration file: 
         sports2d --config path_to_config.toml
@@ -425,7 +425,7 @@ def main():
         arg_str = [f'-{short_key}', f'--{leaf_name}'] if short_key else [f'--{leaf_name}']
         if type(leaf_keys[leaf_name]) == bool:
             parser.add_argument(*arg_str, type=str2bool, help=CONFIG_HELP[leaf_name][1])
-        elif type(leaf_keys[leaf_name]) == list:
+        elif type(leaf_keys[leaf_name]) == list and len(leaf_keys[leaf_name])>0:
             parser.add_argument(*arg_str, type=type(leaf_keys[leaf_name][0]), nargs='*', help=CONFIG_HELP[leaf_name][1])
         else:
             parser.add_argument(*arg_str, type=type(leaf_keys[leaf_name]), help=CONFIG_HELP[leaf_name][1])
