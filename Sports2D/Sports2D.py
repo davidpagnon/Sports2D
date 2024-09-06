@@ -122,7 +122,7 @@ from Sports2D import Sports2D
 
 ## CONSTANTS
 DEFAULT_CONFIG =   {'project': {'video_input': ['demo.mp4'],
-                                'time_range': [0.0, 7.63],
+                                'time_range': [],
                                 'video_dir': '',
                                 'webcam_id': 0,
                                 'input_size': [1280, 720]
