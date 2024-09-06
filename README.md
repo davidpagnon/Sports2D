@@ -174,16 +174,27 @@ sports2d --help
 **Use your GPU**:\
 Will be much faster, with no impact on accuracy. However, the installation takes about 6 GB of additional storage space.
 
-1. Go to the [ONNXruntime requirement page](https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html#requirements), check the latest CUDA and cuDNN requirements. Then go to the [pyTorch website]( https://pytorch.org/get-started/locally) and install the latest version that satisfies these requirements (beware that torch 2.4 ships with cuDNN 9, while torch 2.3 installs cuDNN 8). For example:
+1. Run `nvidia-smi` in a terminal. If this results in an error, your GPU is probably not compatible with CUDA. If not, note the "CUDA version": it is the latest version your driver is compatible with (more information [on this post](https://stackoverflow.com/questions/60987997/why-torch-cuda-is-available-returns-false-even-after-installing-pytorch-with)).
+
+   Then go to the [ONNXruntime requirement page](https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html#requirements), note the latest compatible CUDA and cuDNN requirements. Finally, go to the [pyTorch website](https://pytorch.org/get-started/previous-versions/) and install the latest version that satisfies these requirements (beware that torch 2.4 ships with cuDNN 9, while torch 2.3 installs cuDNN 8). For example:
    ``` cmd
    pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
    ```
 <!-- > ***Note:*** Issues were reported with the default command. However, this has been tested and works:
 `pip install torch==2.3.1 torchvision==0.18.1 torchaudio==2.3.1 --index-url https://download.pytorch.org/whl/cu118` -->
+
 2. Then install ONNX Runtime with GPU support:
    ```
    pip install onnxruntime-gpu
    ```
+
+3. Check that everything went well within Python with these commands:
+   ``` bash
+   python -c 'import torch; print(torch.cuda.is_available())'
+   python -c 'import onnxruntime as ort; print(ort.get_available_providers())'
+   # Should print "True ['CUDAExecutionProvider', ...]"
+   ```
+   <!-- print(f'torch version: {torch.__version__}, cuda version: {torch.version.cuda}, cudnn version: {torch.backends.cudnn.version()}, onnxruntime version: {ort.__version__}') -->
 
 <br>
 
