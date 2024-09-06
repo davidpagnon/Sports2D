@@ -110,6 +110,7 @@
 
 ## INIT
 import argparse
+import sys
 import toml
 from datetime import datetime
 from pathlib import Path
@@ -122,7 +123,7 @@ from Sports2D import Sports2D
 
 ## CONSTANTS
 DEFAULT_CONFIG =   {'project': {'video_input': ['demo.mp4'],
-                                'time_range': [],
+                                'time_range': [0, sys.maxsize],
                                 'video_dir': '',
                                 'webcam_id': 0,
                                 'input_size': [1280, 720]
