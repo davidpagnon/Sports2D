@@ -482,12 +482,9 @@ def dynamic_fontSize(width, height, base_fontSize=0.3, base_dimension=1768):
     '''
     Dynamically adjust font size according to the max dimension (width or height).
     '''
-    # Max dimension
-    max_dimension = max(width, height)
-
     # Calculate scale
-    scale = max_dimension / base_dimension
-    
+    scale = max(width, height) / base_dimension
+
     # Adjust font size with a fixed scale factor of 1.2 for better readability
     adjusted_fontSize = base_fontSize * scale * 1.2
     
