@@ -132,7 +132,7 @@ def setup_webcam(webcam_id, save_vid, vid_output_path, input_size):
 
     INPUTS:
     - webcam_id: int. The ID of the webcam to capture from
-    - input_size: tuple. The size of the input frame (width, height)\
+    - input_size: tuple. The size of the input frame (width, height)
 
     OUTPUTS:
     - cap: cv2.VideoCapture. The webcam capture object
@@ -521,7 +521,7 @@ def draw_dotted_line(img, start, direction, length, color=(0, 255, 0), gap=7, do
     for i in range(0, length, gap):
         line_start = start + direction * i
         line_end = line_start + direction * dot_length
-        cv2.line(img, tuple(line_start.astype(int)), tuple(line_end.astype(int)), color, thickness+1 if thickness<2 else thickness)
+        cv2.line(img, tuple(line_start.astype(int)), tuple(line_end.astype(int)), color, thickness+1 if thickness<2 else thickness) # +1 to make sure the line is more visible when the thickness is too thin (only for lines not for characters)
 
 
 def draw_bounding_box(img, X, Y, colors=[(255, 0, 0), (0, 255, 0), (0, 0, 255)], fontSize=0.3, thickness=1):
@@ -655,7 +655,7 @@ def draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_
             # person label
             if 'list' in display_angle_values_on:
                 person_label_position = (int(10 + fontSize*150/0.3*person_id), int(fontSize*50))
-                cv2.putText(img, f'person {person_id}', person_label_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (255,255,255), thickness*3, cv2.LINE_AA) # The outline of the font is twice of the thickness of font (if thickness of the font is 3, the outlone will be 6. Is this reasonable?).
+                cv2.putText(img, f'person {person_id}', person_label_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (255,255,255), thickness*3, cv2.LINE_AA) # The outline of the font is three times of the thickness of font(It seems better to see the font)
                 cv2.putText(img, f'person {person_id}', person_label_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, c, thickness, cv2.LINE_AA) 
             
             # angle lines, names and values 
