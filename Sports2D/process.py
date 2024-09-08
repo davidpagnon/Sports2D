@@ -132,7 +132,7 @@ def setup_webcam(webcam_id, save_vid, vid_output_path, input_size):
 
     INPUTS:
     - webcam_id: int. The ID of the webcam to capture from
-    - input_size: tuple. The size of the input frame (width, height)
+    - input_size: tuple. The size of the input frame (width, height)\
 
     OUTPUTS:
     - cap: cv2.VideoCapture. The webcam capture object
@@ -478,6 +478,27 @@ def sort_people_rtmlib(pose_tracker, keypoints, scores):
 
     return sorted_keypoints, sorted_scores
 
+def dynamic_fontSize(width, height, base_fontSize=0.3, base_dimension=1768):
+    '''
+    Dynamically adjust font size according to the max dimension (width or height).
+    '''
+    # Max dimension
+    max_dimension = max(width, height)
+
+    # Calculate scale
+    scale = max_dimension / base_dimension
+    
+    # Adjust font size with a fixed scale factor of 1.2 for better readability
+    adjusted_fontSize = base_fontSize * scale * 1.2
+    
+    # Ensure font size is within the allowed range but, not used parameters for boundaries
+    return max(min(adjusted_fontSize, 1), 0.2)
+
+def dynamic_thickness(fontSize, scale_factor=5):
+    '''
+    Dynamically adjust the thickness of the lines according to the font size.
+    '''
+    return max(int(fontSize * scale_factor), 1) # Minimum thickness is 1.
 
 def draw_dotted_line(img, start, direction, length, color=(0, 255, 0), gap=7, dot_length=3, thickness=1):
     '''
@@ -500,7 +521,7 @@ def draw_dotted_line(img, start, direction, length, color=(0, 255, 0), gap=7, do
     for i in range(0, length, gap):
         line_start = start + direction * i
         line_end = line_start + direction * dot_length
-        cv2.line(img, tuple(line_start.astype(int)), tuple(line_end.astype(int)), color, thickness)
+        cv2.line(img, tuple(line_start.astype(int)), tuple(line_end.astype(int)), color, thickness+1 if thickness<2 else thickness)
 
 
 def draw_bounding_box(img, X, Y, colors=[(255, 0, 0), (0, 255, 0), (0, 0, 255)], fontSize=0.3, thickness=1):
@@ -568,7 +589,7 @@ def draw_skel(img, X, Y, model, colors=[(255, 0, 0), (0, 255, 0), (0, 0, 255)], 
         c = next(color_cycle)
         if not np.isnan(x).all():
             [cv2.line(img,
-                (int(x[n[0]]), int(y[n[0]])), (int(x[n[1]]), int(y[n[1]])), c, thickness)
+                (int(x[n[0]]), int(y[n[0]])), (int(x[n[1]]), int(y[n[1]])), c, thickness+1 if thickness<2 else thickness)
                 for n in node_pairs
                 if not (np.isnan(x[n[0]]) or np.isnan(y[n[0]]) or np.isnan(x[n[1]]) or np.isnan(y[n[1]]))]
 
@@ -627,17 +648,17 @@ def draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_
     - img: image with angles
     '''
 
-    color_cycle = it.cycle(colors)
+    color_cycle = it.cycle(colors) 
     for person_id, (X,Y,angles, X_flipped) in enumerate(zip(valid_X, valid_Y, valid_angles, valid_X_flipped)):
         c = next(color_cycle)
         if not np.isnan(X).all():
             # person label
             if 'list' in display_angle_values_on:
                 person_label_position = (int(10 + fontSize*150/0.3*person_id), int(fontSize*50))
-                cv2.putText(img, f'person {person_id}', person_label_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (255,255,255), thickness+1, cv2.LINE_AA)
-                cv2.putText(img, f'person {person_id}', person_label_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, c, thickness, cv2.LINE_AA)
+                cv2.putText(img, f'person {person_id}', person_label_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (255,255,255), thickness*3, cv2.LINE_AA) # The outline of the font is twice of the thickness of font (if thickness of the font is 3, the outlone will be 6. Is this reasonable?).
+                cv2.putText(img, f'person {person_id}', person_label_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, c, thickness, cv2.LINE_AA) 
             
-            # angle lines, names and values
+            # angle lines, names and values 
             ang_label_line = 1
             for k, ang in enumerate(angles):
                 if not np.isnan(ang):
@@ -647,11 +668,11 @@ def draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_
                         ang_coords = np.array([[X[keypoints_ids[keypoints_names.index(kpt)]], Y[keypoints_ids[keypoints_names.index(kpt)]]] for kpt in ang_params[0] if kpt in keypoints_names])
                         X_flipped_coords = [X_flipped[keypoints_ids[keypoints_names.index(kpt)]] for kpt in ang_params[0] if kpt in keypoints_names]
                         flip = -1 if any(x_flipped < 0 for x_flipped in X_flipped_coords) else 1
-                        flip = 1 if ang_name in ['pelvis', 'trunk', 'shoulders'] else flip
+                        flip = 1 if ang_name in ['pelvis', 'trunk', 'shoulders'] else flip 
                         right_angle = True if ang_params[2]==90 else False
                         
                         # Draw angle
-                        if 'body' in display_angle_values_on:
+                        if 'body' in display_angle_values_on: 
                             if len(ang_coords) == 2: # segment angle
                                 app_point, vec = draw_segment_angle(img, ang_coords, flip, thickness=thickness)
                                 write_angle_on_body(img, ang, app_point, vec, np.array([1,0]), dist=20, color=(255,255,255), fontSize=fontSize, thickness=thickness)
@@ -661,8 +682,8 @@ def draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_
                                 write_angle_on_body(img, ang, app_point, vec1, vec2, dist=40, color=(0,255,0), fontSize=fontSize, thickness=thickness)
 
                         # Write angle as a list on image with progress bar
-                        if 'list' in display_angle_values_on:
-                            if len(ang_coords) == 2: # segment angle
+                        if 'list' in display_angle_values_on: 
+                            if len(ang_coords) == 2: # segment angle 
                                 ang_label_line = write_angle_as_list(img, ang, ang_name, person_label_position, ang_label_line, color = (255,255,255), fontSize=fontSize, thickness=thickness)
                             else:
                                 ang_label_line = write_angle_as_list(img, ang, ang_name, person_label_position, ang_label_line, color = (0,255,0), fontSize=fontSize, thickness=thickness)
@@ -693,10 +714,10 @@ def draw_segment_angle(img, ang_coords, flip, thickness=1):
         if (segment_direction==0).all():
             return app_point, np.array([0,0])
         unit_segment_direction = segment_direction/np.linalg.norm(segment_direction)
-        cv2.line(img, app_point, np.int32(app_point+unit_segment_direction*20), (255,255,255), thickness)
+        cv2.line(img, app_point, np.int32(app_point+unit_segment_direction*20), (255,255,255), thickness+1 if thickness<2 else thickness)
 
         # horizontal line
-        cv2.line(img, app_point, (np.int32(app_point[0])+flip*20, np.int32(app_point[1])), (255,255,255), thickness)
+        cv2.line(img, app_point, (np.int32(app_point[0])+flip*20, np.int32(app_point[1])), (255,255,255), thickness+1 if thickness<2 else thickness)
 
         return app_point, unit_segment_direction
 
@@ -732,7 +753,7 @@ def draw_joint_angle(img, ang_coords, flip, right_angle, thickness=1):
 
         # segment line
         unit_segment_direction = segment_direction/np.linalg.norm(segment_direction)
-        cv2.line(img, app_point, np.int32(app_point+unit_segment_direction*40), (0,255,0), thickness)
+        cv2.line(img, app_point, np.int32(app_point+unit_segment_direction*40), (0,255,0), thickness+1 if thickness<2 else thickness)
         
         # parent segment dotted line
         unit_parentsegment_direction = parentsegment_direction/np.linalg.norm(parentsegment_direction)
@@ -744,7 +765,7 @@ def draw_joint_angle(img, ang_coords, flip, right_angle, thickness=1):
         if abs(end_angle - start_angle) > 180:
             if end_angle > start_angle: start_angle += 360
             else: end_angle += 360
-        cv2.ellipse(img, app_point, (20, 20), 0, start_angle, end_angle, (0, 255, 0), thickness)
+        cv2.ellipse(img, app_point, (20, 20), 0, start_angle, end_angle, (0, 255, 0), thickness+1 if thickness<2 else thickness)
 
         return app_point, unit_segment_direction, unit_parentsegment_direction
 
@@ -771,7 +792,7 @@ def write_angle_on_body(img, ang, app_point, vec1, vec2, dist=40, color=(255,255
         return
     unit_vec_sum = vec_sum/np.linalg.norm(vec_sum)
     text_position = np.int32(app_point + unit_vec_sum*dist)
-    cv2.putText(img, f'{ang:.1f}', text_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize, (0,0,0), thickness+1, cv2.LINE_AA)
+    cv2.putText(img, f'{ang:.1f}', text_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize, (0,0,0), thickness*3, cv2.LINE_AA)
     cv2.putText(img, f'{ang:.1f}', text_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize, color, thickness, cv2.LINE_AA)
 
 
@@ -796,9 +817,9 @@ def write_angle_as_list(img, ang, ang_name, person_label_position, ang_label_lin
         # angle names and values
         ang_label_position = (person_label_position[0], person_label_position[1]+int((ang_label_line)*40*fontSize))
         ang_value_position = (ang_label_position[0]+int(250*fontSize), ang_label_position[1])
-        cv2.putText(img, f'{ang_name}:', ang_label_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize, (0, 0, 0), thickness+1, cv2.LINE_AA)
+        cv2.putText(img, f'{ang_name}:', ang_label_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize, (0, 0, 0), thickness*3, cv2.LINE_AA)
         cv2.putText(img, f'{ang_name}:', ang_label_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize, color, thickness, cv2.LINE_AA)
-        cv2.putText(img, f'{ang:.1f}', ang_value_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize, (0, 0, 0), thickness+1, cv2.LINE_AA)
+        cv2.putText(img, f'{ang:.1f}', ang_value_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize, (0, 0, 0), thickness*3, cv2.LINE_AA)
         cv2.putText(img, f'{ang:.1f}', ang_value_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize, color, thickness, cv2.LINE_AA)
         
         # progress bar
@@ -1107,7 +1128,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         cv2.setWindowProperty(f'{video_file} Sports2D', cv2.WND_PROP_ASPECT_RATIO, cv2.WINDOW_FULLSCREEN)
 
     # Set up front size and thickness
-    if isinstance(fontSize, str) and fontSize.lower() == 'auto': # I add isinstance to avoid errors when running pytest (I guess, when the function runs twice).
+    if isinstance(fontSize, str) and fontSize.lower() == 'auto': # I add isinstance to avoid errors when running with user's preferences (fontSize is a float)
         fontSize = dynamic_fontSize(cam_width, cam_height)
     thickness = dynamic_thickness(fontSize)
 
@@ -1146,7 +1167,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     all_frames_angles.append([])
                 continue
             else:
-                cv2.putText(frame, f"Press 'q' to quit", (cam_width-int(400*fontSize), cam_height-20), cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (255,255,255), thickness+1, cv2.LINE_AA)
+                cv2.putText(frame, f"Press 'q' to quit", (cam_width-int(400*fontSize), cam_height-20), cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (255,255,255), thickness*3, cv2.LINE_AA)
                 cv2.putText(frame, f"Press 'q' to quit", (cam_width-int(400*fontSize), cam_height-20), cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (0,0,255), thickness, cv2.LINE_AA)
             
             # Detect poses
