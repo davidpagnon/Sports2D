@@ -552,7 +552,7 @@ def draw_bounding_box(img, X, Y, colors=[(255, 0, 0), (0, 255, 0), (0, 0, 255)],
             if y_max > img.shape[0]: y_max = img.shape[0]
 
             # Draw rectangles
-            cv2.rectangle(img, (x_min-25, y_min-25), (x_max+25, y_max+25), color, thickness) 
+            cv2.rectangle(img, (x_min-25, y_min-25), (x_max+25, y_max+25), color, thickness+1 if thickness<2 else thickness) 
         
             # Write person ID
             cv2.putText(img, str(i), (x_min-30, y_min-30), cv2.FONT_HERSHEY_SIMPLEX, fontSize+1, color, 2, cv2.LINE_AA) 
