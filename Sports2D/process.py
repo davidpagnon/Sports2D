@@ -495,7 +495,7 @@ def dynamic_thickness(fontSize, scale_factor=5):
     '''
     Dynamically adjust the thickness of the lines according to the font size.
     '''
-    return max(int(fontSize * scale_factor), 1) # Minimum thickness is 1.
+    return int(fontSize * scale_factor) # 5 is a scale factor to make sure the thickness is at least 1 (0.2 * 5 = 1)
 
 def draw_dotted_line(img, start, direction, length, color=(0, 255, 0), gap=7, dot_length=3, thickness=1):
     '''
