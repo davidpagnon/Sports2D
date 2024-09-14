@@ -898,7 +898,7 @@ def make_mot_with_angles(angles, time, mot_path):
     return angles
 
 
-def pose_plots(trc_data_unfiltered, trc_data):
+def pose_plots(trc_data_unfiltered, trc_data, person_id):
     '''
     Displays trc filtered and unfiltered data for comparison
     /!\ Often crashes on the third window...
@@ -917,9 +917,12 @@ def pose_plots(trc_data_unfiltered, trc_data):
     keypoints_names = trc_data.columns[1::3]
     
     pw = plotWindow()
+    pw.MainWindow.setWindowTitle('Person'+ str(person_id) + ' coordinates') # Main title
+
     for id, keypoint in enumerate(keypoints_names):
         f = plt.figure()
-        
+        f.canvas.manager.window.setWindowTitle(keypoint + ' Plot')
+
         axX = plt.subplot(211)
         plt.plot(trc_data_unfiltered.iloc[:,0], trc_data_unfiltered.iloc[:,id*3+1], label='unfiltered')
         plt.plot(trc_data.iloc[:,0], trc_data.iloc[:,id*3+1], label='filtered')
@@ -938,7 +941,7 @@ def pose_plots(trc_data_unfiltered, trc_data):
     pw.show()
 
 
-def angle_plots(angle_data_unfiltered, angle_data):
+def angle_plots(angle_data_unfiltered, angle_data, person_id):
     '''
     Displays angle filtered and unfiltered data for comparison
     /!\ Often crashes on the third window...
@@ -957,6 +960,8 @@ def angle_plots(angle_data_unfiltered, angle_data):
     angles_names = angle_data.columns[1:]
 
     pw = plotWindow()
+    pw.MainWindow.setWindowTitle('Person'+ str(person_id) + ' angles') # Main title
+
     for id, angle in enumerate(angles_names):
         f = plt.figure()
         
@@ -1320,7 +1325,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 if show_plots:
                     trc_data_unfiltered = pd.concat([pd.concat([all_frames_X_person.iloc[:,kpt], all_frames_Y_person.iloc[:,kpt], all_frames_Z_person.iloc[:,kpt]], axis=1) for kpt in range(len(all_frames_X_person.columns))], axis=1)
                     trc_data_unfiltered.insert(0, 't', all_frames_time)
-                    pose_plots(trc_data_unfiltered, trc_data)
+                    pose_plots(trc_data_unfiltered, trc_data, i) # i = current person
 
 
     # Angles post-processing
@@ -1385,4 +1390,4 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 # Plotting angles before and after interpolation and filtering
                 if show_plots:
                     all_frames_angles_person.insert(0, 't', all_frames_time)
-                    angle_plots(all_frames_angles_person, angle_data)
+                    angle_plots(all_frames_angles_person, angle_data, i) # i = current person
