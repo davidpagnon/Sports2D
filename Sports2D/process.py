@@ -1077,7 +1077,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         output_dir_name = f'{video_file_stem}_Sports2D'    
     output_dir = result_dir / output_dir_name
     img_output_dir = output_dir / f'{output_dir_name}_img'
-    vid_output_path = output_dir / f'{output_dir_name}_Sports2D.mp4'
+    vid_output_path = output_dir / f'{output_dir_name}.mp4'
     pose_output_path = output_dir / f'{output_dir_name}_px.trc'
     angles_output_path = output_dir / f'{output_dir_name}_angles.mot'
     output_dir.mkdir(parents=True, exist_ok=True)
