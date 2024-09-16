@@ -25,7 +25,8 @@ bibliography: paper.bib
 
 
 # Summary
-`Sports2D` provides a user-friendly solution for automatic and real-time analysis of multi-person human movement from a video or a webcam. This Python package uses 2D markerless pose estimation to detect joint coordinates from videos, and then computes 2D joint and segment angles. It can be installed either locally or on a free server, which makes it possible to run it directly from a smartphone.
+`Sports2D` provides a user-friendly solution for automatic and real-time analysis of multi-person human movement from a video or a webcam. This Python package uses 2D markerless pose estimation to detect joint coordinates from videos, and then computes 2D joint and segment angles. 
+<!--It can be installed either locally or on a free server, which makes it possible to run it directly from a smartphone.-->
 
 The output incorporates annotated videos and image sequences overlaid with joint locations, joint angles, and segment angles, for each of the detected persons. For further analysis, this information is also stored in files that are editable with MS Excel® or any other spreadsheet editor (.trc for locations, .mot for angles, according to the OpenSim standard [@Delp_2007; @Seth_2018]). 
 
@@ -40,6 +41,8 @@ A large part of these tools focus on 2D analysis, such as `OpenPose` [@Cao_2019]
 
 ![Example results from a demonstration video.\label{fig:Demo_results}](Demo_results.png)
 
+![Example joint angle output.\label{fig:Demo_plots}](Demo_plots.png)
+
 In fact, there is a clear trade-off between accuracy and ease-of-use. Some open-source tools focus on the accuracy of a 3D analysis by using multiple cameras, such as `Pose2Sim` [@Pagnon_2022a] or `OpenCap` [@Uhlrich_2022]. These, however, require either a certain level of programming skills, a particular hardware setup, or to send data to a server that does not comply with the European rules of data protection (GDPR). Some other tools choose to put more emphasis on user-friendliness, and point out that 2D analysis is often sufficient when the analyzed motion mostly lies in the sagittal or frontal plane. `Sit2Stand` [@Boswell_2023] and `CP GaitLab` [@Kidzinski_2020] provide such tools, although they are focused on very specific tasks. `Kinovea` [@Kinovea], on the other hand, is a widely used software for sports performance analysis, which provides multiple additional features. However, it relies on tracking manual labels. This can be time-consuming when analyzing numerous videos, and it may also be lacking robustness when the tracked points are lost. It is also only available on Windows, and requires the user to transfer files prior to analysis.
 
 `Sports2D` is an alternative solution that aims at filling this gap: it is free and open-source, straightforward to install and to run, can be run on any platform, can be run locally for data protection, and it automatically provides 2D joint and segment angles without the need for manual annotation. It is also robust and flexible, works in real-time and can be used to process one video, several videos at once, or webcam stream. Multi-person analysis is available, and the output is directly usable for further statistical analysis. 
@@ -48,11 +51,14 @@ In fact, there is a clear trade-off between accuracy and ease-of-use. Some open-
 # Workflow
 
 ## Installation and usage
-`Sports2D` can be installed and run two different ways: locally, or on a Google Colab® free server [@Bisong_2019].
+
+`Sports2d` is installed under Python via `pip install sports2d`. If a valid CUDA installation is found, Sports2D uses the GPU, otherwise it uses the CPU with OpenVino acceleration. 
+
+<!-- `Sports2D` can be installed and run two different ways: locally, or on a Google Colab® free server [@Bisong_2019].
 
 * *If run locally*, it is installed under Python via `pip install sports2d`. If a valid CUDA installation is found, Sports2D uses the GPU, otherwise it uses the CPU with OpenVino acceleration. 
 
-* *If run on Colab*, it can be installed in one click from any computer or smartphone device, either every time the user needs it, or once for all on Google Drive®. Results are automatically saved on Google Drive®. The arguments are the same as with the local installation. A full video tutorial can be found at this address: [https://www.youtube.com/watch?v=Er5RpcJ8o1Y](https://www.youtube.com/watch?v=Er5RpcJ8o1Y).
+* *If run on Colab*, it can be installed in one click from any computer or smartphone device, either every time the user needs it, or once for all on Google Drive®. Results are automatically saved on Google Drive®. The arguments are the same as with the local installation. A full video tutorial can be found at this address: [https://www.youtube.com/watch?v=Er5RpcJ8o1Y](https://www.youtube.com/watch?v=Er5RpcJ8o1Y).-->
 
 A detailed installation and usage guide can be found on the repository: https://github.com/davidpagnon/Sports2D.
 
@@ -121,7 +127,7 @@ The user of `Sports2D` should be aware of the following limitations:
 
 * Results are acceptable only if the participants move in the 2D plane, either in the frontal plane or in the sagittal one. If you need research-grade markerless joint kinematics, consider using several cameras, and constraining angles to a biomechanically accurate model. See `Pose2Sim` [@Pagnon_2022a] for example.
 * Angle estimation is only as good as the pose estimation algorithm, i.e., it is not perfect [@Wade_2022], especially if motion blur is significant such as on some broadcast videos.
-* Google Colab does not follow the European GDPR requirements regarding data privacy [@Minssen_2020]. Install locally if this matters.
+<!--* Google Colab does not follow the European GDPR requirements regarding data privacy [@Minssen_2020]. Install locally if this matters.-->
 
 
 # Acknowledgements
