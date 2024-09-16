@@ -112,8 +112,8 @@ Check the folder where you run that command line to find the resulting `video`, 
 ***Important:*** If you ran the conda install, you first need to activate the environment: run `conda activate sports2d` in the Anaconda prompt.
 
 <img src="Content/Demo_results.png" width="760">
-<img src="Content/Demo_terminal.png" width="760">
 <img src="Content/Demo_plots.png" width="760">
+<img src="Content/Demo_terminal.png" width="760">
 
 ***Note:***\
 The Demo video is voluntarily challenging to demonstrate the robustness of the process after sorting, interpolation and filtering. It contains:
