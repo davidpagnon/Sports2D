@@ -425,8 +425,12 @@ def main():
         arg_str = [f'-{short_key}', f'--{leaf_name}'] if short_key else [f'--{leaf_name}']
         if type(leaf_keys[leaf_name]) == bool:
             parser.add_argument(*arg_str, type=str2bool, help=CONFIG_HELP[leaf_name][1])
-        elif type(leaf_keys[leaf_name]) == list and len(leaf_keys[leaf_name])>0:
-            parser.add_argument(*arg_str, type=type(leaf_keys[leaf_name][0]), nargs='*', help=CONFIG_HELP[leaf_name][1])
+        elif type(leaf_keys[leaf_name]) == list:
+            if len(leaf_keys[leaf_name])==0: 
+                list_type = float # time_range for example
+            else:
+                list_type = type(leaf_keys[leaf_name][0])
+            parser.add_argument(*arg_str, type=list_type, nargs='*', help=CONFIG_HELP[leaf_name][1])
         else:
             parser.add_argument(*arg_str, type=type(leaf_keys[leaf_name]), help=CONFIG_HELP[leaf_name][1])
     args = parser.parse_args()
