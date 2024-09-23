@@ -1,11 +1,11 @@
 ---
-title: 'Sports2D: Compute 2D joint and segment angles from your webcam or smartphone'
+title: 'Sports2D: Compute 2D human pose and angles from a video or a webcam'
 tags:
   - python
   - markerless kinematics
   - motion capture
   - sports performance analysis
-  - openpose
+  - rtmpose
   - clinical gait analysis
 authors:
   - name: David Pagnon^[corresponding author] 
