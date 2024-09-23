@@ -1,5 +1,5 @@
 ---
-title: 'Sports2D: Compute 2D joint and segment angles from your smartphone'
+title: 'Sports2D: Compute 2D joint and segment angles from your webcam or smartphone'
 tags:
   - python
   - markerless kinematics
@@ -15,7 +15,7 @@ authors:
     orcid:
     affiliation: 2
 affiliations:
- - name: Centre for the Analysis of Motion, Entertainment Research & Applications (CAMERA), University of Bath, Claverton Down, Bath, BA2 7AY, UK
+ - name: Centre for the Analysis of Motion, Entertainment Research & Applications (CAMERA), University of Bath, Claverton Down, Bath, BA2 7AY, United Kingdom
    index: 1
  - name: Inha University, Yonghyeon Campus, 100 Inha-ro, Michuhol-gu, Incheon 22212, South Korea
    index: 2
