@@ -12,7 +12,7 @@ authors:
     orcid: 0000-0002-6891-8331
     affiliation: 1
   - name: HunMin Kim
-    orcid:
+    orcid: 0009-0007-7710-8051
     affiliation: 2
 affiliations:
  - name: Centre for the Analysis of Motion, Entertainment Research & Applications (CAMERA), University of Bath, Claverton Down, Bath, BA2 7AY, United Kingdom
