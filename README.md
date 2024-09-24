@@ -281,17 +281,21 @@ Angles are measured anticlockwise between the horizontal and the segment.
 ## How to cite and how to contribute
 
 ### How to cite
-If you use Sports2D, please cite [Pagnon, 2023].
+If you use Sports2D, please cite [Pagnon, 2024](https://joss.theoj.org/papers/10.21105/joss.06849).
 
-     @misc{Pagnon2023,
-       author = {Pagnon, David},
-       title = {Sports2D - Angles from video},
-       year = {2023},
-       doi= {10.5281/zenodo.7903963},
-       publisher = {GitHub},
-       journal = {GitHub repository},
-       howpublished = {\url{https://github.com/davidpagnon/Sports2D}},
+     @article{Pagnon_Sports2D_Compute_2D_2024,
+       author = {Pagnon, David and Kim, HunMin},
+       doi = {10.21105/joss.06849},
+       journal = {Journal of Open Source Software},
+       month = sep,
+       number = {101},
+       pages = {6849},
+       title = {{Sports2D: Compute 2D human pose and angles from a video or a webcam}},
+       url = {https://joss.theoj.org/papers/10.21105/joss.06849},
+       volume = {9},
+       year = {2024}
      }
+     
 
 ### How to contribute
 I would happily welcome any proposal for new features, code improvement, and more!\
