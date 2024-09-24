@@ -1,12 +1,38 @@
-cff-version: 1.2.0
-message: "If you use Sports2D, please cite it as below."
+cff-version: "1.2.0"
 authors:
-- family-names: "Pagnon"
-  given-names: "David"
+- family-names: Pagnon
+  given-names: David
   orcid: "https://orcid.org/0000-0002-6891-8331"
-title: "Sports2D - Angles from video"
-version: 0.1.0
-doi: '10.5281/zenodo.7903963'
-date-released: 2023-05-05
-url: "https://github.com/davidpagnon/Sports2D"
-journal: "GitHub repository"
+- family-names: Kim
+  given-names: HunMin
+  orcid: "https://orcid.org/0009-0007-7710-8051"
+contact:
+- family-names: Pagnon
+  given-names: David
+  orcid: "https://orcid.org/0000-0002-6891-8331"
+doi: 10.5281/zenodo.7903962
+message: If you use this software, please cite our article in the
+  Journal of Open Source Software.
+preferred-citation:
+  authors:
+  - family-names: Pagnon
+    given-names: David
+    orcid: "https://orcid.org/0000-0002-6891-8331"
+  - family-names: Kim
+    given-names: HunMin
+    orcid: "https://orcid.org/0009-0007-7710-8051"
+  date-published: 2024-09-24
+  doi: 10.21105/joss.06849
+  issn: 2475-9066
+  issue: 101
+  journal: Journal of Open Source Software
+  publisher:
+    name: Open Journals
+  start: 6849
+  title: "Sports2D: Compute 2D human pose and angles from a video or a
+    webcam"
+  type: article
+  url: "https://joss.theoj.org/papers/10.21105/joss.06849"
+  volume: 9
+title: "Sports2D: Compute 2D human pose and angles from a video or a
+  webcam"
