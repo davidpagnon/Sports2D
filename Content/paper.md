@@ -81,7 +81,7 @@ A detailed installation and usage guide can be found on the repository: https://
 
 <br>
 
-[**The Demo video]{.ul} that Sports2D is tested on is voluntarily challenging, in order to demonstrate the robustness of the process after sorting, interpolation and filtering. It contains:
+[The Demo video]{.ul} that Sports2D is tested on is voluntarily challenging, in order to demonstrate the robustness of the process after sorting, interpolation and filtering. It contains:
 
 * One person walking in the sagittal plane
 *  One person in the frontal plane. This person then performs a flip while being backlit, both of which are challenging for the pose detection algorithm
