@@ -235,9 +235,9 @@ Sports2D:
 **Okay but how does it work, really?**\
 Sports2D:
 1. Reads stream from a webcam, from one video, or from a list of videos. Selects the specified time range to process.
-2. Sets up the RTMLib pose tracker from RTMlib with specified parameters. It can be run in lightweight, balanced, or performance mode, and for faster inference, keypoints can be tracked for a certain number of frames instead of detected. Any RTMPose model can be used. 
-3. Tracks people so that their IDs are consistent across frames. A person is associated to another in the next frame when they are at a small distance. IDs remain consistent even if the person disappears from a few frames. This carefully crafted `sports2d` tracker runs at a comparable speed as the RTMlib one but is much more robust. The user can still choose the RTMLib method if they need it by specifying it in the Config.toml file. .
-4. Retrieves the keypoints with high enough confidence, and only keeps the persons with enough average high-confidence.
+2. Sets up the RTMLib pose tracker from RTMlib with specified parameters. It can be run in lightweight, balanced, or performance mode, and for faster inference, keypoints can be tracked instead of detected for a certain number of frames. Any RTMPose model can be used. 
+3. Tracks people so that their IDs are consistent across frames. A person is associated to another in the next frame when they are at a small distance. IDs remain consistent even if the person disappears from a few frames. This carefully crafted `sports2d` tracker runs at a comparable speed as the RTMlib one but is much more robust. The user can still choose the RTMLib method if they need it by specifying it in the Config.toml file.
+4. Retrieves the keypoints with high enough confidence, and only keeps the persons with high enough average confidence.
 5. Computes the selected joint and segment angles, and flips them on the left/right side if the respective foot is pointing to the left/right. 
 5. Draws bounding boxes around each person and writes their IDs\
   Draws the skeleton and the keypoints, with a green to red color scale to account for their confidence\
