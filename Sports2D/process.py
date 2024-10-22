@@ -153,13 +153,14 @@ def setup_webcam(webcam_id, save_vid, vid_output_path, input_size):
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, input_size[1])
     cam_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     cam_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    if fps == 0: fps = 30
+    
     if cam_width != input_size[0] or cam_height != input_size[1]:
         logging.warning(f"Warning: Your webcam does not support {input_size[0]}x{input_size[1]} resolution. Resolution set to the closest supported one: {cam_width}x{cam_height}.")
     
     out_vid = None
     if save_vid:
-        fps = cap.get(cv2.CAP_PROP_FPS)
-        if fps == 0: fps = 30
         # fourcc MJPG produces very large files but is faster. If it is too slow, consider using it and then converting the video to h264
         # try:
         #     fourcc = cv2.VideoWriter_fourcc(*'avc1') # =h264. better compression and quality but may fail on some systems
