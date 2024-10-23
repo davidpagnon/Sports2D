@@ -16,7 +16,7 @@
     - loads skeleton information
     - reads stream from a video or a webcam
     - sets up the RTMLib pose tracker from RTMlib with specified parameters
-    - detects poses within the selected time range
+    - detects poses within the selected frame range
     - tracks people so that their IDs are consistent across frames
     - retrieves the keypoints with high enough confidence, and only keeps the persons with enough high-confidence keypoints
     - computes joint and segment angles, and flips those on the left/right side them if the respective foot is pointing to the left
@@ -978,7 +978,7 @@ def angle_plots(angle_data_unfiltered, angle_data, person_id):
     pw.show()
 
 
-def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
+def process_fun(config_dict, video_file, frame_range, frame_rate, result_dir):
     '''
     Detect 2D joint centers from a video or a webcam with RTMLib.
     Compute selected joint and segment angles. 
@@ -989,7 +989,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     - loads skeleton information
     - reads stream from a video or a webcam
     - sets up the RTMLib pose tracker from RTMlib with specified parameters
-    - detects poses within the selected time range
+    - detects poses within the selected frame range
     - tracks people so that their IDs are consistent across frames
     - retrieves the keypoints with high enough confidence, and only keeps the persons with enough high-confidence keypoints
     - computes joint and segment angles, and flips those on the left/right side them if the respective foot is pointing to the left
@@ -1111,7 +1111,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         logging.warning('Webcam input: the framerate may vary. If results are filtered, Sports2D will use the average framerate as input.')
     else:
         cap, out_vid, cam_width, cam_height, fps = setup_video(video_file_path, save_vid, vid_output_path)
-        frame_range = [int(time_range[0] * frame_rate), int(time_range[1] * frame_rate)] if time_range else [0, int(cap.get(cv2.CAP_PROP_FRAME_COUNT))]
+        frame_range = [int(frame_range[0]), int(frame_range[1])] if frame_range else [0, int(cap.get(cv2.CAP_PROP_FRAME_COUNT))]
         frame_iterator = tqdm(range(*frame_range)) # use a progress bar
     if show_realtime_results:
         cv2.namedWindow(f'{video_file} Sports2D', cv2.WINDOW_NORMAL + cv2.WINDOW_KEEPRATIO)

@@ -144,7 +144,7 @@ sports2d --help
   ```
 - Run with custom parameters (all non specified are set to default): 
   ``` cmd
-  sports2d --show_graphs False --time_range 0 2.1 --result_dir path_to_result_dir
+  sports2d --show_graphs False --frame_range 0 2.1 --result_dir path_to_result_dir
   ```
   ``` cmd
   sports2d --multiperson false --mode lightweight --det_frequency 50
@@ -218,7 +218,7 @@ Will be much faster, with no impact on accuracy. However, the installation takes
   ```
 - Choose a fraction of the video to analyze (in seconds)file. For example:
   ```cmd
-  sports2d --time_range 0 2.1
+  sports2d --frame_range 0 2.1
   ```
 
 <br>
@@ -234,7 +234,7 @@ Sports2D:
 
 **Okay but how does it work, really?**\
 Sports2D:
-1. Reads stream from a webcam, from one video, or from a list of videos. Selects the specified time range to process.
+1. Reads stream from a webcam, from one video, or from a list of videos. Selects the specified frame range to process.
 2. Sets up the RTMLib pose tracker from RTMlib with specified parameters. It can be run in lightweight, balanced, or performance mode, and for faster inference, keypoints can be tracked instead of detected for a certain number of frames. Any RTMPose model can be used. 
 3. Tracks people so that their IDs are consistent across frames. A person is associated to another in the next frame when they are at a small distance. IDs remain consistent even if the person disappears from a few frames. This carefully crafted `sports2d` tracker runs at a comparable speed as the RTMlib one but is much more robust. The user can still choose the RTMLib method if they need it by specifying it in the Config.toml file.
 4. Retrieves the keypoints with high enough confidence, and only keeps the persons with high enough average confidence.
