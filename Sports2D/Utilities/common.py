@@ -17,12 +17,15 @@
 ## INIT
 import re
 import sys
+import cv2
 import subprocess
+import logging
 from pathlib import Path
 
 import numpy as np
 from scipy import interpolate
 import imageio_ffmpeg as ffmpeg
+from rtmlib import PoseTracker, BodyWithFeet, Wholebody, Body
 
 from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget, QTabWidget, QVBoxLayout
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -257,3 +260,172 @@ def euclidean_distance(q1, q2):
     euc_dist = np.sqrt(np.sum( [d**2 for d in dist]))
 
     return euc_dist
+
+def setup_pose_tracker(det_frequency, mode, pose_model = "HALPE_26"):
+    '''
+    Set up the RTMLib pose tracker with the appropriate model and backend.
+    If CUDA is available, use it with ONNXRuntime backend; else use CPU with openvino
+
+    INPUTS:
+    - det_frequency: int. The frequency of pose detection (every N frames)
+    - mode: str. The mode of the pose tracker ('lightweight', 'balanced', 'performance')
+    - tracking: bool. Whether to track persons across frames with RTMlib tracker
+
+    OUTPUTS:
+    - pose_tracker: PoseTracker. The initialized pose tracker object    
+    '''
+
+    # If CUDA is available, use it with ONNXRuntime backend; else use CPU with openvino
+    try:
+        import torch
+        import onnxruntime as ort
+        if torch.cuda.is_available() == True and 'CUDAExecutionProvider' in ort.get_available_providers():
+            device = 'cuda'
+            backend = 'onnxruntime'
+            logging.info(f"\nValid CUDA installation found: using ONNXRuntime backend with GPU.")
+        elif torch.cuda.is_available() == True and 'ROCMExecutionProvider' in ort.get_available_providers():
+            device = 'rocm'
+            backend = 'onnxruntime'
+            logging.info(f"\nValid ROCM installation found: using ONNXRuntime backend with GPU.")
+        else:
+            raise 
+    except:
+        try:
+            import onnxruntime as ort
+            if 'MPSExecutionProvider' in ort.get_available_providers() or 'CoreMLExecutionProvider' in ort.get_available_providers():
+                device = 'mps'
+                backend = 'onnxruntime'
+                logging.info(f"\nValid MPS installation found: using ONNXRuntime backend with GPU.")
+            else:
+                raise
+        except:
+            device = 'cpu'
+            backend = 'openvino'
+            logging.info(f"\nNo valid CUDA installation found: using OpenVINO backend with CPU.")
+
+    if det_frequency>1:
+        logging.info(f'Inference run only every {det_frequency} frames. Inbetween, pose estimation tracks previously detected points.')
+    elif det_frequency==1:
+        logging.info(f'Inference run on every single frame.')
+    else:
+        raise ValueError(f"Invalid det_frequency: {det_frequency}. Must be an integer greater or equal to 1.")
+
+    # Select the appropriate model based on the model_type
+    if pose_model.upper() == 'HALPE_26':
+        ModelClass = BodyWithFeet
+        logging.info(f"Using HALPE_26 model (body and feet) for pose estimation.")
+    elif pose_model.upper() == 'COCO_133':
+        ModelClass = Wholebody
+        logging.info(f"Using COCO_133 model (body, feet, hands, and face) for pose estimation.")
+    elif pose_model.upper() == 'COCO_17':
+        ModelClass = Body # 26 keypoints(halpe26)
+        logging.info(f"Using COCO_17 model (body) for pose estimation.")
+    else:
+        raise ValueError(f"Invalid model_type: {pose_model}. Must be 'HALPE_26', 'COCO_133', or 'COCO_17'. Use another network (MMPose, DeepLabCut, OpenPose, AlphaPose, BlazePose...) and convert the output files if you need another model. See documentation.")
+    logging.info(f'Mode: {mode}.\n')
+
+    # Initialize the pose tracker with Halpe26 model
+    pose_tracker = PoseTracker(
+        ModelClass,
+        det_frequency=det_frequency,
+        mode=mode,
+        backend=backend,
+        device=device,
+        tracking=False,
+        to_openpose=False)
+        
+    return pose_tracker
+
+def setup_webcam(webcam_id, save_video, vid_output_path, input_size):
+    '''
+    Set up webcam capture with OpenCV.
+
+    INPUTS:
+    - webcam_id: int. The ID of the webcam to capture from
+    - input_size: tuple. The size of the input frame (width, height)
+
+    OUTPUTS:
+    - cap: cv2.VideoCapture. The webcam capture object
+    - out_vid: cv2.VideoWriter. The video writer object
+    - cam_width: int. The actual width of the webcam frame
+    - cam_height: int. The actual height of the webcam frame
+    - fps: int. The frame rate of the webcam
+    '''
+
+    #, cv2.CAP_DSHOW launches faster but only works for windows and esc key does not work
+    cap = cv2.VideoCapture(webcam_id)
+    if not cap.isOpened():
+        raise ValueError(f"Error: Could not open webcam #{webcam_id}. Make sure that your webcam is available and has the right 'webcam_id' (check in your Config.toml file).")
+
+    # set width and height to closest available for the webcam
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, input_size[0])
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, input_size[1])
+    cam_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    cam_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    if fps == 0: fps = 30
+    
+    if cam_width != input_size[0] or cam_height != input_size[1]:
+        logging.warning(f"Warning: Your webcam does not support {input_size[0]}x{input_size[1]} resolution. Resolution set to the closest supported one: {cam_width}x{cam_height}.")
+    
+    out_vid = None
+    if save_video:
+        # fourcc MJPG produces very large files but is faster. If it is too slow, consider using it and then converting the video to h264
+        # try:
+        #     fourcc = cv2.VideoWriter_fourcc(*'avc1') # =h264. better compression and quality but may fail on some systems
+        #     out_vid = cv2.VideoWriter(vid_output_path, fourcc, fps, (cam_width, cam_height))
+        #     if not out_vid.isOpened():
+        #         raise ValueError("Failed to open video writer with 'avc1' (h264)")
+        # except Exception:
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out_vid = cv2.VideoWriter(vid_output_path, fourcc, fps, (cam_width, cam_height))
+            # logging.info("Failed to open video writer with 'avc1' (h264). Using 'mp4v' instead.")
+
+    return cap, out_vid, cam_width, cam_height, fps
+
+
+def setup_video(video_file_path, save_video, vid_output_path):
+    '''
+    Set up video capture with OpenCV.
+
+    INPUTS:
+    - video_file_path: Path. The path to the video file
+    - save_video: bool. Whether to save the video output
+    - vid_output_path: Path. The path to save the video output
+
+    OUTPUTS:
+    - cap: cv2.VideoCapture. The video capture object
+    - out_vid: cv2.VideoWriter. The video writer object
+    - cam_width: int. The width of the video
+    - cam_height: int. The height of the video
+    - fps: int. The frame rate of the video
+    '''
+    
+    if video_file_path.name == video_file_path.stem:
+        raise ValueError("Please set video_input to 'webcam' or to a video file (with extension) in Config.toml")
+    try:
+        cap = cv2.VideoCapture(video_file_path)
+        if not cap.isOpened():
+            raise
+    except:
+        raise NameError(f"{video_file_path} is not a video. Check video_dir and video_input in your Config.toml file.")
+    
+    cam_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    cam_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    if fps == 0: fps = 30
+    
+    out_vid = None
+
+    if save_video:
+        # try:
+        #     fourcc = cv2.VideoWriter_fourcc(*'avc1') # =h264. better compression and quality but may fail on some systems
+        #     out_vid = cv2.VideoWriter(vid_output_path, fourcc, fps, (cam_width, cam_height))
+        #     if not out_vid.isOpened():
+        #         raise ValueError("Failed to open video writer with 'avc1' (h264)")
+        # except Exception:
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out_vid = cv2.VideoWriter(vid_output_path, fourcc, fps, (cam_width, cam_height))
+            # logging.info("Failed to open video writer with 'avc1' (h264). Using 'mp4v' instead.")
+        
+    return cap, out_vid, cam_width, cam_height, fps

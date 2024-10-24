@@ -254,8 +254,8 @@ def base_params(config_dict):
     # videod_dir and result_dir
     video_dir = Path(config_dict.get('project').get('video_dir')).resolve()
     if video_dir == '': video_dir = Path.cwd()
-    result_dir = Path(config_dict.get('process').get('result_dir')).resolve()
-    if result_dir == '': result_dir = Path.cwd()
+    output_dir = Path(config_dict.get('process').get('result_dir')).resolve()
+    if output_dir == '': output_dir = Path.cwd()
 
     # video_files, frame_rates, time_ranges, frame_ranges
     video_input = config_dict.get('project').get('video_input')
@@ -306,7 +306,7 @@ def base_params(config_dict):
         else:
             raise ValueError('Frame range must be [] for analysing all frames of all videos, or [start_frame, end_frame] for analysing all videos from start_frame to end_frame, or [[start_frame1, end_frame1], [start_frame2, end_frame2], ...] for analysing each video for a different frame_range.')
     
-    return video_dir, video_files, time_ranges, frame_ranges, frame_rates, result_dir
+    return video_dir, video_files, time_ranges, frame_ranges, frame_rates, output_dir
 
 
 def get_leaf_keys(config, prefix=''):
@@ -372,17 +372,22 @@ def process(config='Config_demo.toml'):
     '''
 
     from Sports2D.process import process_fun
+    from Sports2D.Utilities.common import setup_pose_tracker
     
     if type(config) == dict:
         config_dict = config
     else:
         config_dict = read_config_file(config)
-    video_dir, video_files, time_ranges, frame_ranges, frame_rates, result_dir = base_params(config_dict)
+
+    mode = config_dict.get('pose').get('mode')
+    det_frequency = config_dict.get('pose').get('det_frequency')
+
+    video_dir, video_files, time_ranges, frame_ranges, frame_rates, output_dir = base_params(config_dict)
         
-    result_dir.mkdir(parents=True, exist_ok=True)
-    with open(result_dir / 'logs.txt', 'a+'): pass
+    output_dir.mkdir(parents=True, exist_ok=True)
+    with open(output_dir / 'logs.txt', 'a+'): pass
     logging.basicConfig(format='%(message)s', level=logging.INFO, force=True, 
-        handlers = [logging.handlers.TimedRotatingFileHandler(result_dir / 'logs.txt', when='D', interval=7), logging.StreamHandler()]) 
+        handlers = [logging.handlers.TimedRotatingFileHandler(output_dir / 'logs.txt', when='D', interval=7), logging.StreamHandler()]) 
     
     for video_file, time_range, frame_range, frame_rate in zip(video_files, time_ranges, frame_ranges, frame_rates):
         currentDateAndTime = datetime.now()
@@ -405,7 +410,15 @@ def process(config='Config_demo.toml'):
         logging.info(f"On {currentDateAndTime.strftime('%A %d. %B %Y, %H:%M:%S')}")
         logging.info("---------------------------------------------------------------------")
 
-        process_fun(config_dict, video_file, frame_range, result_dir)
+        if video_file != "webcam":
+            video_file_path = video_dir / video_file
+        
+        pose_tracker = setup_pose_tracker(det_frequency, mode)
+
+        logging.info(f'Pose tracking set up for BodyWithFeet model in {mode} mode.')
+        logging.info(f'Persons are detected every {det_frequency} frames and tracked inbetween.')
+
+        process_fun(config_dict, video_file_path, pose_tracker, frame_range, output_dir)
 
         elapsed_time = (datetime.now() - currentDateAndTime).total_seconds()        
         logging.info(f'\nProcessing {video_file} took {elapsed_time:.2f} s.')

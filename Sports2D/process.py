@@ -65,7 +65,6 @@ import pandas as pd
 import cv2
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from rtmlib import PoseTracker, BodyWithFeet
 
 from Sports2D.Utilities import filter
 from Sports2D.Utilities.common import *
@@ -128,156 +127,6 @@ __status__ = "Development"
 
 
 # FUNCTIONS
-def setup_webcam(webcam_id, save_video, vid_output_path, input_size):
-    '''
-    Set up webcam capture with OpenCV.
-
-    INPUTS:
-    - webcam_id: int. The ID of the webcam to capture from
-    - input_size: tuple. The size of the input frame (width, height)
-
-    OUTPUTS:
-    - cap: cv2.VideoCapture. The webcam capture object
-    - out_vid: cv2.VideoWriter. The video writer object
-    - cam_width: int. The actual width of the webcam frame
-    - cam_height: int. The actual height of the webcam frame
-    - fps: int. The frame rate of the webcam
-    '''
-
-    #, cv2.CAP_DSHOW launches faster but only works for windows and esc key does not work
-    cap = cv2.VideoCapture(webcam_id) 
-    if not cap.isOpened():
-        raise ValueError(f"Error: Could not open webcam #{webcam_id}. Make sure that your webcam is available and has the right 'webcam_id' (check in your Config.toml file).")
-
-    # set width and height to closest available for the webcam
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, input_size[0])
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, input_size[1])
-    cam_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    cam_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    if fps == 0: fps = 30
-    
-    if cam_width != input_size[0] or cam_height != input_size[1]:
-        logging.warning(f"Warning: Your webcam does not support {input_size[0]}x{input_size[1]} resolution. Resolution set to the closest supported one: {cam_width}x{cam_height}.")
-    
-    out_vid = None
-    if save_video:
-        # fourcc MJPG produces very large files but is faster. If it is too slow, consider using it and then converting the video to h264
-        # try:
-        #     fourcc = cv2.VideoWriter_fourcc(*'avc1') # =h264. better compression and quality but may fail on some systems
-        #     out_vid = cv2.VideoWriter(vid_output_path, fourcc, fps, (cam_width, cam_height))
-        #     if not out_vid.isOpened():
-        #         raise ValueError("Failed to open video writer with 'avc1' (h264)")
-        # except Exception:
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        out_vid = cv2.VideoWriter(vid_output_path, fourcc, fps, (cam_width, cam_height))
-            # logging.info("Failed to open video writer with 'avc1' (h264). Using 'mp4v' instead.")
-
-    return cap, out_vid, cam_width, cam_height, fps
-
-
-def setup_video(video_file_path, save_video, vid_output_path):
-    '''
-    Set up video capture with OpenCV.
-
-    INPUTS:
-    - video_file_path: Path. The path to the video file
-    - save_video: bool. Whether to save the video output
-    - vid_output_path: Path. The path to save the video output
-
-    OUTPUTS:
-    - cap: cv2.VideoCapture. The video capture object
-    - out_vid: cv2.VideoWriter. The video writer object
-    - cam_width: int. The width of the video
-    - cam_height: int. The height of the video
-    - fps: int. The frame rate of the video
-    '''
-    
-    if video_file_path.name == video_file_path.stem:
-        raise ValueError("Please set video_input to 'webcam' or to a video file (with extension) in Config.toml")
-    try:
-        cap = cv2.VideoCapture(video_file_path)
-        if not cap.isOpened():
-            raise
-    except:
-        raise NameError(f"{video_file_path} is not a video. Check video_dir and video_input in your Config.toml file.")
-    
-    cam_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    cam_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    if fps == 0: fps = 30
-    
-    out_vid = None
-
-    if save_video:
-        # try:
-        #     fourcc = cv2.VideoWriter_fourcc(*'avc1') # =h264. better compression and quality but may fail on some systems
-        #     out_vid = cv2.VideoWriter(vid_output_path, fourcc, fps, (cam_width, cam_height))
-        #     if not out_vid.isOpened():
-        #         raise ValueError("Failed to open video writer with 'avc1' (h264)")
-        # except Exception:
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        out_vid = cv2.VideoWriter(vid_output_path, fourcc, fps, (cam_width, cam_height))
-            # logging.info("Failed to open video writer with 'avc1' (h264). Using 'mp4v' instead.")
-        
-    return cap, out_vid, cam_width, cam_height, fps
-
-
-def setup_pose_tracker(det_frequency, mode, tracking):
-    '''
-    Set up the RTMLib pose tracker with the appropriate model and backend.
-    If CUDA is available, use it with ONNXRuntime backend; else use CPU with openvino
-
-    INPUTS:
-    - det_frequency: int. The frequency of pose detection (every N frames)
-    - mode: str. The mode of the pose tracker ('lightweight', 'balanced', 'performance')
-    - tracking: bool. Whether to track persons across frames with RTMlib tracker
-
-    OUTPUTS:
-    - pose_tracker: PoseTracker. The initialized pose tracker object    
-    '''
-
-    # If CUDA is available, use it with ONNXRuntime backend; else use CPU with openvino
-    try:
-        import torch
-        import onnxruntime as ort
-        if torch.cuda.is_available() == True and 'CUDAExecutionProvider' in ort.get_available_providers():
-            device = 'cuda'
-            backend = 'onnxruntime'
-            logging.info(f"\nValid CUDA installation found: using ONNXRuntime backend with GPU.")
-        elif torch.cuda.is_available() == True and 'ROCMExecutionProvider' in ort.get_available_providers():
-            device = 'rocm'
-            backend = 'onnxruntime'
-            logging.info(f"\nValid ROCM installation found: using ONNXRuntime backend with GPU.")
-        else:
-            raise 
-    except:
-        try:
-            import onnxruntime as ort
-            if 'MPSExecutionProvider' in ort.get_available_providers() or 'CoreMLExecutionProvider' in ort.get_available_providers():
-                device = 'mps'
-                backend = 'onnxruntime'
-                logging.info(f"\nValid MPS installation found: using ONNXRuntime backend with GPU.")
-            else:
-                raise
-        except:
-            device = 'cpu'
-            backend = 'openvino'
-            logging.info(f"\nNo valid CUDA installation found: using OpenVINO backend with CPU.")
-
-    # Initialize the pose tracker with Halpe26 model
-    pose_tracker = PoseTracker(
-        BodyWithFeet,
-        det_frequency=det_frequency,
-        mode=mode,
-        backend=backend,
-        device=device,
-        tracking=tracking,
-        to_openpose=False)
-        
-    return pose_tracker
-
-
 def flip_left_right_direction(person_X, L_R_direction_idx, keypoints_names, keypoints_ids):
     '''
     Flip the points to the right or left for more consistent angle calculation 
@@ -984,7 +833,7 @@ def angle_plots(angle_data_unfiltered, angle_data, person_id):
     pw.show()
 
 
-def process_fun(config_dict, video_file, input_frame_range, result_dir):
+def process_fun(config_dict, video_file_path, pose_tracker, input_frame_range, output_dir):
     '''
     Detect 2D joint centers from a video or a webcam with RTMLib.
     Compute selected joint and segment angles. 
@@ -1027,9 +876,10 @@ def process_fun(config_dict, video_file, input_frame_range, result_dir):
     - image files, video
     - a logs.txt file 
     '''
+
+    from Sports2D.Utilities.common import setup_webcam, setup_video
     
     # Base parameters
-    video_dir = Path(config_dict.get('project').get('video_dir'))
     webcam_id =  config_dict.get('project').get('webcam_id')
     input_size = config_dict.get('project').get('input_size')
     
@@ -1044,8 +894,6 @@ def process_fun(config_dict, video_file, input_frame_range, result_dir):
 
     # Pose_advanced settings
     pose_model = config_dict.get('pose').get('pose_model')
-    mode = config_dict.get('pose').get('mode')
-    det_frequency = config_dict.get('pose').get('det_frequency')
     tracking_mode = config_dict.get('pose').get('tracking_mode')
 
     keypoint_likelihood_threshold = config_dict.get('pose').get('keypoint_likelihood_threshold')
@@ -1062,20 +910,31 @@ def process_fun(config_dict, video_file, input_frame_range, result_dir):
     thickness = 1 if fontSize < 0.8 else 2
     flip_left_right = config_dict.get('angles').get('flip_left_right')
 
+    logging.info(f'Multi-person is {"" if multi_person else "not "}selected.')
+    logging.info(f"Parameters: {f'{tracking_mode=}, ' if multi_person else ''}{keypoint_likelihood_threshold=}, {average_likelihood_threshold=}, {keypoint_number_threshold=}")
 
-    # Create output directories
-    if video_file == "webcam":
+    # Create output directories & set up video capture
+    if video_file_path == "webcam":
         current_date = datetime.now().strftime("%Y%m%d_%H%M%S")
         output_dir_name = f'webcam_{current_date}'
+
+        cap, out_vid, cam_width, cam_height, fps = setup_webcam(webcam_id, save_video, output_video_path, input_size)
+        frame_range = [0,sys.maxsize]
+        frame_iterator = range(*frame_range)
+        logging.warning('Webcam input: the framerate may vary. If results are filtered, Sports2D will use the average framerate as input.')
     else:
-        video_file_path = video_dir / video_file
         video_file_stem = video_file_path.stem
         output_dir_name = f'{video_file_stem}_Sports2D'
-    output_dir = os.path.abspath(os.path.join(result_dir, output_dir_name))
-    img_output_dir = os.path.join(output_dir, f'{output_dir_name}_img') 
-    output_video_path = os.path.join(output_dir, f'{output_dir_name}_pose.mp4')
-    if not os.path.isdir(output_dir): os.makedirs(output_dir)
 
+        cap, out_vid, cam_width, cam_height, fps = setup_video(video_file_path, save_video, output_video_path)
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        frame_range = input_frame_range if input_frame_range else [0, total_frames]
+        frame_iterator = tqdm(range(*frame_range), desc=f'Processing {video_file_path}') # use a progress bar
+    output_dir = os.path.abspath(os.path.join(output_dir, output_dir_name))
+    if not os.path.isdir(output_dir): os.makedirs(output_dir)
+    img_output_dir = os.path.join(output_dir, f'{output_dir_name}_img') 
+    json_output_dir = os.path.join(output_dir, f'{output_dir_name}_json')
+    output_video_path = os.path.join(output_dir, f'{output_dir_name}_pose.mp4')
 
     # Retrieve keypoint names from model
     model = eval(pose_model)
@@ -1087,31 +946,10 @@ def process_fun(config_dict, video_file, input_frame_range, result_dir):
     Rtoe_idx = keypoints_ids[keypoints_names.index('RBigToe')]
     RHeel_idx = keypoints_ids[keypoints_names.index('RHeel')]
     L_R_direction_idx = [Ltoe_idx, LHeel_idx, Rtoe_idx, RHeel_idx]
-
-
-    # Set up video capture
-    if video_file == "webcam":
-        cap, out_vid, cam_width, cam_height, fps = setup_webcam(webcam_id, save_video, output_video_path, input_size)
-        frame_range = [0,sys.maxsize]
-        frame_iterator = range(*frame_range)
-        logging.warning('Webcam input: the framerate may vary. If results are filtered, Sports2D will use the average framerate as input.')
-    else:
-        cap, out_vid, cam_width, cam_height, fps = setup_video(video_file_path, save_video, output_video_path)
-        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        frame_range = input_frame_range if input_frame_range else [0, total_frames]
-        frame_iterator = tqdm(range(*frame_range), desc=f'Processing {video_file_path}') # use a progress bar
     
     if display_detection:
-        cv2.namedWindow(f'{video_file} Sports2D', cv2.WINDOW_NORMAL + cv2.WINDOW_KEEPRATIO)
-        cv2.setWindowProperty(f'{video_file} Sports2D', cv2.WND_PROP_ASPECT_RATIO, cv2.WINDOW_FULLSCREEN)
-
-    # Set up pose tracker
-    tracking_rtmlib = True if (tracking_mode == 'rtmlib' and multi_person) else False
-    pose_tracker = setup_pose_tracker(det_frequency, mode, tracking_rtmlib)
-    logging.info(f'Pose tracking set up for BodyWithFeet model in {mode} mode.')
-    logging.info(f'Persons are detected every {det_frequency} frames and tracked inbetween. Multi-person is {"" if multi_person else "not "}selected.')
-    logging.info(f"Parameters: {f'{tracking_mode=}, ' if multi_person else ''}{keypoint_likelihood_threshold=}, {average_likelihood_threshold=}, {keypoint_number_threshold=}")
-
+        cv2.namedWindow(f'{video_file_path} Sports2D', cv2.WINDOW_NORMAL + cv2.WINDOW_KEEPRATIO)
+        cv2.setWindowProperty(f'{video_file_path} Sports2D', cv2.WND_PROP_ASPECT_RATIO, cv2.WINDOW_FULLSCREEN)
 
     # Process video or webcam feed
     # logging.info(f"{'Video, ' if save_video else ''}{'Images, ' if save_images else ''}{'Pose, ' if save_pose else ''}{'Angles ' if save_angles else ''}{'and ' if save_angles or save_images or save_pose or save_video else ''}Logs will be saved in {result_dir}.")
@@ -1147,7 +985,7 @@ def process_fun(config_dict, video_file, input_frame_range, result_dir):
 
                 # Tracking people IDs across frames
                 if multi_person:
-                    if tracking_rtmlib:
+                    if tracking_mode == 'rtmlib':
                         keypoints, scores = sort_people_rtmlib(pose_tracker, keypoints, scores)
                     else:
                         if 'prev_keypoints' not in locals(): prev_keypoints = keypoints
@@ -1189,6 +1027,13 @@ def process_fun(config_dict, video_file, input_frame_range, result_dir):
                         person_angles.append(ang)
                     valid_angles.append(person_angles)
 
+                if save_pose:
+                    all_frames_X.append(np.array(valid_X))
+                    all_frames_Y.append(np.array(valid_Y))
+                    all_frames_scores.append(np.array(valid_scores))
+                if save_angles:
+                    all_frames_angles.append(np.array(valid_angles))
+
                 # Draw keypoints and skeleton
                 if display_detection or save_video or save_images:
                     img_show = frame.copy()
@@ -1197,25 +1042,19 @@ def process_fun(config_dict, video_file, input_frame_range, result_dir):
                     img_show = draw_skel(img_show, valid_X, valid_Y, model, colors=colors)
                     img_show = draw_angles(img_show, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_ids, keypoints_names, angle_names, display_angle_values_on=display_angle_values_on, colors=colors, fontSize=fontSize, thickness=thickness)
 
-                    if display_detection:
-                        cv2.imshow(f'{video_file} Sports2D', img_show)
-                        if (cv2.waitKey(1) & 0xFF) == ord('q') or (cv2.waitKey(1) & 0xFF) == 27:
-                            break
+                if display_detection:
+                    cv2.imshow(f'{video_file_path} Sports2D', img_show)
+                    if (cv2.waitKey(1) & 0xFF) == ord('q') or (cv2.waitKey(1) & 0xFF) == 27:
+                        break
 
-                    if save_video:
-                        out_vid.write(img_show)
+                if save_video:
+                    out_vid.write(img_show)
 
-                    if save_images:
-                        if not os.path.isdir(img_output_dir): os.makedirs(img_output_dir)
-                        cv2.imwrite(os.path.join(img_output_dir, f'{output_dir_name}_{frame_idx:06d}.jpg'), img_show)
-
-                if save_pose:
-                    all_frames_X.append(np.array(valid_X))
-                    all_frames_Y.append(np.array(valid_Y))
-                    all_frames_scores.append(np.array(valid_scores))
-                if save_angles:
-                    all_frames_angles.append(np.array(valid_angles))
-                if video_file=='webcam' and save_video:   # To adjust framerate of output video
+                if save_images:
+                    if not os.path.isdir(img_output_dir): os.makedirs(img_output_dir)
+                    cv2.imwrite(os.path.join(img_output_dir, f'{output_dir_name}_{frame_idx:06d}.jpg'), img_show)
+                
+                if video_file_path == 'webcam' and save_video:   # To adjust framerate of output video
                     elapsed_time = (datetime.now() - start_time).total_seconds()
                     frame_processing_times.append(elapsed_time)
                 
@@ -1226,7 +1065,7 @@ def process_fun(config_dict, video_file, input_frame_range, result_dir):
     logging.info(f"Video processing completed.")
     if save_video:
         out_vid.release()
-        if video_file == 'webcam':
+        if video_file_path == 'webcam':
             actual_framerate = len(frame_processing_times) / sum(frame_processing_times)
             logging.info(f"Rewriting webcam video based on the average framerate {actual_framerate}.")
             resample_video(output_video_path, fps, actual_framerate)
@@ -1261,7 +1100,7 @@ def process_fun(config_dict, video_file, input_frame_range, result_dir):
                            gaussian_filter_kernel, loess_filter_kernel, median_filter_kernel]
 
     # Post-processing: Interpolate, filter, and save pose and angles
-    frame_range = [0,frame_idx] if video_file == 'webcam' else frame_range
+    frame_range = [0,frame_idx] if video_file_path == 'webcam' else frame_range
     all_frames_time = pd.Series(np.linspace(frame_range[0]/fps, frame_range[1]/fps, frame_idx), name='time')
 
     if save_pose:
@@ -1309,7 +1148,7 @@ def process_fun(config_dict, video_file, input_frame_range, result_dir):
                 else:
                     filter_type = filter_options[1]
                     if filter_type == 'butterworth':
-                        if video_file == 'webcam':
+                        if video_file_path == 'webcam':
                             cutoff = filter_options[3]
                             if cutoff / (fps / 2) >= 1:
                                 cutoff_old = cutoff
@@ -1376,7 +1215,7 @@ def process_fun(config_dict, video_file, input_frame_range, result_dir):
                 else:
                     filter_type = filter_options[1]
                     if filter_type == 'butterworth':
-                        if video_file == 'webcam':
+                        if video_file_path == 'webcam':
                             cutoff = filter_options[3]
                             if cutoff / (fps / 2) >= 1:
                                 cutoff_old = cutoff
