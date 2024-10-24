@@ -127,7 +127,7 @@ __status__ = "Development"
 
 
 # FUNCTIONS
-def setup_webcam(webcam_id, save_vid, vid_output_path, input_size):
+def setup_webcam(webcam_id, save_video, vid_output_path, input_size):
     '''
     Set up webcam capture with OpenCV.
 
@@ -160,7 +160,7 @@ def setup_webcam(webcam_id, save_vid, vid_output_path, input_size):
         logging.warning(f"Warning: Your webcam does not support {input_size[0]}x{input_size[1]} resolution. Resolution set to the closest supported one: {cam_width}x{cam_height}.")
     
     out_vid = None
-    if save_vid:
+    if save_video:
         # fourcc MJPG produces very large files but is faster. If it is too slow, consider using it and then converting the video to h264
         # try:
         #     fourcc = cv2.VideoWriter_fourcc(*'avc1') # =h264. better compression and quality but may fail on some systems
@@ -175,13 +175,13 @@ def setup_webcam(webcam_id, save_vid, vid_output_path, input_size):
     return cap, out_vid, cam_width, cam_height, fps
 
 
-def setup_video(video_file_path, save_vid, vid_output_path):
+def setup_video(video_file_path, save_video, vid_output_path):
     '''
     Set up video capture with OpenCV.
 
     INPUTS:
     - video_file_path: Path. The path to the video file
-    - save_vid: bool. Whether to save the video output
+    - save_video: bool. Whether to save the video output
     - vid_output_path: Path. The path to save the video output
 
     OUTPUTS:
@@ -205,7 +205,7 @@ def setup_video(video_file_path, save_vid, vid_output_path):
     cam_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
     out_vid = None
-    if save_vid:
+    if save_video:
         fps = cap.get(cv2.CAP_PROP_FPS)
         if fps == 0: fps = 30
         # try:
@@ -1030,12 +1030,13 @@ def process_fun(config_dict, video_file, frame_range, frame_rate, result_dir):
     video_dir = Path(config_dict.get('project').get('video_dir'))
     webcam_id =  config_dict.get('project').get('webcam_id')
     input_size = config_dict.get('project').get('input_size')
+    
+    save_video = True if 'to_video' in config_dict['project']['save_video'] else False
+    save_images = True if 'to_images' in config_dict['project']['save_video'] else False
 
     # Process settings
     multi_person = config_dict.get('process').get('multi_person')
-    show_realtime_results = config_dict.get('process').get('show_realtime_results')
-    save_vid = config_dict.get('process').get('save_vid')
-    save_img = config_dict.get('process').get('save_img')
+    display_detection = config_dict.get('process').get('display_detection')
     save_pose = config_dict.get('process').get('save_pose')
     save_angles = config_dict.get('process').get('save_angles')
 
@@ -1091,7 +1092,7 @@ def process_fun(config_dict, video_file, frame_range, frame_rate, result_dir):
     pose_output_path = output_dir / f'{output_dir_name}_px.trc'
     angles_output_path = output_dir / f'{output_dir_name}_angles.mot'
     output_dir.mkdir(parents=True, exist_ok=True)
-    if save_img:
+    if save_images:
         img_output_dir.mkdir(parents=True, exist_ok=True)
 
 
@@ -1109,15 +1110,15 @@ def process_fun(config_dict, video_file, frame_range, frame_rate, result_dir):
 
     # Set up video capture
     if video_file == "webcam":
-        cap, out_vid, cam_width, cam_height, fps = setup_webcam(webcam_id, save_vid, vid_output_path, input_size)
+        cap, out_vid, cam_width, cam_height, fps = setup_webcam(webcam_id, save_video, vid_output_path, input_size)
         frame_range = [0,sys.maxsize]
         frame_iterator = range(*frame_range)
         logging.warning('Webcam input: the framerate may vary. If results are filtered, Sports2D will use the average framerate as input.')
     else:
-        cap, out_vid, cam_width, cam_height, fps = setup_video(video_file_path, save_vid, vid_output_path)
+        cap, out_vid, cam_width, cam_height, fps = setup_video(video_file_path, save_video, vid_output_path)
         frame_range = frame_range if frame_range else [0, int(cap.get(cv2.CAP_PROP_FRAME_COUNT))]
         frame_iterator = tqdm(range(*frame_range)) # use a progress bar
-    if show_realtime_results:
+    if display_detection:
         cv2.namedWindow(f'{video_file} Sports2D', cv2.WINDOW_NORMAL + cv2.WINDOW_KEEPRATIO)
         cv2.setWindowProperty(f'{video_file} Sports2D', cv2.WND_PROP_ASPECT_RATIO, cv2.WINDOW_FULLSCREEN)
 
@@ -1132,7 +1133,7 @@ def process_fun(config_dict, video_file, frame_range, frame_rate, result_dir):
 
     # Process video or webcam feed
     logging.info(f"\nProcessing video stream...")
-    # logging.info(f"{'Video, ' if save_vid else ''}{'Images, ' if save_img else ''}{'Pose, ' if save_pose else ''}{'Angles ' if save_angles else ''}{'and ' if save_angles or save_img or save_pose or save_vid else ''}Logs will be saved in {result_dir}.")
+    # logging.info(f"{'Video, ' if save_video else ''}{'Images, ' if save_images else ''}{'Pose, ' if save_pose else ''}{'Angles ' if save_angles else ''}{'and ' if save_angles or save_images or save_pose or save_video else ''}Logs will be saved in {result_dir}.")
     all_frames_X, all_frames_Y, all_frames_scores, all_frames_angles = [], [], [], []
     frame_processing_times = []
     frame_count = 0
@@ -1209,20 +1210,20 @@ def process_fun(config_dict, video_file, frame_range, frame_rate, result_dir):
                 valid_angles.append(person_angles)
 
             # Draw keypoints and skeleton
-            if show_realtime_results or save_vid or save_img:
+            if display_detection or save_video or save_images:
                 img = frame.copy()
                 img = draw_bounding_box(img, valid_X, valid_Y, colors=colors, fontSize=fontSize, thickness=thickness)
                 img = draw_keypts(img, valid_X, valid_Y, scores, cmap_str='RdYlGn')
                 img = draw_skel(img, valid_X, valid_Y, model, colors=colors)
                 img = draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_ids, keypoints_names, angle_names, display_angle_values_on=display_angle_values_on, colors=colors, fontSize=fontSize, thickness=thickness)
 
-                if show_realtime_results:
+                if display_detection:
                     cv2.imshow(f'{video_file} Sports2D', img)
                     if (cv2.waitKey(1) & 0xFF) == ord('q') or (cv2.waitKey(1) & 0xFF) == 27:
                         break
-                if save_vid:
+                if save_video:
                     out_vid.write(img)
-                if save_img:
+                if save_images:
                     cv2.imwrite(str((img_output_dir / f'{output_dir_name}_{frame_count:06d}.png')), img)
 
             if save_pose:
@@ -1231,14 +1232,14 @@ def process_fun(config_dict, video_file, frame_range, frame_rate, result_dir):
                 all_frames_scores.append(np.array(valid_scores))
             if save_angles:
                 all_frames_angles.append(np.array(valid_angles))
-            if video_file=='webcam' and save_vid:   # To adjust framerate of output video
+            if video_file=='webcam' and save_video:   # To adjust framerate of output video
                 elapsed_time = (datetime.now() - start_time).total_seconds()
                 frame_processing_times.append(elapsed_time)
             frame_count += 1
 
         cap.release()
         logging.info(f"Video processing completed.")
-        if save_vid:
+        if save_video:
             out_vid.release()
             if video_file == 'webcam':
                 actual_framerate = len(frame_processing_times) / sum(frame_processing_times)
@@ -1246,9 +1247,9 @@ def process_fun(config_dict, video_file, frame_range, frame_rate, result_dir):
                 resample_video(vid_output_path, fps, actual_framerate)
                 fps = actual_framerate
             logging.info(f"Processed video saved to {vid_output_path.resolve()}.")
-        if save_img:
+        if save_images:
             logging.info(f"Processed images saved to {img_output_dir.resolve()}.")
-        if show_realtime_results:
+        if display_detection:
             cv2.destroyAllWindows()
     
 
