@@ -29,7 +29,7 @@
         sports2d --video_input webcam
     - Run with custom parameters (all non specified are set to default): 
         sports2d --show_plots False --time_range 0 2.1 --result_dir path_to_result_dir
-        sports2d --multiperson false --mode lightweight --det_frequency 50
+        sports2d --multi_person false --mode lightweight --det_frequency 50
     - Run with a toml configuration file: 
         sports2d --config path_to_config.toml
    
@@ -129,7 +129,7 @@ DEFAULT_CONFIG =   {'project': {'video_input': ['demo.mp4'],
                                 'webcam_id': 0,
                                 'input_size': [1280, 720]
                                 },
-                    'process': {'multiperson': True,
+                    'process': {'multi_person': True,
                                 'show_realtime_results': True,
                                 'save_vid': True,
                                 'save_img': True,
@@ -206,7 +206,7 @@ CONFIG_HELP =   {'config': ["c", "Path to a toml configuration file"],
                 'mode': ["m", "light, balanced, or performance. balanced if not specified"],
                 'det_frequency': ["f", "Run person detection only every N frames, and inbetween track previously detected bounding boxes. keypoint detection is still run on all frames.\n\
                                  Equal to or greater than 1, can be as high as you want in simple uncrowded cases. Much faster, but might be less accurate. 1 if not specified: detection runs on all frames"],
-                'multiperson': ["M", "Multiperson involves tracking: will be faster if set to false. true if not specified"],
+                'multi_person': ["M", "Multi-person involves tracking: will be faster if set to false. true if not specified"],
                 'tracking_mode': ["", "sports2d or rtmlib. sports2d is generally much more accurate and comparable in speed. sports2d if not specified"],
                 'input_size': ["", "width, height. 1280, 720 if not specified. Lower resolution will be faster but less precise"],
                 'keypoint_likelihood_threshold': ["", "Detected keypoints are not retained if likelihood is below this threshold. 0.3 if not specified"],
@@ -327,7 +327,7 @@ def get_leaf_keys(config, prefix=''):
 
 def update_nested_dict(config, key_path, value):
     '''
-    Update a nested dictionary based on a key path string like 'process.multiperson'.
+    Update a nested dictionary based on a key path string like 'process.multi_person'.
     '''
 
     keys = key_path.split('.')
@@ -435,7 +435,7 @@ def main():
         sports2d --video_input webcam
     - Run with custom parameters (all non specified are set to default): 
         sports2d --show_plots False --time_range 0 2.1 --result_dir path_to_result_dir
-        sports2d --multiperson false --mode lightweight --det_frequency 50
+        sports2d --multi_person false --mode lightweight --det_frequency 50
     - Run with a toml configuration file: 
         sports2d --config path_to_config.toml
     '''

@@ -27,7 +27,7 @@ input_size = [1280, 720] # [W, H]. Lower resolution will be faster but less prec
 
 
 [process]
-multiperson = true # Multiperson involves tracking: will be faster if false
+multi_person = true # Multi-person involves tracking: will be faster if false
 show_realtime_results = true
 save_vid = true
 save_img = true

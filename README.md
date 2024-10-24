@@ -147,7 +147,7 @@ sports2d --help
   sports2d --show_graphs False --time_range 0 2.1 --result_dir path_to_result_dir
   ```
   ``` cmd
-  sports2d --multiperson false --mode lightweight --det_frequency 50
+  sports2d --multi_person false --mode lightweight --det_frequency 50
   ```
 - Run with a toml configuration file: 
   ``` cmd
@@ -165,7 +165,7 @@ sports2d --help
 ### Too slow for you?
 
 **Quick fixes:**
-- Use `--multiperson false`: Can be used if one single person is present in the video. Otherwise, persons' IDs may be mixed up.
+- Use `--multi_person false`: Can be used if one single person is present in the video. Otherwise, persons' IDs may be mixed up.
 - Use `--mode lightweight`: Will use a lighter version of RTMPose, which is faster but less accurate.
 - Use `--det_frequency 50`: Will detect poses only every 50 frames, and track keypoints inbetween, which is faster.
 
