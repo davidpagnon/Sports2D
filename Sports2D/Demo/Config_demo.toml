@@ -13,13 +13,13 @@
 
 [project]
 video_input = 'demo.mp4' # 'webcam' or '<video_path.ext>', or ['video1_path.mp4', 'video2_path.avi>', ...]. Beware that images won't be saved if paths contain non ASCII characters.
+video_dir = '' # BETWEEN SINGLE QUOTES! # If empty, project dir is current dir
 
 # Video parameters
-frame_range = [] # [] for the whole video, or [start_frame, end_frame], or [[start_frame1, end_frame1], [start_frame2, end_frame2], ...]
-## N.B.: If you want a time range instead, use frame_range = time_range * frame_rate
-## For example if you want to analyze from 0.1 to 2 seconds with a 60 fps frame rate, 
-## frame_range = [0.1, 2.0]*frame_rate = [6, 120]
-video_dir = '' # BETWEEN SINGLE QUOTES! # If empty, result dir is current dir
+time_range = []  # Specify as [] for the whole video, or [start_time, end_time] in seconds, # or [[start_time1, end_time1], [start_time2, end_time2], ...] for multiple intervals.
+frame_range = [] # Specify as [] for the whole video, or [start_frame, end_frame], # or [[start_frame1, end_frame1], [start_frame2, end_frame2], ...] for multiple intervals.
+
+# Note: `time_range` and `frame_range` cannot be specified simultaneously.
 
 # Webcam parameters
 webcam_id = 0 # your webcam id (0 is default)

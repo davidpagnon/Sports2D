@@ -28,7 +28,7 @@
     - Run on webcam with default parameters: 
         sports2d --video_input webcam
     - Run with custom parameters (all non specified are set to default): 
-        sports2d --show_plots False --frame_range 0 2.1 --result_dir path_to_result_dir
+        sports2d --show_plots False --time_range 0 2.1 --result_dir path_to_result_dir
         sports2d --multiperson false --mode lightweight --det_frequency 50
     - Run with a toml configuration file: 
         sports2d --config path_to_config.toml
@@ -65,7 +65,7 @@
     - loads skeleton information
     - reads stream from a video or a webcam
     - sets up the RTMLib pose tracker from RTMlib with specified parameters
-    - detects poses within the selected frame range
+    - detects poses within the selected time or frame range
     - tracks people so that their IDs are consistent across frames
     - retrieves the keypoints with high enough confidence, and only keeps the persons with enough high-confidence keypoints
     - computes joint and segment angles, and flips those on the left/right side them if the respective foot is pointing to the left
@@ -123,6 +123,7 @@ from Sports2D import Sports2D
 
 ## CONSTANTS
 DEFAULT_CONFIG =   {'project': {'video_input': ['demo.mp4'],
+                                'time_range': [],
                                 'frame_range': [],
                                 'video_dir': '',
                                 'webcam_id': 0,
@@ -188,7 +189,8 @@ DEFAULT_CONFIG =   {'project': {'video_input': ['demo.mp4'],
 CONFIG_HELP =   {'config': ["c", "Path to a toml configuration file"],
                 'video_input': ["i", "webcam, or video_path.mp4, or video1_path.avi video2_path.mp4 ... Beware that images won't be saved if paths contain non ASCII characters"],
                 'webcam_id': ["w", "webcam ID. 0 if not specified"],
-                'frame_range': ["t", "start_frame, end_frame. Whole video if not specified"],
+                'time_range': ["t", "start_time, end_time. In seconds. Whole video if not specified"],
+                'frame_range': ["F", "start_frame, end_frame. Whole video if not specified"],
                 'video_dir': ["d", "Current directory if not specified"],
                 'result_dir': ["r", "Current directory if not specified"],
                 'show_realtime_results': ["R", "show results in real-time. true if not specified"],
@@ -257,11 +259,12 @@ def base_params(config_dict):
     result_dir = Path(config_dict.get('process').get('result_dir')).resolve()
     if result_dir == '': result_dir = Path.cwd()
 
-    # video_files, frame_rates, frame_ranges
+    # video_files, frame_rates, time_ranges, frame_ranges
     video_input = config_dict.get('project').get('video_input')
     if video_input == "webcam" or video_input == ["webcam"]:
         video_files = ['webcam']  # No video files for webcam
         frame_rates = [None]  # No frame rate for webcam
+        time_ranges = [None]
         frame_ranges = [None]
     else:
         # video_files
@@ -283,6 +286,17 @@ def base_params(config_dict):
             frame_rates.append(frame_rate)
             video.release()
 
+        # time_ranges
+        time_ranges = np.array(config_dict.get('project').get('time_range'))
+        if time_ranges.shape == (0,):
+            time_ranges = [None] * len(video_files)
+        elif time_ranges.shape == (2,):
+            time_ranges = [time_ranges.tolist()] * len(video_files)
+        elif time_ranges.shape == (len(video_files), 2):
+            time_ranges = time_ranges.tolist()
+        else:
+            raise ValueError('Time range must be [] for analysing all frames of all videos, or [start_time, end_time] for analysing all videos from start_time to end_time, or [[start_time1, end_time1], [start_time2, end_time2], ...] for analysing each video for a different time_range.')
+
         # frame_ranges
         frame_ranges = np.array(config_dict.get('project').get('frame_range'))
         if frame_ranges.shape == (0,):
@@ -294,7 +308,7 @@ def base_params(config_dict):
         else:
             raise ValueError('Frame range must be [] for analysing all frames of all videos, or [start_frame, end_frame] for analysing all videos from start_frame to end_frame, or [[start_frame1, end_frame1], [start_frame2, end_frame2], ...] for analysing each video for a different frame_range.')
     
-    return video_dir, video_files, frame_rates, frame_ranges, result_dir
+    return video_dir, video_files, time_ranges, frame_ranges, frame_rates, result_dir
 
 
 def get_leaf_keys(config, prefix=''):
@@ -365,19 +379,31 @@ def process(config='Config_demo.toml'):
         config_dict = config
     else:
         config_dict = read_config_file(config)
-    video_dir, video_files, frame_rates, frame_ranges, result_dir = base_params(config_dict)
+    video_dir, video_files, time_ranges, frame_ranges, frame_rates, result_dir = base_params(config_dict)
         
     result_dir.mkdir(parents=True, exist_ok=True)
     with open(result_dir / 'logs.txt', 'a+') as log_f: pass
     logging.basicConfig(format='%(message)s', level=logging.INFO, force=True, 
         handlers = [logging.handlers.TimedRotatingFileHandler(result_dir / 'logs.txt', when='D', interval=7), logging.StreamHandler()]) 
     
-    for video_file, frame_range, frame_rate in zip(video_files, frame_ranges, frame_rates):
+    for video_file, time_range, frame_range, frame_rate in zip(video_files, time_ranges, frame_ranges, frame_rates):
         currentDateAndTime = datetime.now()
-        frame_range_str = f' from frame {frame_range[0]} to frame {frame_range[1]}' if frame_range else ''
+        range_str = ''
+
+        if time_range and frame_range:
+            logging.error("Error: Both time_range and frame_range are specified for video {}. Only one should be provided.".format(video_file))
+            continue
+        elif time_range:
+            frame_range = [int(time_range[0] * frame_rate), int(time_range[1] * frame_rate)]
+            range_str = f' from {time_range[0]} to {time_range[1]} seconds'
+        elif frame_range:
+            frame_range = [int(frame_range[0]), int(frame_range[1])]
+            range_str = f' from frame {frame_range[0]} to frame {frame_range[1]}'
+        else:
+            frame_range = None
 
         logging.info("\n\n---------------------------------------------------------------------")
-        logging.info(f"Processing {video_file}{frame_range_str}")
+        logging.info(f"Processing {video_file}{range_str}")
         logging.info(f"On {currentDateAndTime.strftime('%A %d. %B %Y, %H:%M:%S')}")
         logging.info("---------------------------------------------------------------------")
 
@@ -408,7 +434,7 @@ def main():
     - Run on webcam with default parameters: 
         sports2d --video_input webcam
     - Run with custom parameters (all non specified are set to default): 
-        sports2d --show_plots False --frame_range 0 2.1 --result_dir path_to_result_dir
+        sports2d --show_plots False --time_range 0 2.1 --result_dir path_to_result_dir
         sports2d --multiperson false --mode lightweight --det_frequency 50
     - Run with a toml configuration file: 
         sports2d --config path_to_config.toml
@@ -427,7 +453,7 @@ def main():
             parser.add_argument(*arg_str, type=str2bool, help=CONFIG_HELP[leaf_name][1])
         elif type(leaf_keys[leaf_name]) == list:
             if len(leaf_keys[leaf_name])==0: 
-                list_type = float # frame_range for example
+                list_type = float # time_range for example
             else:
                 list_type = type(leaf_keys[leaf_name][0])
             parser.add_argument(*arg_str, type=list_type, nargs='*', help=CONFIG_HELP[leaf_name][1])
