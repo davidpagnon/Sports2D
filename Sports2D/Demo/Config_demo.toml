@@ -28,9 +28,8 @@ input_size = [1280, 720] # [W, H]. Lower resolution will be faster but less prec
 
 [process]
 multi_person = true # Multi-person involves tracking: will be faster if false
-show_realtime_results = true
-save_vid = true
-save_img = true
+display_detection = true
+save_video = 'to_video' # 'to_video' or 'to_images', 'none', or ['to_video', 'to_images']
 save_pose = true
 save_angles = true
 result_dir = '' # BETWEEN SINGLE QUOTES! # If empty, project dir is current dir
