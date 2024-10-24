@@ -51,6 +51,7 @@
 
 
 ## INIT
+import os
 from pathlib import Path
 import sys
 import logging
@@ -203,11 +204,12 @@ def setup_video(video_file_path, save_video, vid_output_path):
     
     cam_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     cam_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    if fps == 0: fps = 30
+    
     out_vid = None
+
     if save_video:
-        fps = cap.get(cv2.CAP_PROP_FPS)
-        if fps == 0: fps = 30
         # try:
         #     fourcc = cv2.VideoWriter_fourcc(*'avc1') # =h264. better compression and quality but may fail on some systems
         #     out_vid = cv2.VideoWriter(vid_output_path, fourcc, fps, (cam_width, cam_height))
@@ -982,7 +984,7 @@ def angle_plots(angle_data_unfiltered, angle_data, person_id):
     pw.show()
 
 
-def process_fun(config_dict, video_file, frame_range, frame_rate, result_dir):
+def process_fun(config_dict, video_file, input_frame_range, result_dir):
     '''
     Detect 2D joint centers from a video or a webcam with RTMLib.
     Compute selected joint and segment angles. 
@@ -1060,23 +1062,6 @@ def process_fun(config_dict, video_file, frame_range, frame_rate, result_dir):
     thickness = 1 if fontSize < 0.8 else 2
     flip_left_right = config_dict.get('angles').get('flip_left_right')
 
-    # Post-processing settings
-    interpolate = config_dict.get('post-processing').get('interpolate')    
-    interp_gap_smaller_than = config_dict.get('post-processing').get('interp_gap_smaller_than')
-    fill_large_gaps_with = config_dict.get('post-processing').get('fill_large_gaps_with')
-
-    do_filter = config_dict.get('post-processing').get('filter')
-    show_plots = config_dict.get('post-processing').get('show_graphs')
-    filter_type = config_dict.get('post-processing').get('filter_type')
-    butterworth_filter_order = config_dict.get('post-processing').get('butterworth').get('order')
-    butterworth_filter_cutoff = config_dict.get('post-processing').get('butterworth').get('cut_off_frequency')
-    gaussian_filter_kernel = config_dict.get('post-processing').get('gaussian').get('sigma_kernel')
-    loess_filter_kernel = config_dict.get('post-processing').get('loess').get('nb_values_used')
-    median_filter_kernel = config_dict.get('post-processing').get('median').get('kernel_size')
-    filter_options = [do_filter, filter_type,
-                           butterworth_filter_order, butterworth_filter_cutoff, frame_rate,
-                           gaussian_filter_kernel, loess_filter_kernel, median_filter_kernel]
-
 
     # Create output directories
     if video_file == "webcam":
@@ -1084,16 +1069,12 @@ def process_fun(config_dict, video_file, frame_range, frame_rate, result_dir):
         output_dir_name = f'webcam_{current_date}'
     else:
         video_file_path = video_dir / video_file
-        video_file_stem = video_file.stem
-        output_dir_name = f'{video_file_stem}_Sports2D'    
-    output_dir = result_dir / output_dir_name
-    img_output_dir = output_dir / f'{output_dir_name}_img'
-    vid_output_path = output_dir / f'{output_dir_name}.mp4'
-    pose_output_path = output_dir / f'{output_dir_name}_px.trc'
-    angles_output_path = output_dir / f'{output_dir_name}_angles.mot'
-    output_dir.mkdir(parents=True, exist_ok=True)
-    if save_images:
-        img_output_dir.mkdir(parents=True, exist_ok=True)
+        video_file_stem = video_file_path.stem
+        output_dir_name = f'{video_file_stem}_Sports2D'
+    output_dir = os.path.abspath(os.path.join(result_dir, output_dir_name))
+    img_output_dir = os.path.join(output_dir, f'{output_dir_name}_img') 
+    output_video_path = os.path.join(output_dir, f'{output_dir_name}_pose.mp4')
+    if not os.path.isdir(output_dir): os.makedirs(output_dir)
 
 
     # Retrieve keypoint names from model
@@ -1110,18 +1091,19 @@ def process_fun(config_dict, video_file, frame_range, frame_rate, result_dir):
 
     # Set up video capture
     if video_file == "webcam":
-        cap, out_vid, cam_width, cam_height, fps = setup_webcam(webcam_id, save_video, vid_output_path, input_size)
+        cap, out_vid, cam_width, cam_height, fps = setup_webcam(webcam_id, save_video, output_video_path, input_size)
         frame_range = [0,sys.maxsize]
         frame_iterator = range(*frame_range)
         logging.warning('Webcam input: the framerate may vary. If results are filtered, Sports2D will use the average framerate as input.')
     else:
-        cap, out_vid, cam_width, cam_height, fps = setup_video(video_file_path, save_video, vid_output_path)
-        frame_range = frame_range if frame_range else [0, int(cap.get(cv2.CAP_PROP_FRAME_COUNT))]
-        frame_iterator = tqdm(range(*frame_range)) # use a progress bar
+        cap, out_vid, cam_width, cam_height, fps = setup_video(video_file_path, save_video, output_video_path)
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        frame_range = input_frame_range if input_frame_range else [0, total_frames]
+        frame_iterator = tqdm(range(*frame_range), desc=f'Processing {video_file_path}') # use a progress bar
+    
     if display_detection:
         cv2.namedWindow(f'{video_file} Sports2D', cv2.WINDOW_NORMAL + cv2.WINDOW_KEEPRATIO)
         cv2.setWindowProperty(f'{video_file} Sports2D', cv2.WND_PROP_ASPECT_RATIO, cv2.WINDOW_FULLSCREEN)
-
 
     # Set up pose tracker
     tracking_rtmlib = True if (tracking_mode == 'rtmlib' and multi_person) else False
@@ -1132,24 +1114,20 @@ def process_fun(config_dict, video_file, frame_range, frame_rate, result_dir):
 
 
     # Process video or webcam feed
-    logging.info(f"\nProcessing video stream...")
     # logging.info(f"{'Video, ' if save_video else ''}{'Images, ' if save_images else ''}{'Pose, ' if save_pose else ''}{'Angles ' if save_angles else ''}{'and ' if save_angles or save_images or save_pose or save_video else ''}Logs will be saved in {result_dir}.")
     all_frames_X, all_frames_Y, all_frames_scores, all_frames_angles = [], [], [], []
     frame_processing_times = []
-    frame_count = 0
-    while cap.isOpened():
-        if frame_count < frame_range[0]:
-            cap.read()
-            frame_count += 1
-            continue
-
-        for frame_nb in frame_iterator:
-            start_time = datetime.now()
+    with frame_iterator as pbar:
+        frame_idx = 0
+        while cap.isOpened():
             success, frame = cap.read()
+
+            if frame_idx > frame_range[1] - 1:
+                break
 
             # If frame not grabbed
             if not success:
-                logging.warning(f"Failed to grab frame {frame_count}.")
+                logging.warning(f"Failed to grab frame {frame_idx}.")
                 if save_pose:
                     all_frames_X.append([])
                     all_frames_Y.append([])
@@ -1160,103 +1138,132 @@ def process_fun(config_dict, video_file, frame_range, frame_rate, result_dir):
             else:
                 cv2.putText(frame, f"Press 'q' to quit", (cam_width-int(400*fontSize), cam_height-20), cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (255,255,255), thickness+1, cv2.LINE_AA)
                 cv2.putText(frame, f"Press 'q' to quit", (cam_width-int(400*fontSize), cam_height-20), cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (0,0,255), thickness, cv2.LINE_AA)
-            
-            # Detect poses
-            keypoints, scores = pose_tracker(frame)
 
-            # Track persons
-            if multi_person:
-                if tracking_rtmlib:
-                    keypoints, scores = sort_people_rtmlib(pose_tracker, keypoints, scores)
-                else:
-                    if 'prev_keypoints' not in locals(): prev_keypoints = keypoints
-                    prev_keypoints, keypoints, scores = sort_people_sports2d(prev_keypoints, keypoints, scores)
-            else: # single person
-                keypoints, scores = np.array([keypoints[0]]), np.array([scores[0]])
-            
-            
-            # Process coordinates and compute angles
-            valid_X, valid_Y, valid_scores = [], [], []
-            valid_X_flipped, valid_angles = [], []
-            for person_idx in range(len(keypoints)):
-                # Retrieve keypoints and scores for the person, remove low-confidence keypoints
-                person_X, person_Y = np.where(scores[person_idx][:, np.newaxis] < keypoint_likelihood_threshold, np.nan, keypoints[person_idx]).T
-                person_scores = np.where(scores[person_idx] < keypoint_likelihood_threshold, np.nan, scores[person_idx])
+            if frame_idx in range(*frame_range):
+                start_time = datetime.now()
 
-                # Skip person if the fraction of valid detected keypoints is too low
-                enough_good_keypoints = len(person_scores[~np.isnan(person_scores)]) >= len(person_scores) * keypoint_number_threshold
-                scores_of_good_keypoints = person_scores[~np.isnan(person_scores)]
-                average_score_of_remaining_keypoints_is_enough = (np.nanmean(scores_of_good_keypoints) if len(scores_of_good_keypoints)>0 else 0) >= average_likelihood_threshold
-                if not enough_good_keypoints or not average_score_of_remaining_keypoints_is_enough:
-                    person_X = np.full_like(person_X, np.nan)
-                    person_Y = np.full_like(person_Y, np.nan)
-                    person_scores = np.full_like(person_scores, np.nan)
-                valid_X.append(person_X)
-                valid_Y.append(person_Y)
-                valid_scores.append(person_scores)
+                # Perform pose estimation on the frame
+                keypoints, scores = pose_tracker(frame)
 
-                # Check whether the person is looking to the left or right
-                if flip_left_right:
-                    person_X_flipped = flip_left_right_direction(person_X, L_R_direction_idx, keypoints_names, keypoints_ids)
-                else:
-                    person_X_flipped = person_X.copy()
-                valid_X_flipped.append(person_X_flipped)
-                    
-                # Compute angles
-                person_angles = []
-                for ang_name in angle_names:
-                    ang = compute_angle(ang_name, person_X_flipped, person_Y, angle_dict, keypoints_ids, keypoints_names)
-                    person_angles.append(ang)
-                valid_angles.append(person_angles)
+                # Tracking people IDs across frames
+                if multi_person:
+                    if tracking_rtmlib:
+                        keypoints, scores = sort_people_rtmlib(pose_tracker, keypoints, scores)
+                    else:
+                        if 'prev_keypoints' not in locals(): prev_keypoints = keypoints
+                        prev_keypoints, keypoints, scores = sort_people_sports2d(prev_keypoints, keypoints, scores)
+                else: # single person
+                    keypoints, scores = np.array([keypoints[0]]), np.array([scores[0]])
+                
+                # Process coordinates and compute angles
+                valid_X, valid_Y, valid_scores = [], [], []
+                valid_X_flipped, valid_angles = [], []
+                for person_idx in range(len(keypoints)):
+                    # Retrieve keypoints and scores for the person, remove low-confidence keypoints
+                    person_X, person_Y = np.where(scores[person_idx][:, np.newaxis] < keypoint_likelihood_threshold, np.nan, keypoints[person_idx]).T
+                    person_scores = np.where(scores[person_idx] < keypoint_likelihood_threshold, np.nan, scores[person_idx])
 
-            # Draw keypoints and skeleton
-            if display_detection or save_video or save_images:
-                img = frame.copy()
-                img = draw_bounding_box(img, valid_X, valid_Y, colors=colors, fontSize=fontSize, thickness=thickness)
-                img = draw_keypts(img, valid_X, valid_Y, scores, cmap_str='RdYlGn')
-                img = draw_skel(img, valid_X, valid_Y, model, colors=colors)
-                img = draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_ids, keypoints_names, angle_names, display_angle_values_on=display_angle_values_on, colors=colors, fontSize=fontSize, thickness=thickness)
+                    # Skip person if the fraction of valid detected keypoints is too low
+                    enough_good_keypoints = len(person_scores[~np.isnan(person_scores)]) >= len(person_scores) * keypoint_number_threshold
+                    scores_of_good_keypoints = person_scores[~np.isnan(person_scores)]
+                    average_score_of_remaining_keypoints_is_enough = (np.nanmean(scores_of_good_keypoints) if len(scores_of_good_keypoints)>0 else 0) >= average_likelihood_threshold
+                    if not enough_good_keypoints or not average_score_of_remaining_keypoints_is_enough:
+                        person_X = np.full_like(person_X, np.nan)
+                        person_Y = np.full_like(person_Y, np.nan)
+                        person_scores = np.full_like(person_scores, np.nan)
+                    valid_X.append(person_X)
+                    valid_Y.append(person_Y)
+                    valid_scores.append(person_scores)
 
-                if display_detection:
-                    cv2.imshow(f'{video_file} Sports2D', img)
-                    if (cv2.waitKey(1) & 0xFF) == ord('q') or (cv2.waitKey(1) & 0xFF) == 27:
-                        break
-                if save_video:
-                    out_vid.write(img)
-                if save_images:
-                    cv2.imwrite(str((img_output_dir / f'{output_dir_name}_{frame_count:06d}.png')), img)
+                    # Check whether the person is looking to the left or right
+                    if flip_left_right:
+                        person_X_flipped = flip_left_right_direction(person_X, L_R_direction_idx, keypoints_names, keypoints_ids)
+                    else:
+                        person_X_flipped = person_X.copy()
+                    valid_X_flipped.append(person_X_flipped)
+                        
+                    # Compute angles
+                    person_angles = []
+                    for ang_name in angle_names:
+                        ang = compute_angle(ang_name, person_X_flipped, person_Y, angle_dict, keypoints_ids, keypoints_names)
+                        person_angles.append(ang)
+                    valid_angles.append(person_angles)
 
-            if save_pose:
-                all_frames_X.append(np.array(valid_X))
-                all_frames_Y.append(np.array(valid_Y))
-                all_frames_scores.append(np.array(valid_scores))
-            if save_angles:
-                all_frames_angles.append(np.array(valid_angles))
-            if video_file=='webcam' and save_video:   # To adjust framerate of output video
-                elapsed_time = (datetime.now() - start_time).total_seconds()
-                frame_processing_times.append(elapsed_time)
-            frame_count += 1
+                # Draw keypoints and skeleton
+                if display_detection or save_video or save_images:
+                    img_show = frame.copy()
+                    img_show = draw_bounding_box(img_show, valid_X, valid_Y, colors=colors, fontSize=fontSize, thickness=thickness)
+                    img_show = draw_keypts(img_show, valid_X, valid_Y, scores, cmap_str='RdYlGn')
+                    img_show = draw_skel(img_show, valid_X, valid_Y, model, colors=colors)
+                    img_show = draw_angles(img_show, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_ids, keypoints_names, angle_names, display_angle_values_on=display_angle_values_on, colors=colors, fontSize=fontSize, thickness=thickness)
 
-        cap.release()
-        logging.info(f"Video processing completed.")
-        if save_video:
-            out_vid.release()
-            if video_file == 'webcam':
-                actual_framerate = len(frame_processing_times) / sum(frame_processing_times)
-                logging.info(f"Rewriting webcam video based on the averate framerate {actual_framerate}.")
-                resample_video(vid_output_path, fps, actual_framerate)
-                fps = actual_framerate
-            logging.info(f"Processed video saved to {vid_output_path.resolve()}.")
-        if save_images:
-            logging.info(f"Processed images saved to {img_output_dir.resolve()}.")
-        if display_detection:
-            cv2.destroyAllWindows()
+                    if display_detection:
+                        cv2.imshow(f'{video_file} Sports2D', img_show)
+                        if (cv2.waitKey(1) & 0xFF) == ord('q') or (cv2.waitKey(1) & 0xFF) == 27:
+                            break
+
+                    if save_video:
+                        out_vid.write(img_show)
+
+                    if save_images:
+                        if not os.path.isdir(img_output_dir): os.makedirs(img_output_dir)
+                        cv2.imwrite(os.path.join(img_output_dir, f'{output_dir_name}_{frame_idx:06d}.jpg'), img_show)
+
+                if save_pose:
+                    all_frames_X.append(np.array(valid_X))
+                    all_frames_Y.append(np.array(valid_Y))
+                    all_frames_scores.append(np.array(valid_scores))
+                if save_angles:
+                    all_frames_angles.append(np.array(valid_angles))
+                if video_file=='webcam' and save_video:   # To adjust framerate of output video
+                    elapsed_time = (datetime.now() - start_time).total_seconds()
+                    frame_processing_times.append(elapsed_time)
+                
+            frame_idx += 1
+            pbar.update(1)
+
+    cap.release()
+    logging.info(f"Video processing completed.")
+    if save_video:
+        out_vid.release()
+        if video_file == 'webcam':
+            actual_framerate = len(frame_processing_times) / sum(frame_processing_times)
+            logging.info(f"Rewriting webcam video based on the average framerate {actual_framerate}.")
+            resample_video(output_video_path, fps, actual_framerate)
+            fps = actual_framerate
+        logging.info(f"--> Output video saved to {output_video_path}.")
+    if save_images:
+        logging.info(f"--> Output images saved to {img_output_dir}.")
+    if display_detection:
+        cv2.destroyAllWindows()
     
+
+# def post_processing(config_dict, video_file, frame_rate):
+    save_pose = config_dict.get('process').get('save_pose')
+    save_angles = config_dict.get('process').get('save_angles')
+
+    # Post-processing settings
+    interpolate = config_dict.get('post-processing').get('interpolate')    
+    interp_gap_smaller_than = config_dict.get('post-processing').get('interp_gap_smaller_than')
+    fill_large_gaps_with = config_dict.get('post-processing').get('fill_large_gaps_with')
+
+    show_plots = config_dict.get('post-processing').get('show_graphs')
+    filter_type = config_dict.get('post-processing').get('filter_type')
+    do_filter = config_dict.get('post-processing').get('filter')
+    butterworth_filter_order = config_dict.get('post-processing').get('butterworth').get('order')
+    butterworth_filter_cutoff = config_dict.get('post-processing').get('butterworth').get('cut_off_frequency')
+    gaussian_filter_kernel = config_dict.get('post-processing').get('gaussian').get('sigma_kernel')
+    loess_filter_kernel = config_dict.get('post-processing').get('loess').get('nb_values_used')
+    median_filter_kernel = config_dict.get('post-processing').get('median').get('kernel_size')
+
+    filter_options = [do_filter, filter_type,
+                           butterworth_filter_order, butterworth_filter_cutoff, fps,
+                           gaussian_filter_kernel, loess_filter_kernel, median_filter_kernel]
 
     # Post-processing: Interpolate, filter, and save pose and angles
-    frame_range = [0,frame_count] if video_file == 'webcam' else frame_range
-    all_frames_time = pd.Series(np.linspace(frame_range[0]/fps, frame_range[1]/fps, frame_count), name='time')
-    
+    frame_range = [0,frame_idx] if video_file == 'webcam' else frame_range
+    all_frames_time = pd.Series(np.linspace(frame_range[0]/fps, frame_range[1]/fps, frame_idx), name='time')
+
     if save_pose:
         logging.info('\nPost-processing pose:')
         # Select only the keypoints that are in the model from skeletons.py, invert Y axis, divide pixel values by 1000
@@ -1268,13 +1275,13 @@ def process_fun(config_dict, video_file, frame_range, frame_rate, result_dir):
         
         # Process pose for each person
         for i in range(all_frames_X.shape[1]):
-            pose_path_person = pose_output_path.parent / (pose_output_path.stem + f'_person{i:02d}.trc')
+            pose_path_person = os.path.join(output_dir, (output_dir_name + '_px' + f'_person{i:02d}.trc'))
             all_frames_X_person = pd.DataFrame(all_frames_X[:,i,:], columns=keypoints_names)
             all_frames_Y_person = pd.DataFrame(all_frames_Y[:,i,:], columns=keypoints_names)
 
             # Delete person if less than 4 valid frames
             pose_nan_count = len(np.where(all_frames_X_person.sum(axis=1)==0)[0])
-            if frame_count - pose_nan_count <= 4:
+            if frame_idx - pose_nan_count <= 4:
                 logging.info(f'- Person {i}: Less than 4 valid frames. Deleting person.')
 
             else:
@@ -1325,7 +1332,7 @@ def process_fun(config_dict, video_file, frame_range, frame_rate, result_dir):
 
                 # Build TRC file
                 trc_data = make_trc_with_XYZ(all_frames_X_person_filt, all_frames_Y_person_filt, all_frames_Z_person, all_frames_time, str(pose_path_person))
-                logging.info(f'Pose saved to {pose_path_person.resolve()}.')
+                logging.info(f'Pose saved to {pose_path_person}.')
 
                 # Plotting coordinates before and after interpolation and filtering
                 if show_plots:
@@ -1341,12 +1348,12 @@ def process_fun(config_dict, video_file, frame_range, frame_rate, result_dir):
 
         # Process angles for each person
         for i in range(all_frames_angles.shape[1]):
-            angles_path_person = angles_output_path.parent / (angles_output_path.stem + f'_person{i:02d}.mot')
+            angles_path_person = os.path.join(output_dir, (output_dir_name + '_angles' + f'_person{i:02d}.mot'))
             all_frames_angles_person = pd.DataFrame(all_frames_angles[:,i,:], columns=angle_names)
             
             # Delete person if less than 4 valid frames
             angle_nan_count = len(np.where(all_frames_angles_person.sum(axis=1)==0)[0])
-            if frame_count - angle_nan_count <= 4:
+            if frame_idx - angle_nan_count <= 4:
                 logging.info(f'- Person {i}: Less than 4 valid frames. Deleting person.')
 
             else:
@@ -1391,7 +1398,7 @@ def process_fun(config_dict, video_file, frame_range, frame_rate, result_dir):
 
                 # Build mot file
                 angle_data = make_mot_with_angles(all_frames_angles_person_filt, all_frames_time, str(angles_path_person))
-                logging.info(f'Angles saved to {angles_path_person.resolve()}.')
+                logging.info(f'Angles saved to {angles_path_person}.')
 
                 # Plotting angles before and after interpolation and filtering
                 if show_plots:

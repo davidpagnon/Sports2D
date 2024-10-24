@@ -380,7 +380,7 @@ def process(config='Config_demo.toml'):
     video_dir, video_files, time_ranges, frame_ranges, frame_rates, result_dir = base_params(config_dict)
         
     result_dir.mkdir(parents=True, exist_ok=True)
-    with open(result_dir / 'logs.txt', 'a+') as log_f: pass
+    with open(result_dir / 'logs.txt', 'a+'): pass
     logging.basicConfig(format='%(message)s', level=logging.INFO, force=True, 
         handlers = [logging.handlers.TimedRotatingFileHandler(result_dir / 'logs.txt', when='D', interval=7), logging.StreamHandler()]) 
     
@@ -405,7 +405,7 @@ def process(config='Config_demo.toml'):
         logging.info(f"On {currentDateAndTime.strftime('%A %d. %B %Y, %H:%M:%S')}")
         logging.info("---------------------------------------------------------------------")
 
-        process_fun(config_dict, video_file, frame_range, frame_rate, result_dir)
+        process_fun(config_dict, video_file, frame_range, result_dir)
 
         elapsed_time = (datetime.now() - currentDateAndTime).total_seconds()        
         logging.info(f'\nProcessing {video_file} took {elapsed_time:.2f} s.')
