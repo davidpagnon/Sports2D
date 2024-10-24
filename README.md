@@ -147,7 +147,7 @@ sports2d --help
   sports2d --show_graphs False --time_range 0 2.1 --result_dir path_to_result_dir
   ```
   ``` cmd
-  sports2d --multiperson false --mode lightweight --det_frequency 50
+  sports2d --multi_person false --mode lightweight --det_frequency 50
   ```
 - Run with a toml configuration file: 
   ``` cmd
@@ -165,7 +165,7 @@ sports2d --help
 ### Too slow for you?
 
 **Quick fixes:**
-- Use `--multiperson false`: Can be used if one single person is present in the video. Otherwise, persons' IDs may be mixed up.
+- Use `--multi_person false`: Can be used if one single person is present in the video. Otherwise, persons' IDs may be mixed up.
 - Use `--mode lightweight`: Will use a lighter version of RTMPose, which is faster but less accurate.
 - Use `--det_frequency 50`: Will detect poses only every 50 frames, and track keypoints inbetween, which is faster.
 
@@ -234,7 +234,7 @@ Sports2D:
 
 **Okay but how does it work, really?**\
 Sports2D:
-1. Reads stream from a webcam, from one video, or from a list of videos. Selects the specified time range to process.
+1. Reads stream from a webcam, from one video, or from a list of videos. Selects the specified time or frame range to process.
 2. Sets up the RTMLib pose tracker from RTMlib with specified parameters. It can be run in lightweight, balanced, or performance mode, and for faster inference, keypoints can be tracked instead of detected for a certain number of frames. Any RTMPose model can be used. 
 3. Tracks people so that their IDs are consistent across frames. A person is associated to another in the next frame when they are at a small distance. IDs remain consistent even if the person disappears from a few frames. This carefully crafted `sports2d` tracker runs at a comparable speed as the RTMlib one but is much more robust. The user can still choose the RTMLib method if they need it by specifying it in the Config.toml file.
 4. Retrieves the keypoints with high enough confidence, and only keeps the persons with high enough average confidence.

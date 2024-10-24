@@ -29,7 +29,7 @@
         sports2d --video_input webcam
     - Run with custom parameters (all non specified are set to default): 
         sports2d --show_plots False --time_range 0 2.1 --result_dir path_to_result_dir
-        sports2d --multiperson false --mode lightweight --det_frequency 50
+        sports2d --multi_person false --mode lightweight --det_frequency 50
     - Run with a toml configuration file: 
         sports2d --config path_to_config.toml
    
@@ -65,7 +65,7 @@
     - loads skeleton information
     - reads stream from a video or a webcam
     - sets up the RTMLib pose tracker from RTMlib with specified parameters
-    - detects poses within the selected time range
+    - detects poses within the selected time or frame range
     - tracks people so that their IDs are consistent across frames
     - retrieves the keypoints with high enough confidence, and only keeps the persons with enough high-confidence keypoints
     - computes joint and segment angles, and flips those on the left/right side them if the respective foot is pointing to the left
@@ -124,14 +124,14 @@ from Sports2D import Sports2D
 ## CONSTANTS
 DEFAULT_CONFIG =   {'project': {'video_input': ['demo.mp4'],
                                 'time_range': [],
+                                'frame_range': [],
                                 'video_dir': '',
                                 'webcam_id': 0,
-                                'input_size': [1280, 720]
+                                'input_size': [1280, 720],
+                                'save_video': 'to_video'
                                 },
-                    'process': {'multiperson': True,
-                                'show_realtime_results': True,
-                                'save_vid': True,
-                                'save_img': True,
+                    'process': {'multi_person': True,
+                                'display_detection': True,
                                 'save_pose': True,
                                 'save_angles': True,
                                 'result_dir': ''
@@ -189,22 +189,22 @@ CONFIG_HELP =   {'config': ["c", "Path to a toml configuration file"],
                 'video_input': ["i", "webcam, or video_path.mp4, or video1_path.avi video2_path.mp4 ... Beware that images won't be saved if paths contain non ASCII characters"],
                 'webcam_id': ["w", "webcam ID. 0 if not specified"],
                 'time_range': ["t", "start_time, end_time. In seconds. Whole video if not specified"],
+                'frame_range': ["F", "start_frame, end_frame. Whole video if not specified"],
                 'video_dir': ["d", "Current directory if not specified"],
                 'result_dir': ["r", "Current directory if not specified"],
-                'show_realtime_results': ["R", "show results in real-time. true if not specified"],
+                'display_detection': ["D", "Whether to show real-time visualization. true if not specified"],
                 'display_angle_values_on': ["a", '"body", "list", "body" "list", or "None". body list if not specified'],
                 'show_graphs': ["G", "Show plots of raw and processed results. true if not specified"],
                 'joint_angles': ["j", '"Right ankle" "Left ankle" "Right knee" "Left knee" "Right hip" "Left hip" "Right shoulder" "Left shoulder" "Right elbow" "Left elbow" if not specified'],
                 'segment_angles': ["s", '"Right foot" "Left foot" "Right shank" "Left shank" "Right thigh" "Left thigh" "Pelvis" "Trunk" "Shoulders" "Head" "Right arm" "Left arm" "Right forearm" "Left forearm" if not specified'],
-                'save_vid': ["V", "save processed video. true if not specified"],
-                'save_img': ["I", "save processed images. true if not specified"],
+                'save_video': ["V", "Specify output format: 'to_video', 'to_images', 'none', or a combination as a list ['to_video', 'to_images']. Default is 'to_video' if not specified."],
                 'save_pose': ["P", "save pose as trc files. true if not specified"],
                 'save_angles': ["A", "save angles as mot files. true if not specified"],
                 'pose_model': ["p", "Only body_with_feet is available for now. body_with_feet if not specified"],
                 'mode': ["m", "light, balanced, or performance. balanced if not specified"],
                 'det_frequency': ["f", "Run person detection only every N frames, and inbetween track previously detected bounding boxes. keypoint detection is still run on all frames.\n\
                                  Equal to or greater than 1, can be as high as you want in simple uncrowded cases. Much faster, but might be less accurate. 1 if not specified: detection runs on all frames"],
-                'multiperson': ["M", "Multiperson involves tracking: will be faster if set to false. true if not specified"],
+                'multi_person': ["M", "Multi-person involves tracking: will be faster if set to false. true if not specified"],
                 'tracking_mode': ["", "sports2d or rtmlib. sports2d is generally much more accurate and comparable in speed. sports2d if not specified"],
                 'input_size': ["", "width, height. 1280, 720 if not specified. Lower resolution will be faster but less precise"],
                 'keypoint_likelihood_threshold': ["", "Detected keypoints are not retained if likelihood is below this threshold. 0.3 if not specified"],
@@ -254,15 +254,16 @@ def base_params(config_dict):
     # videod_dir and result_dir
     video_dir = Path(config_dict.get('project').get('video_dir')).resolve()
     if video_dir == '': video_dir = Path.cwd()
-    result_dir = Path(config_dict.get('process').get('result_dir')).resolve()
-    if result_dir == '': result_dir = Path.cwd()
+    output_dir = Path(config_dict.get('process').get('result_dir')).resolve()
+    if output_dir == '': output_dir = Path.cwd()
 
-    # video_files, frame_rates, time_ranges
+    # video_files, frame_rates, time_ranges, frame_ranges
     video_input = config_dict.get('project').get('video_input')
     if video_input == "webcam" or video_input == ["webcam"]:
         video_files = ['webcam']  # No video files for webcam
         frame_rates = [None]  # No frame rate for webcam
         time_ranges = [None]
+        frame_ranges = [None]
     else:
         # video_files
         if isinstance(video_input, str):
@@ -293,8 +294,19 @@ def base_params(config_dict):
             time_ranges = time_ranges.tolist()
         else:
             raise ValueError('Time range must be [] for analysing all frames of all videos, or [start_time, end_time] for analysing all videos from start_time to end_time, or [[start_time1, end_time1], [start_time2, end_time2], ...] for analysing each video for a different time_range.')
+
+        # frame_ranges
+        frame_ranges = np.array(config_dict.get('project').get('frame_range'))
+        if frame_ranges.shape == (0,):
+            frame_ranges = [None] * len(video_files)
+        elif frame_ranges.shape == (2,):
+            frame_ranges = [frame_ranges.tolist()] * len(video_files)
+        elif frame_ranges.shape == (len(video_files), 2):
+            frame_ranges = frame_ranges.tolist()
+        else:
+            raise ValueError('Frame range must be [] for analysing all frames of all videos, or [start_frame, end_frame] for analysing all videos from start_frame to end_frame, or [[start_frame1, end_frame1], [start_frame2, end_frame2], ...] for analysing each video for a different frame_range.')
     
-    return video_dir, video_files, frame_rates, time_ranges, result_dir
+    return video_dir, video_files, time_ranges, frame_ranges, frame_rates, output_dir
 
 
 def get_leaf_keys(config, prefix=''):
@@ -313,7 +325,7 @@ def get_leaf_keys(config, prefix=''):
 
 def update_nested_dict(config, key_path, value):
     '''
-    Update a nested dictionary based on a key path string like 'process.multiperson'.
+    Update a nested dictionary based on a key path string like 'process.multi_person'.
     '''
 
     keys = key_path.split('.')
@@ -360,28 +372,53 @@ def process(config='Config_demo.toml'):
     '''
 
     from Sports2D.process import process_fun
+    from Sports2D.Utilities.common import setup_pose_tracker
     
     if type(config) == dict:
         config_dict = config
     else:
         config_dict = read_config_file(config)
-    video_dir, video_files, frame_rates, time_ranges, result_dir = base_params(config_dict)
+
+    mode = config_dict.get('pose').get('mode')
+    det_frequency = config_dict.get('pose').get('det_frequency')
+
+    video_dir, video_files, time_ranges, frame_ranges, frame_rates, output_dir = base_params(config_dict)
         
-    result_dir.mkdir(parents=True, exist_ok=True)
-    with open(result_dir / 'logs.txt', 'a+') as log_f: pass
+    output_dir.mkdir(parents=True, exist_ok=True)
+    with open(output_dir / 'logs.txt', 'a+'): pass
     logging.basicConfig(format='%(message)s', level=logging.INFO, force=True, 
-        handlers = [logging.handlers.TimedRotatingFileHandler(result_dir / 'logs.txt', when='D', interval=7), logging.StreamHandler()]) 
+        handlers = [logging.handlers.TimedRotatingFileHandler(output_dir / 'logs.txt', when='D', interval=7), logging.StreamHandler()]) 
     
-    for video_file, time_range, frame_rate in zip(video_files, time_ranges, frame_rates):
+    for video_file, time_range, frame_range, frame_rate in zip(video_files, time_ranges, frame_ranges, frame_rates):
         currentDateAndTime = datetime.now()
-        time_range_str = f' from {time_range[0]} to {time_range[1]} seconds' if time_range else ''
+        range_str = ''
+
+        if time_range and frame_range:
+            logging.error("Error: Both time_range and frame_range are specified for video {}. Only one should be provided.".format(video_file))
+            continue
+        elif time_range:
+            frame_range = [int(time_range[0] * frame_rate), int(time_range[1] * frame_rate)]
+            range_str = f' from {time_range[0]} to {time_range[1]} seconds'
+        elif frame_range:
+            frame_range = [int(frame_range[0]), int(frame_range[1])]
+            range_str = f' from frame {frame_range[0]} to frame {frame_range[1]}'
+        else:
+            frame_range = None
 
         logging.info("\n\n---------------------------------------------------------------------")
-        logging.info(f"Processing {video_file}{time_range_str}")
+        logging.info(f"Processing {video_file}{range_str}")
         logging.info(f"On {currentDateAndTime.strftime('%A %d. %B %Y, %H:%M:%S')}")
         logging.info("---------------------------------------------------------------------")
 
-        process_fun(config_dict, video_file, time_range, frame_rate, result_dir)
+        if video_file != "webcam":
+            video_file_path = video_dir / video_file
+        
+        pose_tracker = setup_pose_tracker(det_frequency, mode)
+
+        logging.info(f'Pose tracking set up for BodyWithFeet model in {mode} mode.')
+        logging.info(f'Persons are detected every {det_frequency} frames and tracked inbetween.')
+
+        process_fun(config_dict, video_file_path, pose_tracker, frame_range, output_dir)
 
         elapsed_time = (datetime.now() - currentDateAndTime).total_seconds()        
         logging.info(f'\nProcessing {video_file} took {elapsed_time:.2f} s.')
@@ -409,7 +446,7 @@ def main():
         sports2d --video_input webcam
     - Run with custom parameters (all non specified are set to default): 
         sports2d --show_plots False --time_range 0 2.1 --result_dir path_to_result_dir
-        sports2d --multiperson false --mode lightweight --det_frequency 50
+        sports2d --multi_person false --mode lightweight --det_frequency 50
     - Run with a toml configuration file: 
         sports2d --config path_to_config.toml
     '''
