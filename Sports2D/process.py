@@ -888,7 +888,7 @@ def process_fun(config_dict, video_file_path, pose_tracker, input_frame_range, o
 
     # Process settings
     multi_person = config_dict.get('process').get('multi_person')
-    display_detection = config_dict.get('process').get('display_detection')
+    show_realtime_results = config_dict.get('process').get('show_realtime_results')
     save_pose = config_dict.get('process').get('save_pose')
     save_angles = config_dict.get('process').get('save_angles')
 
@@ -937,7 +937,7 @@ def process_fun(config_dict, video_file_path, pose_tracker, input_frame_range, o
     RHeel_idx = keypoints_ids[keypoints_names.index('RHeel')]
     L_R_direction_idx = [Ltoe_idx, LHeel_idx, Rtoe_idx, RHeel_idx]
     
-    if display_detection:
+    if show_realtime_results:
         cv2.namedWindow(f'{video_file_path} Sports2D', cv2.WINDOW_NORMAL + cv2.WINDOW_KEEPRATIO)
         cv2.setWindowProperty(f'{video_file_path} Sports2D', cv2.WND_PROP_ASPECT_RATIO, cv2.WINDOW_FULLSCREEN)
 
@@ -1025,14 +1025,14 @@ def process_fun(config_dict, video_file_path, pose_tracker, input_frame_range, o
                     all_frames_angles.append(np.array(valid_angles))
 
                 # Draw keypoints and skeleton
-                if display_detection or save_video or save_images:
+                if show_realtime_results or save_video or save_images:
                     img_show = frame.copy()
                     img_show = draw_bounding_box(img_show, valid_X, valid_Y, colors=colors, fontSize=fontSize, thickness=thickness)
                     img_show = draw_keypts(img_show, valid_X, valid_Y, scores, cmap_str='RdYlGn')
                     img_show = draw_skel(img_show, valid_X, valid_Y, model, colors=colors)
                     img_show = draw_angles(img_show, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_ids, keypoints_names, angle_names, display_angle_values_on=display_angle_values_on, colors=colors, fontSize=fontSize, thickness=thickness)
 
-                if display_detection:
+                if show_realtime_results:
                     cv2.imshow(f'{video_file_path} Sports2D', img_show)
                     if (cv2.waitKey(1) & 0xFF) == ord('q') or (cv2.waitKey(1) & 0xFF) == 27:
                         break
@@ -1063,7 +1063,7 @@ def process_fun(config_dict, video_file_path, pose_tracker, input_frame_range, o
         logging.info(f"--> Output video saved to {output_video_path}.")
     if save_images:
         logging.info(f"--> Output images saved to {img_output_dir}.")
-    if display_detection:
+    if show_realtime_results:
         cv2.destroyAllWindows()
     
 
