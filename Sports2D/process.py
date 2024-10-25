@@ -887,7 +887,11 @@ def process_fun(config_dict, video_file_path, pose_tracker, input_frame_range, o
     save_images = True if 'to_images' in config_dict['project']['save_video'] else False
 
     # Process settings
-    multi_person = config_dict.get('process').get('multi_person')
+    multi_person = config_dict.get('process', {}).get('multi_person')
+
+    if multi_person is None:
+        multi_person = config_dict.get('process', {}).get('multiperson')
+        print("Warning: 'multiperson' is deprecated. Please switch to 'multi_person'.")
     show_realtime_results = config_dict.get('process').get('show_realtime_results')
     save_pose = config_dict.get('process').get('save_pose')
     save_angles = config_dict.get('process').get('save_angles')
