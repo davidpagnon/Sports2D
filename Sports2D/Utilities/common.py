@@ -15,11 +15,13 @@
 
 
 ## INIT
+import os
 import re
 import sys
 import cv2
 import subprocess
 import logging
+from datetime import datetime
 from pathlib import Path
 
 import numpy as np
@@ -429,3 +431,42 @@ def setup_video(video_file_path, save_video, vid_output_path):
             # logging.info("Failed to open video writer with 'avc1' (h264). Using 'mp4v' instead.")
         
     return cap, out_vid, cam_width, cam_height, fps
+
+def setup_capture_directories(file_path, output_dir):
+    """
+    Sets up directories for output and prepares for video capture.
+
+    Parameters:
+        file_path (str): Path to the file or 'webcam' for webcam usage.
+        output_dir (str): Base directory to store the output directories and files.
+
+    Returns:
+        dict: A dictionary containing paths for image output, JSON output, and output video.
+    """
+    # Create output directories based on the file path or webcam
+    if file_path == "webcam":
+        current_date = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_dir_name = f'webcam_{current_date}'
+    else:
+        file_stem = os.path.splitext(os.path.basename(file_path))[0]
+        output_dir_name = f'{file_stem}_Sports2D'
+
+    # Define the full path for the output directory
+    output_dir_full = os.path.abspath(os.path.join(output_dir, output_dir_name))
+    
+    # Create output directories if they do not exist
+    if not os.path.isdir(output_dir_full):
+        os.makedirs(output_dir_full)
+    
+    # Prepare directories for images and JSON outputs
+    img_output_dir = os.path.join(output_dir_full, f'{output_dir_name}_img')
+    json_output_dir = os.path.join(output_dir_full, f'{output_dir_name}_json')
+    if not os.path.isdir(img_output_dir):
+        os.makedirs(img_output_dir)
+    if not os.path.isdir(json_output_dir):
+        os.makedirs(json_output_dir)
+    
+    # Define the path for the output video file
+    output_video_path = os.path.join(output_dir_full, f'{output_dir_name}_pose.mp4')
+
+    return output_dir, output_dir_name, img_output_dir, json_output_dir, output_video_path

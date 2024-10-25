@@ -877,7 +877,7 @@ def process_fun(config_dict, video_file_path, pose_tracker, input_frame_range, o
     - a logs.txt file 
     '''
 
-    from Sports2D.Utilities.common import setup_webcam, setup_video
+    from Sports2D.Utilities.common import setup_webcam, setup_video, setup_capture_directories
     
     # Base parameters
     webcam_id =  config_dict.get('project').get('webcam_id')
@@ -913,28 +913,18 @@ def process_fun(config_dict, video_file_path, pose_tracker, input_frame_range, o
     logging.info(f'Multi-person is {"" if multi_person else "not "}selected.')
     logging.info(f"Parameters: {f'{tracking_mode=}, ' if multi_person else ''}{keypoint_likelihood_threshold=}, {average_likelihood_threshold=}, {keypoint_number_threshold=}")
 
-    # Create output directories & set up video capture
-    if video_file_path == "webcam":
-        current_date = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_dir_name = f'webcam_{current_date}'
+    output_dir, output_dir_name, img_output_dir, json_output_dir, output_video_path = setup_capture_directories(video_file_path, output_dir)
 
+    if video_file_path == "webcam":
         cap, out_vid, cam_width, cam_height, fps = setup_webcam(webcam_id, save_video, output_video_path, input_size)
         frame_range = [0,sys.maxsize]
         frame_iterator = range(*frame_range)
         logging.warning('Webcam input: the framerate may vary. If results are filtered, Sports2D will use the average framerate as input.')
-    else:
-        video_file_stem = video_file_path.stem
-        output_dir_name = f'{video_file_stem}_Sports2D'
-
+    else:   
         cap, out_vid, cam_width, cam_height, fps = setup_video(video_file_path, save_video, output_video_path)
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         frame_range = input_frame_range if input_frame_range else [0, total_frames]
         frame_iterator = tqdm(range(*frame_range), desc=f'Processing {video_file_path}') # use a progress bar
-    output_dir = os.path.abspath(os.path.join(output_dir, output_dir_name))
-    if not os.path.isdir(output_dir): os.makedirs(output_dir)
-    img_output_dir = os.path.join(output_dir, f'{output_dir_name}_img') 
-    json_output_dir = os.path.join(output_dir, f'{output_dir_name}_json')
-    output_video_path = os.path.join(output_dir, f'{output_dir_name}_pose.mp4')
 
     # Retrieve keypoint names from model
     model = eval(pose_model)
