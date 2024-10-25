@@ -13,13 +13,12 @@
 
 [project]
 video_input = 'demo.mp4' # 'webcam' or '<video_path.ext>', or ['video1_path.mp4', 'video2_path.avi>', ...]. Beware that images won't be saved if paths contain non ASCII characters.
-video_dir = '' # BETWEEN SINGLE QUOTES! # If empty, project dir is current dir
 
 # Video parameters
 time_range = []  # Specify as [] for the whole video, or [start_time, end_time] in seconds, # or [[start_time1, end_time1], [start_time2, end_time2], ...] for multiple intervals.
 frame_range = [] # Specify as [] for the whole video, or [start_frame, end_frame], # or [[start_frame1, end_frame1], [start_frame2, end_frame2], ...] for multiple intervals.
-
 # Note: `time_range` and `frame_range` cannot be specified simultaneously.
+video_dir = '' # BETWEEN SINGLE QUOTES! # If empty, project dir is current dir
 
 # Webcam parameters
 webcam_id = 0 # your webcam id (0 is default)

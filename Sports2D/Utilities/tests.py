@@ -39,7 +39,7 @@ def test_workflow():
     python_config_path = Path.cwd().parent / 'Demo' / 'Config_demo.toml'
     config_dict = toml.load(python_config_path)
     config_dict.get("project").update({"video_dir":'../Demo'})
-    config_dict.get("process").update({"display_detection":False})
+    config_dict.get("process").update({"show_realtime_results":False})
     config_dict.get("post-processing").update({"show_graphs":False})
     
     from Sports2D import Sports2D
@@ -47,7 +47,7 @@ def test_workflow():
 
 
     # From command line (CLI)
-    demo_cmd = ["sports2d", "--display_detection", "False", "--show_graphs", "False"]
+    demo_cmd = ["sports2d", "--show_realtime_results", "False", "--show_graphs", "False"]
     subprocess.run(demo_cmd, check=True, capture_output=True, text=True)
   
     
@@ -58,5 +58,5 @@ def test_workflow():
     config_dict.get("project").update({"video_dir": str(cli_video_dir)})
     with open(cli_config_path, 'w') as f: toml.dump(config_dict, f)
 
-    demo_config_cmd = ["sports2d", "--config", str(cli_config_path), "--display_detection", "False", "--show_graphs", "False"]
+    demo_config_cmd = ["sports2d", "--config", str(cli_config_path), "--show_realtime_results", "False", "--show_graphs", "False"]
     subprocess.run(demo_config_cmd, check=True, capture_output=True, text=True)
