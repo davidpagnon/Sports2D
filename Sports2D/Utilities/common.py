@@ -20,6 +20,7 @@ import re
 import sys
 import cv2
 import subprocess
+import itertools as it
 import logging
 from datetime import datetime
 from pathlib import Path
@@ -470,3 +471,357 @@ def setup_capture_directories(file_path, output_dir):
     output_video_path = os.path.join(output_dir_full, f'{output_dir_name}_pose.mp4')
 
     return output_dir, output_dir_name, img_output_dir, json_output_dir, output_video_path
+
+def validate_video_file(video_file_path):
+    """
+    Validates if the specified path is a video file.
+    Raises an exception if the file is not a video.
+    """
+    import cv2
+    try:
+        cap = cv2.VideoCapture(video_file_path)
+        if not cap.read()[0]:
+            raise ValueError
+    except:
+        raise NameError(f"{video_file_path} is not a video. Images must be put in one subdirectory per camera.")
+
+def setup_video_capture(video_file_path, webcam_id=None, save_video=False, output_video_path=None, input_size=None, input_frame_range=[]):
+    """
+    Sets up video capture from a webcam or a video file. Optionally saves the output.
+    """
+    import cv2, sys, logging
+    from tqdm import tqdm
+
+    if video_file_path == "webcam":
+        cap, out_vid, cam_width, cam_height, fps = setup_webcam(webcam_id, save_video, output_video_path, input_size)
+        frame_range = [0, sys.maxsize]
+        frame_iterator = range(*frame_range)
+        logging.warning('Webcam input: the framerate may vary. If results are filtered, Sports2D will use the average framerate as input.')
+    else:
+        cap, out_vid, cam_width, cam_height, fps = setup_video(video_file_path, save_video, output_video_path)
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        if input_frame_range == []:
+            frame_range = [0, total_frames]
+        else:
+            frame_range = input_frame_range
+        frame_iterator = tqdm(range(*frame_range), desc=f'Processing {video_file_path}') # use a progress bar
+        start_frame = input_frame_range[0]
+        cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
+    
+    return cap, frame_iterator, out_vid, cam_width, cam_height
+
+def display_realtime_results(video_file_path):
+    """
+    Sets up a window for real-time video results display.
+    """
+    import cv2
+
+    cv2.namedWindow(f'Pose Estimation {video_file_path}', cv2.WINDOW_NORMAL + cv2.WINDOW_KEEPRATIO)
+    cv2.setWindowProperty(f'Pose Estimation {video_file_path}', cv2.WND_PROP_ASPECT_RATIO, cv2.WINDOW_FULLSCREEN)
+
+def finalize_video_processing(frames_processed, total_processing_start_time, output_video_path, fps):
+    """
+    Finalizes processing by freeing resources and adjusting the framerate if necessary.
+    """
+
+    total_processing_time = (datetime.now() - total_processing_start_time).total_seconds()
+    if total_processing_time > 0:
+        actual_framerate = frames_processed / total_processing_time
+        logging.info(f"Rewriting webcam video based on the average framerate {actual_framerate:.2f}.")
+        resample_video(output_video_path, fps, actual_framerate)
+        fps = actual_framerate
+
+    return fps
+
+def read_frame(cap, frame_idx):
+    success, frame = cap.read()
+    if not success:
+        logging.warning(f"Failed to grab frame {frame_idx}.")
+        return None
+    return frame
+
+def display_quit_message(frame, cam_width, cam_height, fontSize, thickness):
+    message = "Press 'q' to quit"
+    position = (cam_width - int(400 * fontSize), cam_height - 20)
+    cv2.putText(
+        frame, message, position,
+        cv2.FONT_HERSHEY_SIMPLEX, fontSize + 0.2,
+        (0, 0, 255), thickness, cv2.LINE_AA
+    )
+
+def track_people(keypoints, scores, multi_person, tracking_mode, prev_keypoints, pose_tracker):
+    if multi_person:
+        if tracking_mode in ('rtmlib', None):
+            keypoints, scores = sort_people_rtmlib(pose_tracker, keypoints, scores)
+        else:
+            if prev_keypoints is None:
+                prev_keypoints = keypoints
+            prev_keypoints, keypoints, scores = sort_people_sports2d(prev_keypoints, keypoints, scores)
+    else:
+        keypoints = np.array([keypoints[0]])
+        scores = np.array([scores[0]])
+    return keypoints, scores, prev_keypoints
+
+def sort_people_rtmlib(pose_tracker, keypoints, scores):
+    '''
+    Associate persons across frames (RTMLib method)
+
+    INPUTS:
+    - pose_tracker: PoseTracker. The initialized RTMLib pose tracker object
+    - keypoints: array of shape K, L, M with K the number of detected persons,
+    L the number of detected keypoints, M their 2D coordinates
+    - scores: array of shape K, L with K the number of detected persons,
+    L the confidence of detected keypoints
+
+    OUTPUT:
+    - sorted_keypoints: array with reordered persons
+    - sorted_scores: array with reordered scores
+    '''
+    
+    try:
+        desired_size = max(pose_tracker.track_ids_last_frame)+1
+        sorted_keypoints = np.full((desired_size, keypoints.shape[1], 2), np.nan)
+        sorted_keypoints[pose_tracker.track_ids_last_frame] = keypoints[:len(pose_tracker.track_ids_last_frame), :, :]
+        sorted_scores = np.full((desired_size, scores.shape[1]), np.nan)
+        sorted_scores[pose_tracker.track_ids_last_frame] = scores[:len(pose_tracker.track_ids_last_frame), :]
+    except:
+        sorted_keypoints, sorted_scores = keypoints, scores
+
+    return sorted_keypoints, sorted_scores
+
+def sort_people_sports2d(keyptpre, keypt, scores):
+    '''
+    Associate persons across frames (Pose2Sim method)
+    Persons' indices are sometimes swapped when changing frame
+    A person is associated to another in the next frame when they are at a small distance
+    
+    N.B.: Requires min_with_single_indices and euclidian_distance function (see common.py)
+
+    INPUTS:
+    - keyptpre: array of shape K, L, M with K the number of detected persons,
+    L the number of detected keypoints, M their 2D coordinates
+    - keypt: idem keyptpre, for current frame
+    - score: array of shape K, L with K the number of detected persons,
+    L the confidence of detected keypoints
+    
+    OUTPUTS:
+    - sorted_prev_keypoints: array with reordered persons with values of previous frame if current is empty
+    - sorted_keypoints: array with reordered persons
+    - sorted_scores: array with reordered scores
+    '''
+    
+    # Generate possible person correspondences across frames
+    if len(keyptpre) < len(keypt):
+        keyptpre = np.concatenate((keyptpre, np.full((len(keypt)-len(keyptpre), keypt.shape[1], 2), np.nan)))
+    if len(keypt) < len(keyptpre):
+        keypt = np.concatenate((keypt, np.full((len(keyptpre)-len(keypt), keypt.shape[1], 2), np.nan)))
+        scores = np.concatenate((scores, np.full((len(keyptpre)-len(scores), scores.shape[1]), np.nan)))
+    personsIDs_comb = sorted(list(it.product(range(len(keyptpre)), range(len(keypt)))))
+    
+    # Compute distance between persons from one frame to another
+    frame_by_frame_dist = []
+    for comb in personsIDs_comb:
+        frame_by_frame_dist += [euclidean_distance(keyptpre[comb[0]],keypt[comb[1]])]
+    frame_by_frame_dist = np.mean(frame_by_frame_dist, axis=1)
+    
+    # Sort correspondences by distance
+    _, _, associated_tuples = min_with_single_indices(frame_by_frame_dist, personsIDs_comb)
+    
+    # Associate points to same index across frames, nan if no correspondence
+    sorted_keypoints, sorted_scores = [], []
+    for i in range(len(keyptpre)):
+        id_in_old =  associated_tuples[:,1][associated_tuples[:,0] == i].tolist()
+        if len(id_in_old) > 0:
+            sorted_keypoints += [keypt[id_in_old[0]]]
+            sorted_scores += [scores[id_in_old[0]]]
+        else:
+            sorted_keypoints += [keypt[i]]
+            sorted_scores += [scores[i]]
+    sorted_keypoints, sorted_scores = np.array(sorted_keypoints), np.array(sorted_scores)
+
+    # Keep track of previous values even when missing for more than one frame
+    sorted_prev_keypoints = np.where(np.isnan(sorted_keypoints) & ~np.isnan(keyptpre), keyptpre, sorted_keypoints)
+    
+    return sorted_prev_keypoints, sorted_keypoints, sorted_scores
+
+def min_with_single_indices(L, T):
+    '''
+    Let L be a list (size s) with T associated tuple indices (size s).
+    Select the smallest values of L, considering that 
+    the next smallest value cannot have the same numbers 
+    in the associated tuple as any of the previous ones.
+
+    Example:
+    L = [  20,   27,  51,    33,   43,   23,   37,   24,   4,   68,   84,    3  ]
+    T = list(it.product(range(2),range(3)))
+      = [(0,0),(0,1),(0,2),(0,3),(1,0),(1,1),(1,2),(1,3),(2,0),(2,1),(2,2),(2,3)]
+
+    - 1st smallest value: 3 with tuple (2,3), index 11
+    - 2nd smallest value when excluding indices (2,.) and (.,3), i.e. [(0,0),(0,1),(0,2),X,(1,0),(1,1),(1,2),X,X,X,X,X]:
+    20 with tuple (0,0), index 0
+    - 3rd smallest value when excluding [X,X,X,X,X,(1,1),(1,2),X,X,X,X,X]:
+    23 with tuple (1,1), index 5
+    
+    INPUTS:
+    - L: list (size s)
+    - T: T associated tuple indices (size s)
+
+    OUTPUTS: 
+    - minL: list of smallest values of L, considering constraints on tuple indices
+    - argminL: list of indices of smallest values of L (indices of best combinations)
+    - T_minL: list of tuples associated with smallest values of L
+    '''
+
+    minL = [np.nanmin(L)]
+    argminL = [np.nanargmin(L)]
+    T_minL = [T[argminL[0]]]
+    
+    mask_tokeep = np.array([True for t in T])
+    i=0
+    while mask_tokeep.any()==True:
+        mask_tokeep = mask_tokeep & np.array([t[0]!=T_minL[i][0] and t[1]!=T_minL[i][1] for t in T])
+        if mask_tokeep.any()==True:
+            indicesL_tokeep = np.where(mask_tokeep)[0]
+            minL += [np.nanmin(np.array(L)[indicesL_tokeep]) if not np.isnan(np.array(L)[indicesL_tokeep]).all() else np.nan]
+            argminL += [indicesL_tokeep[np.nanargmin(np.array(L)[indicesL_tokeep])] if not np.isnan(minL[-1]) else indicesL_tokeep[0]]
+            T_minL += (T[argminL[i+1]],)
+            i+=1
+    
+    return np.array(minL), np.array(argminL), np.array(T_minL)
+
+
+def process_coordinates_and_angles(keypoints, scores, keypoint_likelihood_threshold, keypoint_number_threshold, average_likelihood_threshold, flip_left_right, L_R_direction_idx, keypoints_names, keypoints_ids, angle_names, angle_dict):
+    valid_X, valid_Y, valid_scores = [], [], []
+    valid_X_flipped, valid_angles = [], []
+    for kpts, scrs in zip(keypoints, scores):
+        # Filtrage des keypoints avec faible confiance
+        mask = scrs >= keypoint_likelihood_threshold
+        person_X = np.where(mask, kpts[:, 0], np.nan)
+        person_Y = np.where(mask, kpts[:, 1], np.nan)
+        person_scores = np.where(mask, scrs, np.nan)
+
+        # Vérification du nombre de keypoints valides
+        valid_ratio = np.sum(mask) / len(mask)
+        average_score = np.nanmean(person_scores)
+        if valid_ratio < keypoint_number_threshold or average_score < average_likelihood_threshold:
+            person_X[:] = np.nan
+            person_Y[:] = np.nan
+            person_scores[:] = np.nan
+
+        valid_X.append(person_X)
+        valid_Y.append(person_Y)
+        valid_scores.append(person_scores)
+
+        # Gestion du flip gauche-droite
+        if flip_left_right:
+            person_X_flipped = flip_left_right_direction(
+                person_X, L_R_direction_idx, keypoints_names, keypoints_ids
+            )
+        else:
+            person_X_flipped = person_X.copy()
+        valid_X_flipped.append(person_X_flipped)
+
+        # Calcul des angles
+        person_angles = [
+            compute_angle(
+                ang_name, person_X_flipped, person_Y, angle_dict, keypoints_ids, keypoints_names
+            )
+            for ang_name in angle_names
+        ]
+        valid_angles.append(person_angles)
+    return valid_X, valid_Y, valid_scores, valid_X_flipped, valid_angles
+
+def flip_left_right_direction(person_X, L_R_direction_idx, keypoints_names, keypoints_ids):
+    '''
+    Flip the points to the right or left for more consistent angle calculation 
+    depending on which direction the person is facing
+
+    INPUTS:
+    - person_X: list of x coordinates
+    - L_R_direction_idx: list of indices of the left toe, left heel, right toe, right heel
+    - keypoints_names: list of keypoint names (see skeletons.py)
+    - keypoints_ids: list of keypoint ids (see skeletons.py)
+
+    OUTPUTS:
+    - person_X_flipped: list of x coordinates after flipping
+    '''
+
+    Ltoe_idx, LHeel_idx, Rtoe_idx, RHeel_idx = L_R_direction_idx
+    right_orientation = person_X[Rtoe_idx] - person_X[RHeel_idx]
+    left_orientation = person_X[Ltoe_idx] - person_X[LHeel_idx]
+    global_orientation = right_orientation + left_orientation
+    
+    person_X_flipped = person_X.copy()
+    if left_orientation < 0:
+        for k in keypoints_names:
+            if k.startswith('L'):
+                keypt_idx = keypoints_ids[keypoints_names.index(k)]
+                person_X_flipped[keypt_idx] = person_X_flipped[keypt_idx] * -1
+    if right_orientation < 0:
+        for k in keypoints_names:
+            if k.startswith('R'):
+                keypt_idx = keypoints_ids[keypoints_names.index(k)]
+                person_X_flipped[keypt_idx] = person_X_flipped[keypt_idx] * -1
+    if global_orientation < 0:
+        for k in keypoints_names:
+            if not k.startswith('L') and not k.startswith('R'):
+                keypt_idx = keypoints_ids[keypoints_names.index(k)]
+                person_X_flipped[keypt_idx] = person_X_flipped[keypt_idx] * -1
+    
+    return person_X_flipped
+
+def compute_angle(ang_name, person_X_flipped, person_Y, angle_dict, keypoints_ids, keypoints_names):
+    '''
+    Compute the angles from the 2D coordinates of the keypoints.
+    Takes into account which side the participant is facing.
+    Takes into account the offset and scaling of the angle from angle_dict.
+    Requires points2D_to_angles function (see common.py)
+
+    INPUTS:
+    - ang_name: str. The name of the angle to compute
+    - person_X_flipped: list of x coordinates after flipping if needed
+    - person_Y: list of y coordinates
+    - angle_dict: dict. The dictionary of angles to compute (name: [keypoints, type, offset, scaling])
+    - keypoints_ids: list of keypoint ids (see skeletons.py)
+    - keypoints_names: list of keypoint names (see skeletons.py)
+
+    OUTPUTS:
+    - ang: float. The computed angle
+    '''
+
+    ang_params = angle_dict.get(ang_name)
+    if ang_params is not None:
+        if ang_name in ['pelvis', 'trunk', 'shoulders']:
+            angle_coords = [[np.abs(person_X_flipped[keypoints_ids[keypoints_names.index(kpt)]]), person_Y[keypoints_ids[keypoints_names.index(kpt)]]] for kpt in ang_params[0] if kpt in keypoints_names]
+        else:
+            angle_coords = [[person_X_flipped[keypoints_ids[keypoints_names.index(kpt)]], person_Y[keypoints_ids[keypoints_names.index(kpt)]]] for kpt in ang_params[0] if kpt in keypoints_names]
+        ang = points2D_to_angles(angle_coords)
+        ang += ang_params[2]
+        ang *= ang_params[3]
+        if ang_name in ['pelvis', 'shoulders']:
+            ang = ang-180 if ang>90 else ang
+            ang = ang+180 if ang<-90 else ang
+        else:
+            ang = ang-360 if ang>180 else ang
+            ang = ang+360 if ang<-180 else ang
+    else:
+        ang = np.nan
+
+    return ang
+
+def display_image(show_realtime_results, img_show, video_file_path):
+    if show_realtime_results:
+        cv2.imshow(f"Pose Estimation {os.path.basename(video_file_path)}", img_show)
+        if cv2.waitKey(1) & 0xFF in [ord('q'), 27]:  # 27 correspond à la touche Échap
+            return True
+    return False
+
+def save_output(img_show, save_video, out_vid, save_images, img_output_dir, output_dir_name, frame_idx):
+    if save_video:
+        out_vid.write(img_show)
+    if save_images:
+        os.makedirs(img_output_dir, exist_ok=True)
+        cv2.imwrite(
+            os.path.join(img_output_dir, f'{output_dir_name}_{frame_idx:06d}.jpg'),
+            img_show
+        )
