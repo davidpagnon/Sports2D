@@ -730,7 +730,7 @@ def process_fun(config_dict, video_file_path, pose_tracker, input_frame_range, o
     validate_video_file(video_file_path)
 
     # Set up video capture
-    cap, frame_iterator, out_vid, cam_width, cam_height = setup_video_capture(video_file_path, webcam_id, save_video, output_video_path, input_size, input_frame_range)
+    cap, frame_iterator, out_vid, cam_width, cam_height, fps = setup_video_capture(video_file_path, webcam_id, save_video, output_video_path, input_size, input_frame_range)
 
     # Call to display real-time results if needed
     if show_realtime_results:
@@ -743,7 +743,7 @@ def process_fun(config_dict, video_file_path, pose_tracker, input_frame_range, o
         total_processing_start_time = datetime.now()
 
     frames_processed = 0
-
+    prev_keypoints = None
     for frame_idx in frame_iterator:
         # If frame not grabbed
         frame = read_frame(cap, frame_idx)

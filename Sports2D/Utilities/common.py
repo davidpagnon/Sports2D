@@ -508,7 +508,7 @@ def setup_video_capture(video_file_path, webcam_id=None, save_video=False, outpu
         start_frame = input_frame_range[0]
         cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
     
-    return cap, frame_iterator, out_vid, cam_width, cam_height
+    return cap, frame_iterator, out_vid, cam_width, cam_height, fps
 
 def display_realtime_results(video_file_path):
     """
