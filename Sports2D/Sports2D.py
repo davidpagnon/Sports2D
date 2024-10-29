@@ -110,7 +110,6 @@
 
 ## INIT
 import argparse
-import sys
 import toml
 from datetime import datetime
 from pathlib import Path
@@ -119,6 +118,7 @@ import cv2
 import numpy as np
 
 from Sports2D import Sports2D
+from Sports2D.Utilities.common import *
 
 
 ## CONSTANTS
@@ -239,195 +239,6 @@ __status__ = "Development"
 
 
 ## FUNCTIONS
-def read_config_file(config):
-    '''
-    Read configation file.
-    '''
-
-    config_dict = toml.load(config)
-    return config_dict
-
-
-def base_params(config_dict):
-    '''
-    Retrieve sequence name and frames to be analyzed.
-    '''
-
-    # videod_dir and result_dir
-    video_dir = Path(config_dict.get('project').get('video_dir')).resolve()
-    if video_dir == '': video_dir = Path.cwd()
-    output_dir = Path(config_dict.get('process').get('result_dir')).resolve()
-    if output_dir == '': output_dir = Path.cwd()
-
-    # video_files, frame_rates, time_ranges, frame_ranges
-    video_input = config_dict.get('project').get('video_input')
-    if video_input == "webcam" or video_input == ["webcam"]:
-        video_files = ['webcam']  # No video files for webcam
-        frame_rates = [None]  # No frame rate for webcam
-        time_ranges = [None]
-        frame_ranges = [None]
-    else:
-        # video_files
-        if isinstance(video_input, str):
-            video_files = [Path(video_input)]
-        else: 
-            video_files = [Path(v) for v in video_input]
-
-        # frame_rates
-        frame_rates = []
-        for video_file in video_files:
-            video = cv2.VideoCapture(str(video_dir / video_file)) if video_dir else cv2.VideoCapture(str(video_file))
-            if not video.isOpened():
-                raise FileNotFoundError(f'Error: Could not open {video_dir/video_file}. Check that the file exists.')
-            frame_rate = video.get(cv2.CAP_PROP_FPS)
-            if frame_rate == 0:
-                frame_rate = 30
-                logging.warning(f'Error: Could not retrieve frame rate from {video_dir/video_file}. Defaulting to 30fps.')
-            frame_rates.append(frame_rate)
-            video.release()
-
-        # time_ranges
-        time_ranges = np.array(config_dict.get('project').get('time_range'))
-        if time_ranges.shape == (0,):
-            time_ranges = [None] * len(video_files)
-        elif time_ranges.shape == (2,):
-            time_ranges = [time_ranges.tolist()] * len(video_files)
-        elif time_ranges.shape == (len(video_files), 2):
-            time_ranges = time_ranges.tolist()
-        else:
-            raise ValueError('Time range must be [] for analysing all frames of all videos, or [start_time, end_time] for analysing all videos from start_time to end_time, or [[start_time1, end_time1], [start_time2, end_time2], ...] for analysing each video for a different time_range.')
-
-        # frame_ranges
-        frame_ranges = np.array(config_dict.get('project').get('frame_range'))
-        if frame_ranges.shape == (0,):
-            frame_ranges = [None] * len(video_files)
-        elif frame_ranges.shape == (2,):
-            frame_ranges = [frame_ranges.tolist()] * len(video_files)
-        elif frame_ranges.shape == (len(video_files), 2):
-            frame_ranges = frame_ranges.tolist()
-        else:
-            raise ValueError('Frame range must be [] for analysing all frames of all videos, or [start_frame, end_frame] for analysing all videos from start_frame to end_frame, or [[start_frame1, end_frame1], [start_frame2, end_frame2], ...] for analysing each video for a different frame_range.')
-    
-    return video_dir, video_files, time_ranges, frame_ranges, frame_rates, output_dir
-
-
-def get_leaf_keys(config, prefix=''):
-    '''
-    Flatten configuration to map leaf keys to their full path
-    '''
-
-    leaf_keys = {}
-    for key, value in config.items():
-        if isinstance(value, dict):
-            leaf_keys.update(get_leaf_keys(value, prefix=prefix + key + '.'))
-        else:
-            leaf_keys[prefix + key] = value
-    return leaf_keys
-
-
-def update_nested_dict(config, key_path, value):
-    '''
-    Update a nested dictionary based on a key path string like 'process.multi_person'.
-    '''
-
-    keys = key_path.split('.')
-    d = config
-    for key in keys[:-1]:
-        d = d[key]
-    d[keys[-1]] = value
-
-
-def set_nested_value(config, flat_key, value):
-    '''
-    Update the nested dictionary based on flattened keys
-    '''
-
-    keys = flat_key.split('.')
-    d = config
-    for key in keys[:-1]:
-        d = d.setdefault(key, {})
-    d[keys[-1]] = value
-
-
-def str2bool(v):
-    '''
-    Convert a string to a boolean value.
-    '''
-    
-    if isinstance(v, bool):
-        return v
-    if v.lower() in ('yes', 'true', 't', 'y', '1'):
-        return True
-    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
-        return False
-    else:
-        raise argparse.ArgumentTypeError('Boolean value expected.')
-    
-
-def process(config='Config_demo.toml'):
-    '''
-    Read video or webcam input
-    Compute 2D pose with RTMPose
-    Compute joint and segment angles
-    Optionally interpolate missing data, filter them, and display figures
-    Save image and video results, save pose as trc files, save angles as csv files
-    '''
-
-    from Sports2D.process import process_fun
-    from Sports2D.Utilities.common import setup_pose_tracker
-    
-    if type(config) == dict:
-        config_dict = config
-    else:
-        config_dict = read_config_file(config)
-
-    mode = config_dict.get('pose').get('mode')
-    det_frequency = config_dict.get('pose').get('det_frequency')
-
-    video_dir, video_files, time_ranges, frame_ranges, frame_rates, output_dir = base_params(config_dict)
-        
-    output_dir.mkdir(parents=True, exist_ok=True)
-    with open(output_dir / 'logs.txt', 'a+'): pass
-    logging.basicConfig(format='%(message)s', level=logging.INFO, force=True, 
-        handlers = [logging.handlers.TimedRotatingFileHandler(output_dir / 'logs.txt', when='D', interval=7), logging.StreamHandler()]) 
-    
-    for video_file, time_range, frame_range, frame_rate in zip(video_files, time_ranges, frame_ranges, frame_rates):
-        currentDateAndTime = datetime.now()
-        range_str = ''
-
-        if time_range and frame_range:
-            logging.error("Error: Both time_range and frame_range are specified for video {}. Only one should be provided.".format(video_file))
-            continue
-        elif time_range:
-            frame_range = [int(time_range[0] * frame_rate), int(time_range[1] * frame_rate)]
-            range_str = f' from {time_range[0]} to {time_range[1]} seconds'
-        elif frame_range:
-            frame_range = [int(frame_range[0]), int(frame_range[1])]
-            range_str = f' from frame {frame_range[0]} to frame {frame_range[1]}'
-        else:
-            frame_range = None
-
-        logging.info("\n\n---------------------------------------------------------------------")
-        logging.info(f"Processing {video_file}{range_str}")
-        logging.info(f"On {currentDateAndTime.strftime('%A %d. %B %Y, %H:%M:%S')}")
-        logging.info("---------------------------------------------------------------------")
-
-        if video_file != "webcam":
-            video_file_path = video_dir / video_file
-        
-        pose_tracker = setup_pose_tracker(det_frequency, mode)
-
-        logging.info(f'Pose tracking set up for BodyWithFeet model in {mode} mode.')
-        logging.info(f'Persons are detected every {det_frequency} frames and tracked inbetween.')
-
-        process_fun(config_dict, video_file_path, pose_tracker, frame_range, output_dir)
-
-        elapsed_time = (datetime.now() - currentDateAndTime).total_seconds()        
-        logging.info(f'\nProcessing {video_file} took {elapsed_time:.2f} s.')
-
-    logging.shutdown()
-
-
 def main():
     '''
     Use sports2d to compute your athlete's pose, joint, and segment angles
@@ -484,7 +295,7 @@ def main():
 
     # Override dictionary with command-line arguments if provided
     leaf_keys = get_leaf_keys(new_config)
-    for leaf_key, default_value in leaf_keys.items():
+    for leaf_key, _ in leaf_keys.items():
         leaf_name = leaf_key.split('.')[-1]
         cli_value = getattr(args, leaf_name)
         if cli_value is not None:
@@ -493,6 +304,139 @@ def main():
     # Run process with the new configuration dictionary
     Sports2D.process(new_config)
 
+
+def process(config='Config_demo.toml'):
+    '''
+    Read video or webcam input
+    Compute 2D pose with RTMPose
+    Compute joint and segment angles
+    Optionally interpolate missing data, filter them, and display figures
+    Save image and video results, save pose as trc files, save angles as csv files
+    '''
+
+    from Sports2D.process import process_fun, post_processing
+    from Sports2D.Utilities.common import setup_pose_tracker
+    
+    if type(config) == dict:
+        config_dict = config
+    else:
+        config_dict = toml.load(config)
+
+    mode = config_dict.get('pose').get('mode')
+    det_frequency = config_dict.get('pose').get('det_frequency')
+
+    video_paths, frame_ranges, output_dir = base_params(config_dict)
+        
+    output_dir.mkdir(parents=True, exist_ok=True)
+    with open(output_dir / 'logs.txt', 'a+'): pass
+
+    setup_logging(output_dir)
+
+    for video_path, frame_range in zip(video_paths, frame_ranges):
+        currentDateAndTime = datetime.now()
+
+        range_str = ''
+        if video_path != "webcam":
+            range_str = f' from frame {frame_range[0]} to frame {frame_range[1]}'
+
+        logging.info("\n\n---------------------------------------------------------------------")
+        logging.info(f"Processing {video_path} {range_str}")
+        logging.info(f"On {currentDateAndTime.strftime('%A %d. %B %Y, %H:%M:%S')}")
+        logging.info("---------------------------------------------------------------------")
+        
+        pose_tracker = setup_pose_tracker(det_frequency, mode)
+
+        logging.info(f'Pose tracking set up for BodyWithFeet model in {mode} mode.')
+        logging.info(f'Persons are detected every {det_frequency} frames and tracked inbetween.')
+
+        frame_idx, fps, output_dir_name, all_frames_X, all_frames_Y, all_frames_angles = process_fun(config_dict, video_path, pose_tracker, frame_range, output_dir)
+
+        post_processing(config_dict, video_path, frame_idx, fps, frame_range, output_dir, output_dir_name, all_frames_X, all_frames_Y, all_frames_angles)
+
+        elapsed_time = (datetime.now() - currentDateAndTime).total_seconds()        
+        logging.info(f'\nProcessing {video_path} took {elapsed_time:.2f} s.')
+
+    logging.shutdown()
+
+
+def base_params(config_dict):
+    '''
+    Retrieve sequence name and frames to be analyzed.
+    '''
+
+
+    # Resolve video_dir and output_dir
+    video_dir = Path(config_dict['project'].get('video_dir', '')).resolve()
+    if not video_dir.exists():
+        video_dir = Path.cwd()
+    output_dir = Path(config_dict['process'].get('result_dir', '')).resolve()
+    if not output_dir.exists():
+        output_dir = Path.cwd()
+
+    # Get video_input
+    video_input = config_dict['project'].get('video_input')
+
+    if video_input == "webcam" or video_input == ["webcam"]:
+        video_paths = ['webcam']
+        frame_rates = [None]
+        total_frames_list = [None]
+        frame_ranges = [None]
+    else:
+        # Ensure video_input is a list
+        if isinstance(video_input, str):
+            video_input = [video_input]
+        video_paths = [video_dir / Path(v) for v in video_input]
+
+        # Verify video files exist and get frame rates and total frames
+        frame_rates = []
+        total_frames_list = []
+        for video_path in video_paths:
+            if not video_path.exists():
+                raise FileNotFoundError(f'Error: Could not find video file {video_path}.')
+            video = cv2.VideoCapture(str(video_path))
+            if not video.isOpened():
+                raise IOError(f'Error: Could not open {video_path}. Check that the file is a valid video.')
+            frame_rate = video.get(cv2.CAP_PROP_FPS)
+            if not frame_rate or frame_rate <= 0:
+                frame_rate = 30
+                logging.warning(f'Could not retrieve frame rate from {video_path}. Defaulting to 30fps.')
+            frame_rates.append(frame_rate)
+            total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+            total_frames_list.append(total_frames)
+            video.release()
+
+        # Helper function to process ranges
+        def process_ranges(range_name):
+            ranges = config_dict['project'].get(range_name)
+            num_videos = len(video_paths)
+            if ranges is None or ranges == []:
+                return [None] * num_videos
+            elif isinstance(ranges[0], (int, float)) and len(ranges) == 2:
+                return [ranges] * num_videos
+            elif all(isinstance(r, list) and len(r) == 2 for r in ranges):
+                if len(ranges) != num_videos:
+                    raise ValueError(f'Length of {range_name} does not match number of videos.')
+                return ranges
+            else:
+                raise ValueError(f'{range_name} must be empty, [start, end], or a list of [start, end] for each video.')
+
+        # Process time_ranges and frame_ranges
+        time_ranges = process_ranges('time_range')
+        frame_ranges = process_ranges('frame_range')
+
+        # Combine time_ranges and frame_ranges into final frame_ranges
+        for i, (time_range, frame_range, frame_rate, total_frames) in enumerate(zip(time_ranges, frame_ranges, frame_rates, total_frames_list)):
+            if time_range and frame_range:
+                raise ValueError(f"Error: Both time_range and frame_range are specified for video {video_paths[i]}. Only one should be provided.")
+            if time_range:
+                frame_ranges[i] = [int(time_range[0] * frame_rate), int(time_range[1] * frame_rate)]
+            elif frame_range:
+                frame_ranges[i] = [int(frame_range[0]), int(frame_range[1])]
+            else:
+                # Assign full frame range
+                frame_ranges[i] = [0, total_frames]
+
+    return video_paths, frame_ranges, output_dir
 
 if __name__ == "__main__":
     main()

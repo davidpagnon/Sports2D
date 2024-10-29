@@ -674,11 +674,11 @@ def process_fun(config_dict, video_file_path, pose_tracker, input_frame_range, o
 
     # Process settings
     multi_person = config_dict.get('process', {}).get('multi_person')
-
     if multi_person is None:
         multi_person = config_dict.get('process', {}).get('multiperson')
         print("Warning: 'multiperson' is deprecated. Please switch to 'multi_person'.")
     show_realtime_results = config_dict.get('process').get('show_realtime_results')
+    
     save_pose = config_dict.get('process').get('save_pose')
     save_angles = config_dict.get('process').get('save_angles')
 
@@ -711,23 +711,10 @@ def process_fun(config_dict, video_file_path, pose_tracker, input_frame_range, o
     RHeel_idx = keypoints_ids[keypoints_names.index('RHeel')]
     L_R_direction_idx = [Ltoe_idx, LHeel_idx, Rtoe_idx, RHeel_idx]
 
-
     logging.info(f'Multi-person is {"" if multi_person else "not "}selected.')
     logging.info(f"Parameters: {f'{tracking_mode=}, ' if multi_person else ''}{keypoint_likelihood_threshold=}, {average_likelihood_threshold=}, {keypoint_number_threshold=}")
 
     output_dir, output_dir_name, img_output_dir, json_output_dir, output_video_path = setup_capture_directories(video_file_path, output_dir)
-
-    try:
-        cap = cv2.VideoCapture(video_file_path)
-        cap.read()
-        if cap.read()[0] == False:
-            raise
-    except:
-        raise NameError(f"{video_file_path} is not a video. Images must be put in one subdirectory per camera.")
-
-    output_dir, output_dir_name, img_output_dir, json_output_dir, output_video_path = setup_capture_directories(video_file_path, output_dir)
-
-    validate_video_file(video_file_path)
 
     # Set up video capture
     cap, frame_iterator, out_vid, cam_width, cam_height, fps = setup_video_capture(video_file_path, webcam_id, save_video, output_video_path, input_size, input_frame_range)
@@ -737,7 +724,7 @@ def process_fun(config_dict, video_file_path, pose_tracker, input_frame_range, o
         display_realtime_results(video_file_path)
     # Process video or webcam feed
     # logging.info(f"{'Video, ' if save_video else ''}{'Images, ' if save_images else ''}{'Pose, ' if save_pose else ''}{'Angles ' if save_angles else ''}{'and ' if save_angles or save_images or save_pose or save_video else ''}Logs will be saved in {result_dir}.")
-    all_frames_X, all_frames_Y, all_frames_scores, all_frames_angles = [], [], [], []
+    all_frames_X, all_frames_Y, all_frames_angles = [], [], []
 
     if video_file_path == 'webcam' and save_video:
         total_processing_start_time = datetime.now()
@@ -748,10 +735,10 @@ def process_fun(config_dict, video_file_path, pose_tracker, input_frame_range, o
         # If frame not grabbed
         frame = read_frame(cap, frame_idx)
         if frame is None:
+            logging.warning(f"Failed to grab frame {frame_idx}.")
             if save_pose:
                 all_frames_X.append([])
                 all_frames_Y.append([])
-                all_frames_scores.append([])
             if save_angles:
                 all_frames_angles.append([])
             continue
@@ -767,7 +754,7 @@ def process_fun(config_dict, video_file_path, pose_tracker, input_frame_range, o
         )
 
         # Process coordinates and compute angles
-        valid_X, valid_Y, valid_scores, valid_X_flipped, valid_angles = process_coordinates_and_angles(
+        valid_X, valid_Y, valid_X_flipped, valid_angles = process_coordinates_and_angles(
             keypoints, scores, keypoint_likelihood_threshold, keypoint_number_threshold,
             average_likelihood_threshold, flip_left_right, L_R_direction_idx,
             keypoints_names, keypoints_ids, angle_names, angle_dict
@@ -776,7 +763,6 @@ def process_fun(config_dict, video_file_path, pose_tracker, input_frame_range, o
         if save_pose:
             all_frames_X.append(np.array(valid_X))
             all_frames_Y.append(np.array(valid_Y))
-            all_frames_scores.append(np.array(valid_scores))
         if save_angles:
             all_frames_angles.append(np.array(valid_angles))
 
@@ -818,7 +804,9 @@ def process_fun(config_dict, video_file_path, pose_tracker, input_frame_range, o
     if show_realtime_results:
         cv2.destroyAllWindows()
 
-    # def post_processing(config_dict, video_file, frame_rate):
+    return frame_idx, fps, output_dir_name, all_frames_X, all_frames_Y, all_frames_angles
+
+def post_processing(config_dict, video_file_path, frame_idx, fps, frame_range, output_dir, output_dir_name, all_frames_X, all_frames_Y, all_frames_angles):
     save_pose = config_dict.get('process').get('save_pose')
     save_angles = config_dict.get('process').get('save_angles')
 
@@ -826,6 +814,17 @@ def process_fun(config_dict, video_file_path, pose_tracker, input_frame_range, o
     interpolate = config_dict.get('post-processing').get('interpolate')    
     interp_gap_smaller_than = config_dict.get('post-processing').get('interp_gap_smaller_than')
     fill_large_gaps_with = config_dict.get('post-processing').get('fill_large_gaps_with')
+
+    # Retrieve keypoint names from model
+    pose_model = config_dict.get('pose').get('pose_model')
+    model = eval(pose_model)
+    keypoints_ids = [node.id for _, _, node in RenderTree(model) if node.id!=None]
+    keypoints_names = [node.name for _, _, node in RenderTree(model) if node.id!=None]
+
+    joint_angle_names = config_dict.get('angles').get('joint_angles')
+    segment_angle_names = config_dict.get('angles').get('segment_angles')
+    angle_names = joint_angle_names + segment_angle_names
+    angle_names = [angle_name.lower() for angle_name in angle_names]
 
     show_plots = config_dict.get('post-processing').get('show_graphs')
     filter_type = config_dict.get('post-processing').get('filter_type')

@@ -24,6 +24,7 @@ import itertools as it
 import logging
 from datetime import datetime
 from pathlib import Path
+import argparse
 
 import numpy as np
 from scipy import interpolate
@@ -492,6 +493,8 @@ def setup_video_capture(video_file_path, webcam_id=None, save_video=False, outpu
     import cv2, sys, logging
     from tqdm import tqdm
 
+    validate_video_file(video_file_path)
+
     if video_file_path == "webcam":
         cap, out_vid, cam_width, cam_height, fps = setup_webcam(webcam_id, save_video, output_video_path, input_size)
         frame_range = [0, sys.maxsize]
@@ -504,7 +507,7 @@ def setup_video_capture(video_file_path, webcam_id=None, save_video=False, outpu
             frame_range = [0, total_frames]
         else:
             frame_range = input_frame_range
-        frame_iterator = tqdm(range(*frame_range), desc=f'Processing {video_file_path}') # use a progress bar
+        frame_iterator = tqdm(range(*frame_range), desc=f'Processing {os.path.basename(video_file_path)}') # use a progress bar
         start_frame = input_frame_range[0]
         cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
     
@@ -516,8 +519,8 @@ def display_realtime_results(video_file_path):
     """
     import cv2
 
-    cv2.namedWindow(f'Pose Estimation {video_file_path}', cv2.WINDOW_NORMAL + cv2.WINDOW_KEEPRATIO)
-    cv2.setWindowProperty(f'Pose Estimation {video_file_path}', cv2.WND_PROP_ASPECT_RATIO, cv2.WINDOW_FULLSCREEN)
+    cv2.namedWindow(f'Pose Estimation {os.path.basename(video_file_path)}', cv2.WINDOW_NORMAL + cv2.WINDOW_KEEPRATIO)
+    cv2.setWindowProperty(f'Pose Estimation {os.path.basename(video_file_path)}', cv2.WND_PROP_ASPECT_RATIO, cv2.WINDOW_FULLSCREEN)
 
 def finalize_video_processing(frames_processed, total_processing_start_time, output_video_path, fps):
     """
@@ -549,17 +552,16 @@ def display_quit_message(frame, cam_width, cam_height, fontSize, thickness):
         (0, 0, 255), thickness, cv2.LINE_AA
     )
 
-def track_people(keypoints, scores, multi_person, tracking_mode, prev_keypoints, pose_tracker):
+def track_people(keypoints, scores, multi_person, tracking_mode, prev_keypoints, pose_tracker=None):
     if multi_person:
-        if tracking_mode in ('rtmlib', None):
+        if tracking_mode == 'rtmlib':
             keypoints, scores = sort_people_rtmlib(pose_tracker, keypoints, scores)
         else:
-            if prev_keypoints is None:
-                prev_keypoints = keypoints
+            if prev_keypoints is None: prev_keypoints = keypoints
             prev_keypoints, keypoints, scores = sort_people_sports2d(prev_keypoints, keypoints, scores)
     else:
-        keypoints = np.array([keypoints[0]])
-        scores = np.array([scores[0]])
+        keypoints, scores = np.array([keypoints[0]]), np.array([scores[0]])
+        
     return keypoints, scores, prev_keypoints
 
 def sort_people_rtmlib(pose_tracker, keypoints, scores):
@@ -622,7 +624,7 @@ def sort_people_sports2d(keyptpre, keypt, scores):
     frame_by_frame_dist = []
     for comb in personsIDs_comb:
         frame_by_frame_dist += [euclidean_distance(keyptpre[comb[0]],keypt[comb[1]])]
-    frame_by_frame_dist = np.mean(frame_by_frame_dist, axis=1)
+    # frame_by_frame_dist = np.mean(frame_by_frame_dist, axis=1)
     
     # Sort correspondences by distance
     _, _, associated_tuples = min_with_single_indices(frame_by_frame_dist, personsIDs_comb)
@@ -729,7 +731,7 @@ def process_coordinates_and_angles(keypoints, scores, keypoint_likelihood_thresh
             for ang_name in angle_names
         ]
         valid_angles.append(person_angles)
-    return valid_X, valid_Y, valid_scores, valid_X_flipped, valid_angles
+    return valid_X, valid_Y, valid_X_flipped, valid_angles
 
 def flip_left_right_direction(person_X, L_R_direction_idx, keypoints_names, keypoints_ids):
     '''
@@ -809,13 +811,6 @@ def compute_angle(ang_name, person_X_flipped, person_Y, angle_dict, keypoints_id
 
     return ang
 
-def display_image(show_realtime_results, img_show, video_file_path):
-    if show_realtime_results:
-        cv2.imshow(f"Pose Estimation {os.path.basename(video_file_path)}", img_show)
-        if cv2.waitKey(1) & 0xFF in [ord('q'), 27]:  # 27 correspond à la touche Échap
-            return True
-    return False
-
 def save_output(img_show, save_video, out_vid, save_images, img_output_dir, output_dir_name, frame_idx):
     if save_video:
         out_vid.write(img_show)
@@ -825,3 +820,52 @@ def save_output(img_show, save_video, out_vid, save_images, img_output_dir, outp
             os.path.join(img_output_dir, f'{output_dir_name}_{frame_idx:06d}.jpg'),
             img_show
         )
+
+def setup_logging(dir):
+    '''
+    Create logging file and stream handlers
+    '''
+
+    logging.basicConfig(format='%(message)s', level=logging.INFO,
+        handlers = [logging.handlers.TimedRotatingFileHandler(os.path.join(dir, 'logs.txt'), when='D', interval=7), logging.StreamHandler()])
+
+def get_leaf_keys(config, prefix=''):
+    '''
+    Flatten configuration to map leaf keys to their full path
+    '''
+
+    leaf_keys = {}
+    for key, value in config.items():
+        if isinstance(value, dict):
+            leaf_keys.update(get_leaf_keys(value, prefix=prefix + key + '.'))
+        else:
+            leaf_keys[prefix + key] = value
+    return leaf_keys
+
+
+def set_nested_value(config, flat_key, value):
+    '''
+    Update the nested dictionary based on flattened keys
+    '''
+
+    keys = flat_key.split('.')
+    d = config
+    for key in keys[:-1]:
+        d = d.setdefault(key, {})
+    d[keys[-1]] = value
+
+
+def str2bool(v):
+    '''
+    Convert a string to a boolean value.
+    '''
+    
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+    
