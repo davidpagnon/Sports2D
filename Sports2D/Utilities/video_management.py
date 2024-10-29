@@ -174,17 +174,6 @@ def sort_people_sports2d(keyptpre, keypt, scores):
     return sorted_prev_keypoints, sorted_keypoints, sorted_scores
 
 
-def save_output(img_show, save_video, out_vid, save_images, img_output_dir, output_dir_name, frame_idx):
-    if save_video:
-        out_vid.write(img_show)
-    if save_images:
-        os.makedirs(img_output_dir, exist_ok=True)
-        cv2.imwrite(
-            os.path.join(img_output_dir, f'{output_dir_name}_{frame_idx:06d}.jpg'),
-            img_show
-        )
-
-
 def draw_dotted_line(img, start, direction, length, color=(0, 255, 0), gap=7, dot_length=3, thickness=1):
     '''
     Draw a dotted line with on a cv2 image

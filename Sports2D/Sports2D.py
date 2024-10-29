@@ -111,14 +111,17 @@
 ## INIT
 import argparse
 import toml
-from datetime import datetime
-from pathlib import Path
 import logging, logging.handlers
 import cv2
-import numpy as np
 
+from datetime import datetime
+from pathlib import Path
 from Sports2D import Sports2D
-from Sports2D.Utilities.common import *
+
+from Sports2D.Utilities.config import setup_logging, setup_pose_tracker
+from Sports2D.Utilities.utilities import get_leaf_keys, set_nested_value, str2bool
+from Sports2D.poseEstimation import process_fun
+from Sports2D.postProcessing import post_processing
 
 
 ## CONSTANTS
@@ -313,9 +316,6 @@ def process(config='Config_demo.toml'):
     Optionally interpolate missing data, filter them, and display figures
     Save image and video results, save pose as trc files, save angles as csv files
     '''
-
-    from Sports2D.process import process_fun, post_processing
-    from Sports2D.Utilities.common import setup_pose_tracker
     
     if type(config) == dict:
         config_dict = config

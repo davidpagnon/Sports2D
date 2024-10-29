@@ -37,10 +37,6 @@ __status__ = "Development"
 
 
 ## FUNCTIONS
-def natural_sort_key(s):
-    return [int(c) if c.isdigit() else c.lower() for c in re.split(r'(\d+)', s)]
-
-
 def make_homogeneous(list_of_arrays):
     '''
     Make a list of arrays (or a list of lists) homogeneous by padding with nans
