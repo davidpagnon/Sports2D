@@ -68,42 +68,6 @@ from Sports2D.Utilities.visualisation import display_quit_message
 
 
 ## CONSTANTS
-angle_dict = { # lowercase!
-    # joint angles
-    'right ankle': [['RKnee', 'RAnkle', 'RBigToe', 'RHeel'], 'dorsiflexion', 90, 1],
-    'left ankle': [['LKnee', 'LAnkle', 'LBigToe', 'LHeel'], 'dorsiflexion', 90, 1],
-    'right knee': [['RAnkle', 'RKnee', 'RHip'], 'flexion', -180, 1],
-    'left knee': [['LAnkle', 'LKnee', 'LHip'], 'flexion', -180, 1],
-    'right hip': [['RKnee', 'RHip', 'Hip', 'Neck'], 'flexion', 0, -1],
-    'left hip': [['LKnee', 'LHip', 'Hip', 'Neck'], 'flexion', 0, -1],
-    # 'lumbar': [['Neck', 'Hip', 'RHip', 'LHip'], 'flexion', -180, -1],
-    # 'neck': [['Head', 'Neck', 'RShoulder', 'LShoulder'], 'flexion', -180, -1],
-    'right shoulder': [['RElbow', 'RShoulder', 'Hip', 'Neck'], 'flexion', 0, -1],
-    'left shoulder': [['LElbow', 'LShoulder', 'Hip', 'Neck'], 'flexion', 0, -1],
-    'right elbow': [['RWrist', 'RElbow', 'RShoulder'], 'flexion', 180, -1],
-    'left elbow': [['LWrist', 'LElbow', 'LShoulder'], 'flexion', 180, -1],
-    'right wrist': [['RElbow', 'RWrist', 'RIndex'], 'flexion', -180, 1],
-    'left wrist': [['LElbow', 'LIndex', 'LWrist'], 'flexion', -180, 1],
-
-    # segment angles
-    'right foot': [['RBigToe', 'RHeel'], 'horizontal', 0, -1],
-    'left foot': [['LBigToe', 'LHeel'], 'horizontal', 0, -1],
-    'right shank': [['RAnkle', 'RKnee'], 'horizontal', 0, -1],
-    'left shank': [['LAnkle', 'LKnee'], 'horizontal', 0, -1],
-    'right thigh': [['RKnee', 'RHip'], 'horizontal', 0, -1],
-    'left thigh': [['LKnee', 'LHip'], 'horizontal', 0, -1],
-    'pelvis': [['LHip', 'RHip'], 'horizontal', 0, -1],
-    'trunk': [['Neck', 'Hip'], 'horizontal', 0, -1],
-    'shoulders': [['LShoulder', 'RShoulder'], 'horizontal', 0, -1],
-    'head': [['Head', 'Neck'], 'horizontal', 0, -1],
-    'right arm': [['RElbow', 'RShoulder'], 'horizontal', 0, -1],
-    'left arm': [['LElbow', 'LShoulder'], 'horizontal', 0, -1],
-    'right forearm': [['RWrist', 'RElbow'], 'horizontal', 0, -1],
-    'left forearm': [['LWrist', 'LElbow'], 'horizontal', 0, -1],
-    'right hand': [['RIndex', 'RWrist'], 'horizontal', 0, -1],
-    'left hand': [['LIndex', 'LWrist'], 'horizontal', 0, -1]
-    }
-
 colors = [(255, 0, 0), (0, 0, 255), (255, 255, 0), (255, 0, 255), (0, 255, 255), (0, 0, 0), (255, 255, 255),
             (125, 0, 0), (0, 125, 0), (0, 0, 125), (125, 125, 0), (125, 0, 125), (0, 125, 125), 
             (255, 125, 125), (125, 255, 125), (125, 125, 255), (255, 255, 125), (255, 125, 255), (125, 255, 255), (125, 125, 125),
@@ -259,8 +223,7 @@ def process_fun(config_dict, video_file_path, pose_tracker, input_frame_range, o
         valid_X, valid_Y, valid_X_flipped, valid_angles = process_coordinates_and_angles(
             keypoints, scores, keypoint_likelihood_threshold, keypoint_number_threshold,
             average_likelihood_threshold, flip_left_right, L_R_direction_idx,
-            keypoints_names, keypoints_ids, angle_names, angle_dict
-        )
+            keypoints_names, keypoints_ids, angle_names)
 
         if save_pose:
             all_frames_X.append(np.array(valid_X))

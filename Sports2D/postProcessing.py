@@ -59,6 +59,7 @@ import numpy as np
 import pandas as pd
 
 from Sports2D.Utilities.skeletons import *
+from Sports2D.Utilities.filter import filter1d
 from Sports2D.Utilities.utilities import make_homogeneous
 from Sports2D.Utilities.data_processing import make_trc_with_XYZ, make_mot_with_angles, interpolate_zeros_nans
 from Sports2D.Utilities.visualisation import pose_plots, angle_plots
@@ -165,8 +166,8 @@ def post_processing(config_dict, video_file_path, frame_idx, fps, frame_range, o
                     if filter_type == 'median':
                         args = f'Median filter, kernel of {filter_options[7]}.'
                     logging.info(f'Filtering with {args}')
-                    all_frames_X_person_filt = all_frames_X_person_interp.apply(filter.filter1d, axis=0, args=filter_options)
-                    all_frames_Y_person_filt = all_frames_Y_person_interp.apply(filter.filter1d, axis=0, args=filter_options)
+                    all_frames_X_person_filt = all_frames_X_person_interp.apply(filter1d, axis=0, args=filter_options)
+                    all_frames_Y_person_filt = all_frames_Y_person_interp.apply(filter1d, axis=0, args=filter_options)
 
                 # Build TRC file
                 trc_data = make_trc_with_XYZ(all_frames_X_person_filt, all_frames_Y_person_filt, all_frames_Z_person, all_frames_time, str(pose_path_person))
@@ -232,7 +233,7 @@ def post_processing(config_dict, video_file_path, frame_idx, fps, frame_range, o
                     if filter_type == 'median':
                         args = f'Median filter, kernel of {filter_options[7]}.'
                     logging.info(f'Filtering with {args}')
-                    all_frames_angles_person_filt = all_frames_angles_person_interp.apply(filter.filter1d, axis=0, args=filter_options)
+                    all_frames_angles_person_filt = all_frames_angles_person_interp.apply(filter1d, axis=0, args=filter_options)
 
                 # Build mot file
                 angle_data = make_mot_with_angles(all_frames_angles_person_filt, all_frames_time, str(angles_path_person))

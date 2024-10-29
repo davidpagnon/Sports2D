@@ -42,6 +42,44 @@ __email__ = "contact@david-pagnon.com"
 __status__ = "Development"
 
 
+## CONSTANTS
+angle_dict = { # lowercase!
+    # joint angles
+    'right ankle': [['RKnee', 'RAnkle', 'RBigToe', 'RHeel'], 'dorsiflexion', 90, 1],
+    'left ankle': [['LKnee', 'LAnkle', 'LBigToe', 'LHeel'], 'dorsiflexion', 90, 1],
+    'right knee': [['RAnkle', 'RKnee', 'RHip'], 'flexion', -180, 1],
+    'left knee': [['LAnkle', 'LKnee', 'LHip'], 'flexion', -180, 1],
+    'right hip': [['RKnee', 'RHip', 'Hip', 'Neck'], 'flexion', 0, -1],
+    'left hip': [['LKnee', 'LHip', 'Hip', 'Neck'], 'flexion', 0, -1],
+    # 'lumbar': [['Neck', 'Hip', 'RHip', 'LHip'], 'flexion', -180, -1],
+    # 'neck': [['Head', 'Neck', 'RShoulder', 'LShoulder'], 'flexion', -180, -1],
+    'right shoulder': [['RElbow', 'RShoulder', 'Hip', 'Neck'], 'flexion', 0, -1],
+    'left shoulder': [['LElbow', 'LShoulder', 'Hip', 'Neck'], 'flexion', 0, -1],
+    'right elbow': [['RWrist', 'RElbow', 'RShoulder'], 'flexion', 180, -1],
+    'left elbow': [['LWrist', 'LElbow', 'LShoulder'], 'flexion', 180, -1],
+    'right wrist': [['RElbow', 'RWrist', 'RIndex'], 'flexion', -180, 1],
+    'left wrist': [['LElbow', 'LIndex', 'LWrist'], 'flexion', -180, 1],
+
+    # segment angles
+    'right foot': [['RBigToe', 'RHeel'], 'horizontal', 0, -1],
+    'left foot': [['LBigToe', 'LHeel'], 'horizontal', 0, -1],
+    'right shank': [['RAnkle', 'RKnee'], 'horizontal', 0, -1],
+    'left shank': [['LAnkle', 'LKnee'], 'horizontal', 0, -1],
+    'right thigh': [['RKnee', 'RHip'], 'horizontal', 0, -1],
+    'left thigh': [['LKnee', 'LHip'], 'horizontal', 0, -1],
+    'pelvis': [['LHip', 'RHip'], 'horizontal', 0, -1],
+    'trunk': [['Neck', 'Hip'], 'horizontal', 0, -1],
+    'shoulders': [['LShoulder', 'RShoulder'], 'horizontal', 0, -1],
+    'head': [['Head', 'Neck'], 'horizontal', 0, -1],
+    'right arm': [['RElbow', 'RShoulder'], 'horizontal', 0, -1],
+    'left arm': [['LElbow', 'LShoulder'], 'horizontal', 0, -1],
+    'right forearm': [['RWrist', 'RElbow'], 'horizontal', 0, -1],
+    'left forearm': [['LWrist', 'LElbow'], 'horizontal', 0, -1],
+    'right hand': [['RIndex', 'RWrist'], 'horizontal', 0, -1],
+    'left hand': [['LIndex', 'LWrist'], 'horizontal', 0, -1]
+    }
+
+
 ## FUNCTIONS
 def interpolate_zeros_nans(col, *args):
     '''
@@ -95,7 +133,8 @@ def resample_video(vid_output_path, fps, desired_framerate):
     '''
    
     ffmpeg_path = ffmpeg.get_ffmpeg_exe()
-    new_vid_path = vid_output_path.parent / Path(vid_output_path.stem+'_2'+vid_output_path.suffix)
+    vid_output_path = Path(vid_output_path)
+    new_vid_path = vid_output_path.parent / Path(vid_output_path.stem+'_2'+ vid_output_path.suffix)
     subprocess.run([ffmpeg_path, '-i', vid_output_path, '-filter:v', f'setpts={fps/desired_framerate}*PTS', '-r', str(desired_framerate), new_vid_path])
     vid_output_path.unlink()
     new_vid_path.rename(vid_output_path)
@@ -205,7 +244,7 @@ def min_with_single_indices(L, T):
     return np.array(minL), np.array(argminL), np.array(T_minL)
 
 
-def process_coordinates_and_angles(keypoints, scores, keypoint_likelihood_threshold, keypoint_number_threshold, average_likelihood_threshold, flip_left_right, L_R_direction_idx, keypoints_names, keypoints_ids, angle_names, angle_dict):
+def process_coordinates_and_angles(keypoints, scores, keypoint_likelihood_threshold, keypoint_number_threshold, average_likelihood_threshold, flip_left_right, L_R_direction_idx, keypoints_names, keypoints_ids, angle_names):
     valid_X, valid_Y, valid_scores = [], [], []
     valid_X_flipped, valid_angles = [], []
     for kpts, scrs in zip(keypoints, scores):
@@ -239,11 +278,12 @@ def process_coordinates_and_angles(keypoints, scores, keypoint_likelihood_thresh
         # Calcul des angles
         person_angles = [
             compute_angle(
-                ang_name, person_X_flipped, person_Y, angle_dict, keypoints_ids, keypoints_names
-            )
+                ang_name, person_X_flipped, person_Y, keypoints_ids, keypoints_names
+            )[0]
             for ang_name in angle_names
         ]
         valid_angles.append(person_angles)
+
     return valid_X, valid_Y, valid_X_flipped, valid_angles
 
 
@@ -287,7 +327,7 @@ def flip_left_right_direction(person_X, L_R_direction_idx, keypoints_names, keyp
     return person_X_flipped
 
 
-def compute_angle(ang_name, person_X_flipped, person_Y, angle_dict, keypoints_ids, keypoints_names):
+def compute_angle(ang_name, person_X_flipped, person_Y, keypoints_ids, keypoints_names):
     '''
     Compute the angles from the 2D coordinates of the keypoints.
     Takes into account which side the participant is facing.
@@ -304,6 +344,8 @@ def compute_angle(ang_name, person_X_flipped, person_Y, angle_dict, keypoints_id
 
     OUTPUTS:
     - ang: float. The computed angle
+    - ang_params: list. The angle parameters from angle_dict
+    - angle_coords: list. The coordinates used for computing the angle
     '''
 
     ang_params = angle_dict.get(ang_name)
@@ -312,19 +354,20 @@ def compute_angle(ang_name, person_X_flipped, person_Y, angle_dict, keypoints_id
             angle_coords = [[np.abs(person_X_flipped[keypoints_ids[keypoints_names.index(kpt)]]), person_Y[keypoints_ids[keypoints_names.index(kpt)]]] for kpt in ang_params[0] if kpt in keypoints_names]
         else:
             angle_coords = [[person_X_flipped[keypoints_ids[keypoints_names.index(kpt)]], person_Y[keypoints_ids[keypoints_names.index(kpt)]]] for kpt in ang_params[0] if kpt in keypoints_names]
+
         ang = points2D_to_angles(angle_coords)
         ang += ang_params[2]
         ang *= ang_params[3]
         if ang_name in ['pelvis', 'shoulders']:
-            ang = ang-180 if ang>90 else ang
-            ang = ang+180 if ang<-90 else ang
+            ang = ang - 180 if ang > 90 else ang
+            ang = ang + 180 if ang < -90 else ang
         else:
-            ang = ang-360 if ang>180 else ang
-            ang = ang+360 if ang<-180 else ang
+            ang = ang - 360 if ang > 180 else ang
+            ang = ang + 360 if ang < -180 else ang
     else:
         ang = np.nan
 
-    return ang
+    return ang, ang_params, angle_coords
 
 
 def make_trc_with_XYZ(X, Y, Z, time, trc_path):

@@ -36,8 +36,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 from anytree import PreOrderIter
 
-from Sports2D.Utilities.data_processing import resample_video, euclidean_distance, min_with_single_indices
-from Sports2D.process import angle_dict
+from Sports2D.Utilities.data_processing import resample_video, euclidean_distance, min_with_single_indices, compute_angle
 
 
 ## AUTHORSHIP INFORMATION
@@ -71,6 +70,7 @@ def finalize_video_processing(frames_processed, total_processing_start_time, out
     if total_processing_time > 0:
         actual_framerate = frames_processed / total_processing_time
         logging.info(f"Rewriting webcam video based on the average framerate {actual_framerate:.2f}.")
+        logging.info(f"path {output_video_path}.")
         resample_video(output_video_path, fps, actual_framerate)
         fps = actual_framerate
 
@@ -326,25 +326,27 @@ def draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_
     for person_id, (X,Y,angles, X_flipped) in enumerate(zip(valid_X, valid_Y, valid_angles, valid_X_flipped)):
         c = next(color_cycle)
         if not np.isnan(X).all():
-            # person label
+            # Person label
             if 'list' in display_angle_values_on:
-                person_label_position = (int(10 + fontSize*150/0.3*person_id), int(fontSize*50))
-                cv2.putText(img, f'person {person_id}', person_label_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (255,255,255), thickness+1, cv2.LINE_AA)
-                cv2.putText(img, f'person {person_id}', person_label_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, c, thickness, cv2.LINE_AA)
-            
+                person_label_position = (int(10 + fontSize * 150 / 0.3 * person_id), int(fontSize * 50))
+                cv2.putText(img, f'Person {person_id}', person_label_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize + 0.2, (255, 255, 255), thickness + 1, cv2.LINE_AA)
+                cv2.putText(img, f'Person {person_id}', person_label_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize + 0.2, c, thickness, cv2.LINE_AA)
+
             # angle lines, names and values
             ang_label_line = 1
             for k, ang in enumerate(angles):
                 if not np.isnan(ang):
                     ang_name = angle_names[k]
-                    ang_params = angle_dict.get(ang_name)
+                    ang, ang_params, angle_coords = compute_angle(ang_name, X_flipped, Y, keypoints_ids, keypoints_names)
+
                     if ang_params is not None:
-                        ang_coords = np.array([[X[keypoints_ids[keypoints_names.index(kpt)]], Y[keypoints_ids[keypoints_names.index(kpt)]]] for kpt in ang_params[0] if kpt in keypoints_names])
+                        ang_coords = np.array(angle_coords)
+
                         X_flipped_coords = [X_flipped[keypoints_ids[keypoints_names.index(kpt)]] for kpt in ang_params[0] if kpt in keypoints_names]
                         flip = -1 if any(x_flipped < 0 for x_flipped in X_flipped_coords) else 1
                         flip = 1 if ang_name in ['pelvis', 'trunk', 'shoulders'] else flip
-                        right_angle = True if ang_params[2]==90 else False
-                        
+                        right_angle = True if ang_params[2] == 90 else False
+
                         # Draw angle
                         if len(ang_coords) == 2: # segment angle
                             app_point, vec = draw_segment_angle(img, ang_coords, flip)
