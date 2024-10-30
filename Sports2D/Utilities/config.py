@@ -231,7 +231,7 @@ def setup_capture_directories(file_path, output_dir, save_images):
     # Create output directories based on the file path or webcam
     if str(file_path).startswith("webcam"):
         current_date = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_dir_name = f'webcam_{current_date}'
+        output_dir_name = f'{file_path}_{current_date}'
     else:
         file_stem = os.path.splitext(os.path.basename(file_path))[0]
         output_dir_name = f'{file_stem}'
