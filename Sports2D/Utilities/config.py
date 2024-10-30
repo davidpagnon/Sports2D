@@ -215,7 +215,7 @@ def setup_video(video_file_path, save_video, vid_output_path):
     return cap, out_vid, cam_width, cam_height, fps
 
 
-def setup_capture_directories(file_path, output_dir):
+def setup_capture_directories(file_path, output_dir, save_images):
     """
     Sets up directories for output and prepares for video capture.
 
@@ -232,10 +232,10 @@ def setup_capture_directories(file_path, output_dir):
         output_dir_name = f'webcam_{current_date}'
     else:
         file_stem = os.path.splitext(os.path.basename(file_path))[0]
-        output_dir_name = f'{file_stem}_Sports2D'
+        output_dir_name = f'{file_stem}'
 
     # Define the full path for the output directory
-    output_dir_full = os.path.abspath(os.path.join(output_dir, output_dir_name))
+    output_dir_full = os.path.abspath(os.path.join(output_dir, "pose"))
     
     # Create output directories if they do not exist
     if not os.path.isdir(output_dir_full):
@@ -244,7 +244,7 @@ def setup_capture_directories(file_path, output_dir):
     # Prepare directories for images and JSON outputs
     img_output_dir = os.path.join(output_dir_full, f'{output_dir_name}_img')
     json_output_dir = os.path.join(output_dir_full, f'{output_dir_name}_json')
-    if not os.path.isdir(img_output_dir):
+    if not os.path.isdir(img_output_dir) and save_images:
         os.makedirs(img_output_dir)
     if not os.path.isdir(json_output_dir):
         os.makedirs(json_output_dir)

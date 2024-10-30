@@ -179,7 +179,7 @@ def process_fun(config_dict, video_file_path, pose_tracker, input_frame_range, o
     logging.info(f'Multi-person is {"" if multi_person else "not "}selected.')
     logging.info(f"Parameters: {f'{tracking_mode=}, ' if multi_person else ''}{keypoint_likelihood_threshold=}, {average_likelihood_threshold=}, {keypoint_number_threshold=}")
 
-    output_dir, output_dir_name, img_output_dir, json_output_dir, output_video_path = setup_capture_directories(video_file_path, output_dir)
+    output_dir, output_dir_name, img_output_dir, json_output_dir, output_video_path = setup_capture_directories(video_file_path, output_dir, save_images)
 
     # Set up video capture
     cap, frame_iterator, out_vid, cam_width, cam_height, fps = setup_video_capture(video_file_path, webcam_id, save_video, output_video_path, input_size, input_frame_range)
@@ -247,7 +247,6 @@ def process_fun(config_dict, video_file_path, pose_tracker, input_frame_range, o
         if save_video:
             out_vid.write(img_show)
         if save_images:
-            os.makedirs(img_output_dir, exist_ok=True)
             cv2.imwrite(
                 os.path.join(img_output_dir, f'{output_dir_name}_{frame_idx:06d}.jpg'),
                 img_show
