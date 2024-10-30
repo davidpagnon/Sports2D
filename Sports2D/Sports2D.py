@@ -320,6 +320,8 @@ def process(config='Config_demo.toml'):
         config_dict = config
     else:
         config_dict = toml.load(config)
+        
+    video_input = config_dict['project'].get('video_input')
 
     mode = config_dict.get('pose').get('mode')
     det_frequency = config_dict.get('pose').get('det_frequency')
@@ -337,7 +339,7 @@ def process(config='Config_demo.toml'):
         currentDateAndTime = datetime.now()
 
         range_str = ''
-        if video_path != "webcam":
+        if video_input != "webcam":
             range_str = f' from frame {frame_range[0]} to frame {frame_range[1]}'
 
         logging.info("\n\n---------------------------------------------------------------------")
@@ -350,7 +352,7 @@ def process(config='Config_demo.toml'):
 
         frame_idx, fps, output_dir_name, all_frames_X, all_frames_Y, all_frames_angles = process_fun(config_dict, video_path, pose_tracker, frame_range, output_dir)
 
-        post_processing(config_dict, video_path, frame_idx, fps, frame_range, output_dir, output_dir_name, all_frames_X, all_frames_Y, all_frames_angles)
+        post_processing(config_dict, frame_idx, fps, frame_range, output_dir, output_dir_name, all_frames_X, all_frames_Y, all_frames_angles)
 
         elapsed_time = (datetime.now() - currentDateAndTime).total_seconds()        
         logging.info(f'\nProcessing {video_path} took {elapsed_time:.2f} s.')
@@ -363,7 +365,6 @@ def base_params(config_dict):
     Retrieve sequence name and frames to be analyzed.
     '''
 
-
     # Resolve video_dir and output_dir
     video_dir = Path(config_dict['project'].get('video_dir', '')).resolve()
     if not video_dir.exists():
@@ -372,11 +373,13 @@ def base_params(config_dict):
     if not output_dir.exists():
         output_dir = Path.cwd()
 
+    cam_id =  config_dict.get('project').get('webcam_id')
+
     # Get video_input
     video_input = config_dict['project'].get('video_input')
 
     if video_input == "webcam" or video_input == ["webcam"]:
-        video_paths = ['webcam']
+        video_paths = [f'webcam{cam_id}']
         frame_ranges = [None]
     else:
         # Ensure video_input is a list

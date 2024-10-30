@@ -131,8 +131,8 @@ def process_fun(config_dict, video_file_path, pose_tracker, input_frame_range, o
     '''
 
     # Base parameters
-    webcam_id =  config_dict.get('project').get('webcam_id')
     input_size = config_dict.get('project').get('input_size')
+    video_input = config_dict['project'].get('video_input')
     
     save_video = True if 'to_video' in config_dict['project']['save_video'] else False
     save_images = True if 'to_images' in config_dict['project']['save_video'] else False
@@ -182,7 +182,7 @@ def process_fun(config_dict, video_file_path, pose_tracker, input_frame_range, o
     output_dir, output_dir_name, img_output_dir, json_output_dir, output_video_path = setup_capture_directories(video_file_path, output_dir, save_images)
 
     # Set up video capture
-    cap, frame_iterator, out_vid, cam_width, cam_height, fps = setup_video_capture(video_file_path, webcam_id, save_video, output_video_path, input_size, input_frame_range)
+    cap, frame_iterator, out_vid, cam_width, cam_height, fps = setup_video_capture(video_file_path, save_video, output_video_path, input_size, input_frame_range)
 
     # Call to display real-time results if needed
     if show_realtime_results:
@@ -191,7 +191,7 @@ def process_fun(config_dict, video_file_path, pose_tracker, input_frame_range, o
     # logging.info(f"{'Video, ' if save_video else ''}{'Images, ' if save_images else ''}{'Pose, ' if save_pose else ''}{'Angles ' if save_angles else ''}{'and ' if save_angles or save_images or save_pose or save_video else ''}Logs will be saved in {result_dir}.")
     all_frames_X, all_frames_Y, all_frames_angles = [], [], []
 
-    if video_file_path == 'webcam' and save_video:
+    if video_input == "webcam" and save_video:
         total_processing_start_time = datetime.now()
 
     frames_processed = 0
@@ -260,7 +260,7 @@ def process_fun(config_dict, video_file_path, pose_tracker, input_frame_range, o
     
     if save_video:
         out_vid.release()
-        if video_file_path == 'webcam' and frames_processed > 0:
+        if video_input == "webcam"  and frames_processed > 0:
             fps = finalize_video_processing(frames_processed, total_processing_start_time, output_video_path, fps)
         logging.info(f"--> Output video saved to {output_video_path}.")
     if save_images:

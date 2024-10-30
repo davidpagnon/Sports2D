@@ -17,9 +17,11 @@
 
 import os
 import cv2
+import sys
 import logging
-from datetime import datetime
 
+from datetime import datetime
+from tqdm import tqdm
 from rtmlib import PoseTracker, BodyWithFeet, Wholebody, Body
 
 
@@ -227,7 +229,7 @@ def setup_capture_directories(file_path, output_dir, save_images):
         dict: A dictionary containing paths for image output, JSON output, and output video.
     """
     # Create output directories based on the file path or webcam
-    if file_path == "webcam":
+    if str(file_path).startswith("webcam"):
         current_date = datetime.now().strftime("%Y%m%d_%H%M%S")
         output_dir_name = f'webcam_{current_date}'
     else:
@@ -255,18 +257,20 @@ def setup_capture_directories(file_path, output_dir, save_images):
     return output_dir, output_dir_name, img_output_dir, json_output_dir, output_video_path
 
 
-def setup_video_capture(video_file_path, webcam_id=None, save_video=False, output_video_path=None, input_size=None, input_frame_range=[]):
+def setup_video_capture(video_file_path, save_video=False, output_video_path=None, input_size=None, input_frame_range=[]):
     """
     Sets up video capture from a webcam or a video file. Optionally saves the output.
     """
-    import cv2, sys, logging
-    from tqdm import tqdm
 
-    if video_file_path == "webcam":
+    if str(video_file_path).startswith("webcam"):
+        try:
+            webcam_id = int(str(video_file_path).replace('webcam', ''))
+        except ValueError:
+            raise ValueError(f"Invalid webcam ID in {video_file_path}. Expected format 'webcamX' where X is an integer.")
         cap, out_vid, cam_width, cam_height, fps = setup_webcam(webcam_id, save_video, output_video_path, input_size)
         frame_range = [0, sys.maxsize]
         frame_iterator = range(*frame_range)
-        logging.warning('Webcam input: the framerate may vary. If results are filtered, Sports2D will use the average framerate as input.')
+        logging.warning('Webcam input: the framerate may vary. If results are filtered, the average framerate will be used as input.')
     else:
         cap, out_vid, cam_width, cam_height, fps = setup_video(video_file_path, save_video, output_video_path)
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))

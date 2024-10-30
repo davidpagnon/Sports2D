@@ -66,9 +66,10 @@ from Sports2D.Utilities.visualisation import pose_plots, angle_plots
 
 
 # FUNCTIONS
-def post_processing(config_dict, video_file_path, frame_idx, fps, frame_range, output_dir, output_dir_name, all_frames_X, all_frames_Y, all_frames_angles):
+def post_processing(config_dict, frame_idx, fps, frame_range, output_dir, output_dir_name, all_frames_X, all_frames_Y, all_frames_angles):
     save_pose = config_dict.get('process').get('save_pose')
     save_angles = config_dict.get('process').get('save_angles')
+    video_input = config_dict['project'].get('video_input')
 
     # Post-processing settings
     interpolate = config_dict.get('post-processing').get('interpolate')    
@@ -100,7 +101,7 @@ def post_processing(config_dict, video_file_path, frame_idx, fps, frame_range, o
                            gaussian_filter_kernel, loess_filter_kernel, median_filter_kernel]
 
     # Post-processing: Interpolate, filter, and save pose and angles
-    frame_range = [0,frame_idx] if video_file_path == 'webcam' else frame_range
+    frame_range = [0,frame_idx] if video_input == 'webcam' else frame_range
     all_frames_time = pd.Series(np.linspace(frame_range[0]/fps, frame_range[1]/fps, frame_idx), name='time')
 
     if save_pose:
@@ -148,7 +149,7 @@ def post_processing(config_dict, video_file_path, frame_idx, fps, frame_range, o
                 else:
                     filter_type = filter_options[1]
                     if filter_type == 'butterworth':
-                        if video_file_path == 'webcam':
+                        if video_input == 'webcam':
                             cutoff = filter_options[3]
                             if cutoff / (fps / 2) >= 1:
                                 cutoff_old = cutoff
@@ -215,7 +216,7 @@ def post_processing(config_dict, video_file_path, frame_idx, fps, frame_range, o
                 else:
                     filter_type = filter_options[1]
                     if filter_type == 'butterworth':
-                        if video_file_path == 'webcam':
+                        if video_input == 'webcam':
                             cutoff = filter_options[3]
                             if cutoff / (fps / 2) >= 1:
                                 cutoff_old = cutoff
