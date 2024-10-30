@@ -55,8 +55,6 @@ def display_realtime_results(file_path):
     """
     Sets up a window for real-time video results display.
     """
-    import cv2
-
     cv2.namedWindow(f'Pose Estimation {os.path.basename(file_path)}', cv2.WINDOW_NORMAL + cv2.WINDOW_KEEPRATIO)
     cv2.setWindowProperty(f'Pose Estimation {os.path.basename(file_path)}', cv2.WND_PROP_ASPECT_RATIO, cv2.WINDOW_FULLSCREEN)
 

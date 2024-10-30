@@ -112,13 +112,12 @@
 import argparse
 import toml
 import logging, logging.handlers
-import cv2
 
 from datetime import datetime
 from pathlib import Path
 from Sports2D import Sports2D
 
-from Sports2D.Utilities.config import setup_logging, setup_pose_tracker
+from Sports2D.Utilities.config import setup_logging, setup_pose_tracker, process_video_frames
 from Sports2D.Utilities.utilities import get_leaf_keys, set_nested_value, str2bool
 from Sports2D.poseEstimation import process_fun
 from Sports2D.postProcessing import post_processing
@@ -332,6 +331,8 @@ def process(config='Config_demo.toml'):
 
     setup_logging(output_dir)
 
+    pose_tracker = setup_pose_tracker(det_frequency, mode)
+
     for video_path, frame_range in zip(video_paths, frame_ranges):
         currentDateAndTime = datetime.now()
 
@@ -343,8 +344,6 @@ def process(config='Config_demo.toml'):
         logging.info(f"Processing {video_path} {range_str}")
         logging.info(f"On {currentDateAndTime.strftime('%A %d. %B %Y, %H:%M:%S')}")
         logging.info("---------------------------------------------------------------------")
-        
-        pose_tracker = setup_pose_tracker(det_frequency, mode)
 
         logging.info(f'Pose tracking set up for BodyWithFeet model in {mode} mode.')
         logging.info(f'Persons are detected every {det_frequency} frames and tracked inbetween.')
@@ -378,8 +377,6 @@ def base_params(config_dict):
 
     if video_input == "webcam" or video_input == ["webcam"]:
         video_paths = ['webcam']
-        frame_rates = [None]
-        total_frames_list = [None]
         frame_ranges = [None]
     else:
         # Ensure video_input is a list
@@ -388,53 +385,7 @@ def base_params(config_dict):
         video_paths = [video_dir / Path(v) for v in video_input]
 
         # Verify video files exist and get frame rates and total frames
-        frame_rates = []
-        total_frames_list = []
-        for video_path in video_paths:
-            if not video_path.exists():
-                raise FileNotFoundError(f'Error: Could not find video file {video_path}.')
-            video = cv2.VideoCapture(str(video_path))
-            if not video.isOpened():
-                raise IOError(f'Error: Could not open {video_path}. Check that the file is a valid video.')
-            frame_rate = video.get(cv2.CAP_PROP_FPS)
-            if not frame_rate or frame_rate <= 0:
-                frame_rate = 30
-                logging.warning(f'Could not retrieve frame rate from {video_path}. Defaulting to 30fps.')
-            frame_rates.append(frame_rate)
-            total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-            total_frames_list.append(total_frames)
-            video.release()
-
-        # Helper function to process ranges
-        def process_ranges(range_name):
-            ranges = config_dict['project'].get(range_name)
-            num_videos = len(video_paths)
-            if ranges is None or ranges == []:
-                return [None] * num_videos
-            elif isinstance(ranges[0], (int, float)) and len(ranges) == 2:
-                return [ranges] * num_videos
-            elif all(isinstance(r, list) and len(r) == 2 for r in ranges):
-                if len(ranges) != num_videos:
-                    raise ValueError(f'Length of {range_name} does not match number of videos.')
-                return ranges
-            else:
-                raise ValueError(f'{range_name} must be empty, [start, end], or a list of [start, end] for each video.')
-
-        # Process time_ranges and frame_ranges
-        time_ranges = process_ranges('time_range')
-        frame_ranges = process_ranges('frame_range')
-
-        # Combine time_ranges and frame_ranges into final frame_ranges
-        for i, (time_range, frame_range, frame_rate, total_frames) in enumerate(zip(time_ranges, frame_ranges, frame_rates, total_frames_list)):
-            if time_range and frame_range:
-                raise ValueError(f"Error: Both time_range and frame_range are specified for video {video_paths[i]}. Only one should be provided.")
-            if time_range:
-                frame_ranges[i] = [int(time_range[0] * frame_rate), int(time_range[1] * frame_rate)]
-            elif frame_range:
-                frame_ranges[i] = [int(frame_range[0]), int(frame_range[1])]
-            else:
-                # Assign full frame range
-                frame_ranges[i] = [0, total_frames]
+        frame_ranges = process_video_frames(config_dict, video_paths)
 
     return video_paths, frame_ranges, output_dir
 

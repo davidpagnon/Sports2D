@@ -279,3 +279,58 @@ def setup_video_capture(video_file_path, webcam_id=None, save_video=False, outpu
         cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
     
     return cap, frame_iterator, out_vid, cam_width, cam_height, fps
+
+
+def process_video_frames(config_dict, video_paths):
+    frame_rates = []
+    total_frames_list = []
+
+    # Extraction des propriétés vidéo
+    for video_path in video_paths:
+        if not video_path.exists():
+            raise FileNotFoundError(f'Error: Could not find video file {video_path}.')
+        video = cv2.VideoCapture(str(video_path))
+        if not video.isOpened():
+            raise IOError(f'Error: Could not open {video_path}. Check that the file is a valid video.')
+        
+        frame_rate = video.get(cv2.CAP_PROP_FPS)
+        if not frame_rate or frame_rate <= 0:
+            frame_rate = 30
+            logging.warning(f'Could not retrieve frame rate from {video_path}. Defaulting to 30fps.')
+        frame_rates.append(frame_rate)
+
+        total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+        total_frames_list.append(total_frames)
+        video.release()
+
+    # Traitement des plages spécifiées
+    def process_ranges(range_name):
+        ranges = config_dict['project'].get(range_name)
+        num_videos = len(video_paths)
+        if ranges is None or ranges == []:
+            return [None] * num_videos
+        elif isinstance(ranges[0], (int, float)) and len(ranges) == 2:
+            return [ranges] * num_videos
+        elif all(isinstance(r, list) and len(r) == 2 for r in ranges):
+            if len(ranges) != num_videos:
+                raise ValueError(f'Length of {range_name} does not match number of videos.')
+            return ranges
+        else:
+            raise ValueError(f'{range_name} must be empty, [start, end], or a list of [start, end] for each video.')
+
+    time_ranges = process_ranges('time_range')
+    frame_ranges = process_ranges('frame_range')
+
+    # Calcul final des plages de frames
+    for i, (time_range, frame_range, frame_rate, total_frames) in enumerate(zip(time_ranges, frame_ranges, frame_rates, total_frames_list)):
+        if time_range and frame_range:
+            raise ValueError(f"Error: Both time_range and frame_range are specified for video {video_paths[i]}. Only one should be provided.")
+        if time_range:
+            frame_ranges[i] = [int(time_range[0] * frame_rate), int(time_range[1] * frame_rate)]
+        elif frame_range:
+            frame_ranges[i] = [int(frame_range[0]), int(frame_range[1])]
+        else:
+            # Assign full frame range
+            frame_ranges[i] = [0, total_frames]
+
+    return frame_ranges
