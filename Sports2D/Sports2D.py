@@ -333,7 +333,11 @@ def process(config='Config_demo.toml'):
 
     setup_logging(output_dir)
 
-    pose_tracker = setup_pose_tracker(det_frequency, mode)
+    pose_tracker = setup_pose_tracker(
+        config_dict['pose']['det_frequency'],
+        config_dict['pose']['mode'],
+        config_dict['pose']['pose_model']
+    )
 
     for video_path, frame_range in zip(video_paths, frame_ranges):
         currentDateAndTime = datetime.now()

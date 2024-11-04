@@ -19,6 +19,8 @@ import os
 import cv2
 import sys
 import logging
+import threading
+import time
 
 from datetime import datetime
 from tqdm import tqdm
@@ -35,6 +37,62 @@ __maintainer__ = "David Pagnon"
 __email__ = "contact@david-pagnon.com"
 __status__ = "Development"
 
+
+## CLASSES
+class WebcamStream:
+    def __init__(self, src=0, input_size=(640, 480)):
+        self.src = src
+        self.input_size = input_size
+        self.cap = None
+        self.cam_width = None
+        self.cam_height = None
+        self.fps = None
+        self.open_camera()
+        self.stopped = False
+        self.lock = threading.Lock()
+        threading.Thread(target=self.update, args=(), daemon=True).start()
+
+    def open_camera(self):
+        self.cap = cv2.VideoCapture(self.src)
+        if not self.cap.isOpened():
+            logging.warning(f"Could not open webcam #{self.src}. Retrying...")
+            self.cap = None
+        else:
+            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.input_size[0])
+            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.input_size[1])
+            self.cam_width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            self.cam_height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            self.fps = self.cap.get(cv2.CAP_PROP_FPS) or 30
+            logging.info(f"Opened webcam #{self.src} with resolution {self.cam_width}x{self.cam_height} at {self.fps} FPS.")
+
+    def update(self):
+        while not self.stopped:
+            if self.cap is None or not self.cap.isOpened():
+                # Try to reopen the webcam
+                self.open_camera()
+                time.sleep(0.5)
+                continue
+
+            ret, frame = self.cap.read()
+            if not ret or frame is None:
+                # Reading problem, release and retry
+                self.cap.release()
+                self.cap = None
+                time.sleep(0.5)
+                continue
+
+            with self.lock:
+                self.frame = frame
+
+    def read(self):
+        with self.lock:
+            frame = self.frame.copy() if hasattr(self, 'frame') else None
+        return frame
+
+    def stop(self):
+        self.stopped = True
+        if self.cap and self.cap.isOpened():
+            self.cap.release()
 
 ## FUNCTIONS
 def setup_logging(dir):
@@ -96,13 +154,13 @@ def setup_pose_tracker(det_frequency, mode, pose_model = "HALPE_26"):
         raise ValueError(f"Invalid det_frequency: {det_frequency}. Must be an integer greater or equal to 1.")
 
     # Select the appropriate model based on the model_type
-    if pose_model.upper() == 'HALPE_26':
+    if pose_model.upper()  in ('HALPE_26', 'BODY_WITH_FEET'):
         ModelClass = BodyWithFeet
         logging.info(f"Using HALPE_26 model (body and feet) for pose estimation.")
-    elif pose_model.upper() == 'COCO_133':
+    elif pose_model.upper()  in ('COCO_133', 'WHOLE_BODY'):
         ModelClass = Wholebody
         logging.info(f"Using COCO_133 model (body, feet, hands, and face) for pose estimation.")
-    elif pose_model.upper() == 'COCO_17':
+    elif pose_model.upper()  in ('COCO_17', 'BODY'):
         ModelClass = Body # 26 keypoints(halpe26)
         logging.info(f"Using COCO_17 model (body) for pose estimation.")
     else:
@@ -138,22 +196,15 @@ def setup_webcam(webcam_id, save_video, vid_output_path, input_size):
     - fps: int. The frame rate of the webcam
     '''
 
-    #, cv2.CAP_DSHOW launches faster but only works for windows and esc key does not work
-    cap = cv2.VideoCapture(webcam_id)
-    if not cap.isOpened():
-        raise ValueError(f"Error: Could not open webcam #{webcam_id}. Make sure that your webcam is available and has the right 'webcam_id' (check in your Config.toml file).")
+    cap = WebcamStream(webcam_id, input_size)
 
-    # set width and height to closest available for the webcam
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, input_size[0])
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, input_size[1])
-    cam_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    cam_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    if fps == 0: fps = 30
-    
+    cam_width = cap.cam_width
+    cam_height = cap.cam_height
+    fps = cap.fps
+
     if cam_width != input_size[0] or cam_height != input_size[1]:
         logging.warning(f"Warning: Your webcam does not support {input_size[0]}x{input_size[1]} resolution. Resolution set to the closest supported one: {cam_width}x{cam_height}.")
-    
+
     out_vid = None
     if save_video:
         # fourcc MJPG produces very large files but is faster. If it is too slow, consider using it and then converting the video to h264

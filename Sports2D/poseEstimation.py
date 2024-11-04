@@ -148,7 +148,7 @@ def process_fun(config_dict, video_file_path, pose_tracker, input_frame_range, o
     save_angles = config_dict.get('process').get('save_angles')
 
     # Pose_advanced settings
-    pose_model = config_dict.get('pose').get('pose_model')
+    pose_model = config_dict.get('pose').get('pose_model').upper()
     tracking_mode = config_dict.get('pose').get('tracking_mode')
 
     keypoint_likelihood_threshold = config_dict.get('pose').get('keypoint_likelihood_threshold')

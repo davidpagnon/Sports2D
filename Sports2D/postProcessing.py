@@ -77,7 +77,7 @@ def post_processing(config_dict, frame_idx, fps, frame_range, output_dir, output
     fill_large_gaps_with = config_dict.get('post-processing').get('fill_large_gaps_with')
 
     # Retrieve keypoint names from model
-    pose_model = config_dict.get('pose').get('pose_model')
+    pose_model = config_dict.get('pose').get('pose_model').upper()
     model = eval(pose_model)
     keypoints_ids = [node.id for _, _, node in RenderTree(model) if node.id!=None]
     keypoints_names = [node.name for _, _, node in RenderTree(model) if node.id!=None]

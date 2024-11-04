@@ -48,7 +48,7 @@ __status__ = "Development"
 '''Body_With_Feet from HALPE_26 (full-body without hands, for RTMPose, AlphaPose, MMPose, etc.)
 https://github.com/MVIG-SJTU/AlphaPose/blob/master/docs/MODEL_ZOO.md
 https://github.com/open-mmlab/mmpose/tree/main/projects/rtmpose'''
-Body_With_Feet = HALPE_26 = Node("Hip", id=19, children=[
+BODY_WITH_FEET = HALPE_26 = Node("Hip", id=19, children=[
     Node("RHip", id=12, children=[
         Node("RKnee", id=14, children=[
             Node("RAnkle", id=16, children=[
@@ -212,7 +212,7 @@ COCO = Node("CHip", id=None, children=[
 
 '''Body from COCO_17 (full-body without hands and feet, from OpenPose, AlphaPose, OpenPifPaf, YOLO-pose, MMPose, etc.)
 https://github.com/open-mmlab/mmpose/tree/main/projects/rtmpose'''
-Body = COCO_17 = Node("CHip", id=None, children=[
+BODY = COCO_17 = Node("CHip", id=None, children=[
     Node("RHip", id=12, children=[
         Node("RKnee", id=14, children=[
             Node("RAnkle", id=16),
@@ -242,7 +242,7 @@ Body = COCO_17 = Node("CHip", id=None, children=[
 '''Whole_Body from COCO_133 (full-body with hands and face, from AlphaPose, MMPose, etc.)
 https://github.com/MVIG-SJTU/AlphaPose/blob/master/docs/MODEL_ZOO.md
 https://github.com/open-mmlab/mmpose/tree/main/projects/rtmpose'''
-Whole_Body = COCO_133 = Node("CHip", id=None, children=[
+WHOLE_BODY = COCO_133 = Node("CHip", id=None, children=[
     Node("RHip", id=12, children=[
         Node("RKnee", id=14, children=[
             Node("RAnkle", id=16, children=[
