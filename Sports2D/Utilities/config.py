@@ -47,6 +47,7 @@ class WebcamStream:
         self.cam_width = None
         self.cam_height = None
         self.fps = None
+        self.frame = None
         self.open_camera()
         self.stopped = False
         self.lock = threading.Lock()
@@ -71,6 +72,8 @@ class WebcamStream:
                 # Try to reopen the webcam
                 self.open_camera()
                 time.sleep(0.5)
+                with self.lock:
+                    self.frame = None  # Set frame to None when the webcam is not opened
                 continue
 
             ret, frame = self.cap.read()
@@ -79,14 +82,16 @@ class WebcamStream:
                 self.cap.release()
                 self.cap = None
                 time.sleep(0.5)
+                with self.lock:
+                    self.frame = None  # Set frame to None on read failure
                 continue
 
             with self.lock:
                 self.frame = frame
-
+                
     def read(self):
         with self.lock:
-            frame = self.frame.copy() if hasattr(self, 'frame') else None
+            frame = self.frame.copy() if self.frame is not None else None
         return frame
 
     def stop(self):
