@@ -257,7 +257,7 @@ def setup_capture_directories(file_path, output_dir, save_images):
     return output_dir, output_dir_name, img_output_dir, json_output_dir, output_video_path
 
 
-def setup_video_capture(video_file_path, save_video=False, output_video_path=None, input_size=None, input_frame_range=[]):
+def setup_video_capture(video_file_path, save_video=False, output_video_path=None, input_size=None, input_frame_range=[], position=0):
     """
     Sets up video capture from a webcam or a video file. Optionally saves the output.
     """
@@ -278,7 +278,7 @@ def setup_video_capture(video_file_path, save_video=False, output_video_path=Non
             frame_range = [0, total_frames]
         else:
             frame_range = input_frame_range
-        frame_iterator = tqdm(range(*frame_range), desc=f'Processing {os.path.basename(video_file_path)}') # use a progress bar
+        frame_iterator = tqdm(range(*frame_range), desc=f'Processing {os.path.basename(video_file_path)}', position=position)
         start_frame = input_frame_range[0]
         cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
     
