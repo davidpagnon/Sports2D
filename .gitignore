@@ -4,5 +4,5 @@
 *.egg-info/
 dist/
 logs.txt
-Sports2D/Demo/demo_*
-Sports2D/Demo/pose/*
+**/demo_*
+**/pose/*
