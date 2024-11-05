@@ -38,67 +38,6 @@ __email__ = "contact@david-pagnon.com"
 __status__ = "Development"
 
 
-## CLASSES
-class WebcamStream:
-    def __init__(self, src=0, input_size=(640, 480)):
-        self.src = src
-        self.input_size = input_size
-        self.cap = None
-        self.cam_width = None
-        self.cam_height = None
-        self.fps = None
-        self.frame = None
-        self.open_camera()
-        self.stopped = False
-        self.lock = threading.Lock()
-        threading.Thread(target=self.update, args=(), daemon=True).start()
-
-    def open_camera(self):
-        self.cap = cv2.VideoCapture(self.src)
-        if not self.cap.isOpened():
-            logging.warning(f"Could not open webcam #{self.src}. Retrying...")
-            self.cap = None
-        else:
-            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.input_size[0])
-            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.input_size[1])
-            self.cam_width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-            self.cam_height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-            self.fps = self.cap.get(cv2.CAP_PROP_FPS) or 30
-            logging.info(f"Opened webcam #{self.src} with resolution {self.cam_width}x{self.cam_height} at {self.fps} FPS.")
-
-    def update(self):
-        while not self.stopped:
-            if self.cap is None or not self.cap.isOpened():
-                # Try to reopen the webcam
-                self.open_camera()
-                time.sleep(0.5)
-                with self.lock:
-                    self.frame = None  # Set frame to None when the webcam is not opened
-                continue
-
-            ret, frame = self.cap.read()
-            if not ret or frame is None:
-                # Reading problem, release and retry
-                self.cap.release()
-                self.cap = None
-                time.sleep(0.5)
-                with self.lock:
-                    self.frame = None  # Set frame to None on read failure
-                continue
-
-            with self.lock:
-                self.frame = frame
-                
-    def read(self):
-        with self.lock:
-            frame = self.frame.copy() if self.frame is not None else None
-        return frame
-
-    def stop(self):
-        self.stopped = True
-        if self.cap and self.cap.isOpened():
-            self.cap.release()
-
 ## FUNCTIONS
 def setup_logging(dir):
     '''
