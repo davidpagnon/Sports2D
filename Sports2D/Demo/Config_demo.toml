@@ -15,19 +15,20 @@
 video_input = 'demo.mp4' # 'webcam' or '<video_path.ext>', or ['video1_path.mp4', 'video2_path.avi>', ...]. Beware that images won't be saved if paths contain non ASCII characters.
 
 # Video parameters
-time_range = [] # [] for the whole video, or [start_time, end_time] (in seconds), or [[start_time1, end_time1], [start_time2, end_time2], ...]
-video_dir = '' # BETWEEN SINGLE QUOTES! # If empty, result dir is current dir
+time_range = []  # Specify as [] for the whole video, or [start_time, end_time] in seconds, # or [[start_time1, end_time1], [start_time2, end_time2], ...] for multiple intervals.
+frame_range = [] # Specify as [] for the whole video, or [start_frame, end_frame], # or [[start_frame1, end_frame1], [start_frame2, end_frame2], ...] for multiple intervals.
+# Note: `time_range` and `frame_range` cannot be specified simultaneously.
+video_dir = '' # BETWEEN SINGLE QUOTES! # If empty, project dir is current dir
 
 # Webcam parameters
 webcam_id = 0 # your webcam id (0 is default)
 input_size = [1280, 720] # [W, H]. Lower resolution will be faster but less precise.
 
+save_video = 'to_video' # 'to_video' or 'to_images', 'none', or ['to_video', 'to_images']
 
 [process]
-multiperson = true # Multiperson involves tracking: will be faster if false
+multi_person = true # Multi-person involves tracking: will be faster if false
 show_realtime_results = true
-save_vid = true
-save_img = true
 save_pose = true
 save_angles = true
 result_dir = '' # BETWEEN SINGLE QUOTES! # If empty, project dir is current dir

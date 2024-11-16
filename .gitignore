@@ -4,3 +4,5 @@
 *.egg-info/
 dist/
 logs.txt
+**/demo_*
+**/pose/*
