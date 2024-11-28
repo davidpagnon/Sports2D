@@ -321,7 +321,7 @@ def compute_angle(ang_name, person_X_flipped, person_Y, angle_dict, keypoints_id
     Compute the angles from the 2D coordinates of the keypoints.
     Takes into account which side the participant is facing.
     Takes into account the offset and scaling of the angle from angle_dict.
-    Requires points2D_to_angles function (see common.py)
+    Requires points_to_angles function (see common.py)
 
     INPUTS:
     - ang_name: str. The name of the angle to compute
@@ -341,7 +341,7 @@ def compute_angle(ang_name, person_X_flipped, person_Y, angle_dict, keypoints_id
             angle_coords = [[np.abs(person_X_flipped[keypoints_ids[keypoints_names.index(kpt)]]), person_Y[keypoints_ids[keypoints_names.index(kpt)]]] for kpt in ang_params[0] if kpt in keypoints_names]
         else:
             angle_coords = [[person_X_flipped[keypoints_ids[keypoints_names.index(kpt)]], person_Y[keypoints_ids[keypoints_names.index(kpt)]]] for kpt in ang_params[0] if kpt in keypoints_names]
-        ang = points2D_to_angles(angle_coords)
+        ang = points_to_angles(angle_coords)
         ang += ang_params[2]
         ang *= ang_params[3]
         if ang_name in ['pelvis', 'shoulders']:

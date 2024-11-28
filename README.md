@@ -73,7 +73,7 @@ If you need 3D research-grade markerless joint kinematics, consider using severa
 -->
 
 - OPTION 1: **Quick install** \
-    Open a terminal. Type `python -V` to make sure python >=3.8 <=3.11 is installed, and then:
+    Open a terminal. Type `python -V` to make sure python >=3.8 <=3.11 is installed. If not, install it [from there](https://www.python.org/downloads/). Run:
     ``` cmd
     pip install sports2d
     ```

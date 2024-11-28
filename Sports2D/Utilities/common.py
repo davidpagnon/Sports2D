@@ -201,37 +201,46 @@ def resample_video(vid_output_path, fps, desired_framerate):
     new_vid_path.rename(vid_output_path)
 
 
-def points2D_to_angles(points_list):
+def points_to_angles(points_list):
     '''
     If len(points_list)==2, computes clockwise angle of ab vector w.r.t. horizontal (e.g. RBigToe, RHeel) 
     If len(points_list)==3, computes clockwise angle from a to c around b (e.g. Neck, Hip, Knee) 
     If len(points_list)==4, computes clockwise angle between vectors ab and cd (e.g. Neck Hip, RKnee RHip)
     
+    Points can be 2D or 3D.
     If parameters are float, returns a float between 0.0 and 360.0
     If parameters are arrays, returns an array of floats between 0.0 and 360.0
+
+    INPUTS:
     '''
 
     if len(points_list) < 2: # if not enough points, return None
         return np.nan
     
-    ax, ay = points_list[0]
-    bx, by = points_list[1]
+    points_array = np.array(points_list)
+    dimensions = points_array.shape[1]
 
-    if len(points_list)==2:
-        ux, uy = ax-bx, ay-by
-        vx, vy = 1,0
-    if len(points_list)==3:
-        cx, cy = points_list[2]
-        ux, uy = ax-bx, ay-by
-        vx, vy = cx-bx, cy-by
+    if len(points_list) == 2:
+        vector_u = points_array[0] - points_array[1]
+        vector_v = np.array([1, 0, 0])  # Could be any horizontal vector
+    elif len(points_list) == 3:
+        vector_u = points_array[0] - points_array[1]
+        vector_v = points_array[2] - points_array[1]
+    elif len(points_list) == 4:
+        vector_u = points_array[1] - points_array[0]
+        vector_v = points_array[3] - points_array[2]
+    else:
+        return np.nan
 
-    if len(points_list)==4:
-        cx, cy = points_list[2]
-        dx, dy = points_list[3]
-        ux, uy = bx-ax, by-ay
-        vx, vy = dx-cx, dy-cy
+    if dimensions == 2: 
+        vector_u = vector_u[:2]
+        vector_v = vector_v[:2]
+        ang = np.arctan2(vector_u[1], vector_u[0]) - np.arctan2(vector_v[1], vector_v[0])
+    else:
+        cross_product = np.cross(vector_u, vector_v)
+        dot_product = np.dot(vector_u, vector_v)
+        ang = np.arctan2(np.linalg.norm(cross_product), dot_product)
 
-    ang = np.arctan2(uy, ux) - np.arctan2(vy, vx)
     ang_deg = np.degrees(ang)
     # ang_deg = np.array(np.degrees(np.unwrap(ang*2)/2))
     
