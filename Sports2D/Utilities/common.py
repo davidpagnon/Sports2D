@@ -218,17 +218,23 @@ def points_to_angles(points_list):
         return np.nan
     
     points_array = np.array(points_list)
-    dimensions = points_array.shape[1]
+    dimensions = points_array.shape[-1]
 
     if len(points_list) == 2:
         vector_u = points_array[0] - points_array[1]
-        vector_v = np.array([1, 0, 0])  # Could be any horizontal vector
+        if len(points_array.shape)==2:
+            vector_v = np.array([1, 0, 0]) # Here vector X, could be any horizontal vector
+        else:
+            vector_v = np.array([[1, 0, 0],] * points_array.shape[1]) 
+
     elif len(points_list) == 3:
         vector_u = points_array[0] - points_array[1]
         vector_v = points_array[2] - points_array[1]
+
     elif len(points_list) == 4:
         vector_u = points_array[1] - points_array[0]
         vector_v = points_array[3] - points_array[2]
+        
     else:
         return np.nan
 
@@ -238,8 +244,8 @@ def points_to_angles(points_list):
         ang = np.arctan2(vector_u[1], vector_u[0]) - np.arctan2(vector_v[1], vector_v[0])
     else:
         cross_product = np.cross(vector_u, vector_v)
-        dot_product = np.dot(vector_u, vector_v)
-        ang = np.arctan2(np.linalg.norm(cross_product), dot_product)
+        dot_product = np.einsum('ij,ij->i', vector_u, vector_v) # np.dot(vector_u, vector_v) # does not work with time series
+        ang = np.arctan2(np.linalg.norm(cross_product, axis=1), dot_product)
 
     ang_deg = np.degrees(ang)
     # ang_deg = np.array(np.degrees(np.unwrap(ang*2)/2))
