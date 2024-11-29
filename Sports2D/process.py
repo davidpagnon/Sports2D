@@ -1037,6 +1037,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     save_vid = config_dict.get('process').get('save_vid')
     save_img = config_dict.get('process').get('save_img')
     save_pose = config_dict.get('process').get('save_pose')
+    calculate_angles = config_dict.get('process').get('calculate_angles')
     save_angles = config_dict.get('process').get('save_angles')
 
     # Pose_advanced settings
@@ -1194,19 +1195,20 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 valid_Y.append(person_Y)
                 valid_scores.append(person_scores)
 
-                # Check whether the person is looking to the left or right
-                if flip_left_right:
-                    person_X_flipped = flip_left_right_direction(person_X, L_R_direction_idx, keypoints_names, keypoints_ids)
-                else:
-                    person_X_flipped = person_X.copy()
-                valid_X_flipped.append(person_X_flipped)
-                    
-                # Compute angles
-                person_angles = []
-                for ang_name in angle_names:
-                    ang = compute_angle(ang_name, person_X_flipped, person_Y, angle_dict, keypoints_ids, keypoints_names)
-                    person_angles.append(ang)
-                valid_angles.append(person_angles)
+                if calculate_angles:
+                    # Check whether the person is looking to the left or right
+                    if flip_left_right:
+                        person_X_flipped = flip_left_right_direction(person_X, L_R_direction_idx, keypoints_names, keypoints_ids)
+                    else:
+                        person_X_flipped = person_X.copy()
+                    valid_X_flipped.append(person_X_flipped)
+                        
+                    # Compute angles
+                    person_angles = []
+                    for ang_name in angle_names:
+                        ang = compute_angle(ang_name, person_X_flipped, person_Y, angle_dict, keypoints_ids, keypoints_names)
+                        person_angles.append(ang)
+                    valid_angles.append(person_angles)
 
             # Draw keypoints and skeleton
             if show_realtime_results or save_vid or save_img:
@@ -1214,7 +1216,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 img = draw_bounding_box(img, valid_X, valid_Y, colors=colors, fontSize=fontSize, thickness=thickness)
                 img = draw_keypts(img, valid_X, valid_Y, scores, cmap_str='RdYlGn')
                 img = draw_skel(img, valid_X, valid_Y, model, colors=colors)
-                img = draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_ids, keypoints_names, angle_names, display_angle_values_on=display_angle_values_on, colors=colors, fontSize=fontSize, thickness=thickness)
+                if calculate_angles:
+                    img = draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_ids, keypoints_names, angle_names, display_angle_values_on=display_angle_values_on, colors=colors, fontSize=fontSize, thickness=thickness)
 
                 if show_realtime_results:
                     cv2.imshow(f'{video_file} Sports2D', img)
@@ -1229,7 +1232,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 all_frames_X.append(np.array(valid_X))
                 all_frames_Y.append(np.array(valid_Y))
                 all_frames_scores.append(np.array(valid_scores))
-            if save_angles:
+            if save_angles and calculate_angles:
                 all_frames_angles.append(np.array(valid_angles))
             if video_file=='webcam' and save_vid:   # To adjust framerate of output video
                 elapsed_time = (datetime.now() - start_time).total_seconds()
@@ -1334,7 +1337,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
 
 
     # Angles post-processing
-    if save_angles:
+    if save_angles and calculate_angles:
         logging.info('\nPost-processing angles:')
         all_frames_angles = make_homogeneous(all_frames_angles)
 

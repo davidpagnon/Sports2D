@@ -29,6 +29,7 @@ show_realtime_results = true
 save_vid = true
 save_img = true
 save_pose = true
+calculate_angles = true
 save_angles = true
 result_dir = '' # BETWEEN SINGLE QUOTES! # If empty, project dir is current dir
 

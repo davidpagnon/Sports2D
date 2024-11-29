@@ -200,26 +200,31 @@ Will be much faster, with no impact on accuracy. However, the installation takes
 <br>
 
 ### What you need is what you get
-- Choose whether you want video, images, trc pose file, and angle mot file. For example:
-  ```cmd
-  sports2d --save_vid false --save_img true --save_trc false --save_mot true
-  ```
-- Choose which angles you needfile. For example:
-  ```cmd
-  sports2d --joint_angles 'right knee' 'left knee' --segment_angles None
-  ```
-- Choose where to display the angles: either as a list on the upper-left of the image, or near the joint/segment, or bothfile. For example:
-  ```cmd
-  sports2d --display_angle_values_on body
-  ```
-- Choose where to save the resultsfile. For example:
-  ```cmd
-  sports2d --result_dir path_to_result_dir
-  ```
 - Choose a fraction of the video to analyze (in seconds)file. For example:
   ```cmd
   sports2d --time_range 0 2.1
   ```
+- Choose where to save the results. For example:
+  ```cmd
+  sports2d --result_dir path_to_result_dir
+  ```
+- Choose whether you want video, images, trc pose file, and angle mot file. For example:
+  ```cmd
+  sports2d --save_vid false --save_img true --save_trc false --save_mot true
+  ```
+- Choose which angles you need. For example:
+  ```cmd
+  sports2d --joint_angles 'right knee' 'left knee' --segment_angles None
+  ```
+- Choose where to display the angles: either as a list on the upper-left of the image, or near the joint/segment, or both. For example:
+  ```cmd
+  sports2d --display_angle_values_on body
+  ```
+- You can also decide not to calculate and display angles at all. For example:
+  ```cmd
+  sports2d --calculate_angles false
+  ```
+
 
 <br>
 

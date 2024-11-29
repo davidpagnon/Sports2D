@@ -68,7 +68,7 @@
     - detects poses within the selected time range
     - tracks people so that their IDs are consistent across frames
     - retrieves the keypoints with high enough confidence, and only keeps the persons with enough high-confidence keypoints
-    - computes joint and segment angles, and flips those on the left/right side them if the respective foot is pointing to the left
+    - computes joint and segment angles (or not), and flips those on the left/right side them if the respective foot is pointing to the left
     - draws bounding boxes around each person with their IDs
     - draws joint and segment angles on the body, and writes the values either near the joint/segment, or on the upper-left of the image with a progress bar
     - draws the skeleton and the keypoints, with a green to red color scale to account for their confidence
@@ -110,7 +110,6 @@
 
 ## INIT
 import argparse
-import sys
 import toml
 from datetime import datetime
 from pathlib import Path
@@ -133,6 +132,7 @@ DEFAULT_CONFIG =   {'project': {'video_input': ['demo.mp4'],
                                 'save_vid': True,
                                 'save_img': True,
                                 'save_pose': True,
+                                'calculate_angles': True,
                                 'save_angles': True,
                                 'result_dir': ''
                                 },
@@ -185,7 +185,7 @@ DEFAULT_CONFIG =   {'project': {'video_input': ['demo.mp4'],
                                         }
                     }
 
-CONFIG_HELP =   {'config': ["c", "Path to a toml configuration file"],
+CONFIG_HELP =   {'config': ["C", "Path to a toml configuration file"],
                 'video_input': ["i", "webcam, or video_path.mp4, or video1_path.avi video2_path.mp4 ... Beware that images won't be saved if paths contain non ASCII characters"],
                 'webcam_id': ["w", "webcam ID. 0 if not specified"],
                 'time_range': ["t", "start_time, end_time. In seconds. Whole video if not specified"],
@@ -199,6 +199,7 @@ CONFIG_HELP =   {'config': ["c", "Path to a toml configuration file"],
                 'save_vid': ["V", "save processed video. true if not specified"],
                 'save_img': ["I", "save processed images. true if not specified"],
                 'save_pose': ["P", "save pose as trc files. true if not specified"],
+                'calculate_angles': ["c", "calculate joint and segment angles. true if not specified"],
                 'save_angles': ["A", "save angles as mot files. true if not specified"],
                 'pose_model': ["p", "Only body_with_feet is available for now. body_with_feet if not specified"],
                 'mode': ["m", "light, balanced, or performance. balanced if not specified"],
