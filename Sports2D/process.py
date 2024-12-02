@@ -205,9 +205,9 @@ def setup_video(video_file_path, save_vid, vid_output_path):
     cam_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
     out_vid = None
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    if fps == 0: fps = 30
     if save_vid:
-        fps = cap.get(cv2.CAP_PROP_FPS)
-        if fps == 0: fps = 30
         # try:
         #     fourcc = cv2.VideoWriter_fourcc(*'avc1') # =h264. better compression and quality but may fail on some systems
         #     out_vid = cv2.VideoWriter(vid_output_path, fourcc, fps, (cam_width, cam_height))
@@ -217,7 +217,7 @@ def setup_video(video_file_path, save_vid, vid_output_path):
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out_vid = cv2.VideoWriter(vid_output_path, fourcc, fps, (cam_width, cam_height))
             # logging.info("Failed to open video writer with 'avc1' (h264). Using 'mp4v' instead.")
-        
+    
     return cap, out_vid, cam_width, cam_height, fps
 
 
@@ -1045,6 +1045,14 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     mode = config_dict.get('pose').get('mode')
     det_frequency = config_dict.get('pose').get('det_frequency')
     tracking_mode = config_dict.get('pose').get('tracking_mode')
+    # Pixel to meters conversion
+    
+    
+
+
+
+    
+
 
     keypoint_likelihood_threshold = config_dict.get('pose').get('keypoint_likelihood_threshold')
     average_likelihood_threshold = config_dict.get('pose').get('average_likelihood_threshold')
@@ -1090,6 +1098,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     img_output_dir = output_dir / f'{output_dir_name}_img'
     vid_output_path = output_dir / f'{output_dir_name}.mp4'
     pose_output_path = output_dir / f'{output_dir_name}_px.trc'
+    pose_output_path_m = output_dir / f'{output_dir_name}_m.trc'
     angles_output_path = output_dir / f'{output_dir_name}_angles.mot'
     output_dir.mkdir(parents=True, exist_ok=True)
     if save_img:
@@ -1271,6 +1280,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         # Process pose for each person
         for i in range(all_frames_X.shape[1]):
             pose_path_person = pose_output_path.parent / (pose_output_path.stem + f'_person{i:02d}.trc')
+            pose_path_person_m = pose_output_path.parent / (pose_output_path_m.stem + f'_person{i:02d}.trc')
             all_frames_X_person = pd.DataFrame(all_frames_X[:,i,:], columns=keypoints_names)
             all_frames_Y_person = pd.DataFrame(all_frames_Y[:,i,:], columns=keypoints_names)
 
@@ -1334,6 +1344,22 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     trc_data_unfiltered = pd.concat([pd.concat([all_frames_X_person.iloc[:,kpt], all_frames_Y_person.iloc[:,kpt], all_frames_Z_person.iloc[:,kpt]], axis=1) for kpt in range(len(all_frames_X_person.columns))], axis=1)
                     trc_data_unfiltered.insert(0, 't', all_frames_time)
                     pose_plots(trc_data_unfiltered, trc_data, i) # i = current person
+            
+        # # Convert px to meters
+        # if to_meters:
+        #     # if not calib_file and not person_height:
+        #     #     logging.error('No calibration file nor person_height provided. Using default person height of 1.70m.')
+        #     # if calib_file:
+        #     #     calib = np.load(calib_file)
+        #     #     all_frames_X_person_m = all_frames_X_person_filt * calib['px_to_m']
+        #     #     all_frames_Y_person_m = all_frames_Y_person_filt * calib['px_to_m']
+        #     #     all_frames_Z_person_m = all_frames_Z_person * calib['px_to_m']
+        #     #     trc_data_m = make_trc_with_XYZ(all_frames_X_person_m, all_frames_Y_person_m, all_frames_Z_person_m, all_frames_time, str(pose_path_person_m))
+        #     #     logging.info(f'Pose in meters saved to {pose_path_person_m.resolve()}.')
+
+        #     # else:
+        #         trc_data[person_id]
+
 
 
     # Angles post-processing

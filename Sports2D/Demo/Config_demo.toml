@@ -12,7 +12,9 @@
 
 
 [project]
-video_input = 'demo.mp4' # 'webcam' or '<video_path.ext>', or ['video1_path.mp4', 'video2_path.avi>', ...]. Beware that images won't be saved if paths contain non ASCII characters.
+video_input = 'demo.mp4' # 'webcam' or '<video_path.ext>', or ['video1_path.mp4', 'video2_path.avi>', ...]
+                        # Time ranges can be different for each video. All other processing parameters will be identical.
+                        # Beware that images won't be saved if paths contain non ASCII characters.
 
 # Video parameters
 time_range = [] # [] for the whole video, or [start_time, end_time] (in seconds), or [[start_time1, end_time1], [start_time2, end_time2], ...]
@@ -44,6 +46,16 @@ mode = 'balanced' # 'lightweight', 'balanced', or 'performance'
 det_frequency = 4 # Run person detection only every N frames, and inbetween track previously detected bounding boxes (keypoint detection is still run on all frames). 
                   # Equal to or greater than 1, can be as high as you want in simple uncrowded cases. Much faster, but might be less accurate. 
 tracking_mode = 'sports2d' # 'rtmlib' or 'sports2d'. 'sports2d' is generally much more accurate and comparable in speed
+
+# Pixel to meters conversion
+to_meters = true
+calib_file = 'calib_demo.toml' # Calibration in the Pose2Sim format. '<calib_path.toml>', or ['<calib_path_vid1.toml>', '<calib_path_vid2.toml>', ...] if different for each video.
+# If you don't have a calibration file, use person_height instead
+person_height = 1.70  # Height of the person in meters. H or [H_vid1, H_vid2, ...] if different for each video.
+calib_on_person_id = 0 # Person to use for calibration. P or [p_vid1, p_vid2, ...] if different for each video. 
+floor_angle = 'auto' # 'auto' or a value in degrees. If 'auto', estimated from the line formed by the toes when they are on the ground (where speed = 0). Or [ang_vid1, ang_vid2, ...] if different for each video. 
+xy_origin = 'auto' # 'auto' or [px_x,px_y]. N.B.: px_y points downwards. If 'auto', direction estimated from the start to the end of the line formed by the toes when they are on the ground. Or [[px_x1,px_y1], [px_x2,px_y2], ...] if different for each video.
+save_calib = true
 
 # Processing parameters
 keypoint_likelihood_threshold = 0.3 # Keypoints whose likelihood is lower will not be taken into account
@@ -83,3 +95,14 @@ filter_type = 'butterworth' # butterworth, gaussian, LOESS, median
    nb_values_used = 5 # = fraction of data used * nb frames
    [post-processing.median]
    kernel_size = 3
+
+
+[inverse-kinematics]
+do_ik = false # Do scaling and inverse kinematics?
+person_orientation = ['front', 'none', 'left'] # Choose among 'auto', 'none', 'front', 'back', 'left', 'right'
+                     # if 'none', means that no IK is performed on the corresponding person; 
+                     # if 'auto', will be either left or right depending on the direction of the motion.
+                     # Example with one person on one video: 'front'
+                     # Or ['front', 'none', 'left'] with 3 persons on one videos or one person on 3 videos
+                     # Or [['front', 'none'], ['left', 'right']] with 2 people on 2 videos
+osim_setup_path = '../OpenSim_setup' # Path to the OpenSim setup folder

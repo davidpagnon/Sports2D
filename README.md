@@ -20,10 +20,11 @@
 
 </br>
 
-> **`Announcement:` \
+> **`Announcement:`\
 > Complete rewriting of the code!** Run `pip install sports2d -U` to get the latest version.
 > - Faster, more accurate
 > - Works from a webcam
+> - Results in meters rather than pixels. **New in v0.5!**
 > - Better visualization output 
 > - More flexible, easier to run
 > - Batch process multiple videos at once
@@ -130,32 +131,58 @@ sports2d --help
 ```
 <br>
 
-- Run on custom video with default parameters:
+#### Run on custom video with default parameters:
   ``` cmd
   sports2d --video_input path_to_video.mp4
   ```
-- Run on multiple videos with default parameters:
-  ``` cmd
-  sports2d --video_input path_to_video1.mp4 path_to_video2.mp4
-  ```
-- Run on webcam with default parameters: 
+<br>
+
+#### Run on webcam with default parameters: 
   ``` cmd
   sports2d --video_input webcam
   ```
-- Run with custom parameters (all non specified are set to default): 
+<br>
+
+#### Get coordinates in meters rather than in pixels: 
+> You either need to provide a calibration file, or simply the size of a person.\
+If needed, you can specify the person to calibrate on, the floor angle, or the origin of the xy axis.\
+If you run several videos at the same time, parameters can be different for each video.
+
+  ``` cmd
+  sports2d --to_meters True --calib_file calib_demo.toml
+  ```
+  ``` cmd
+  sports2d --to_meters True --person_height 1.65
+  ```
+  ``` cmd
+  sports2d --to_meters True --person_height 1.65 --calib_on_person_id 2 --floor_angle 0 --xy_origin 0 940
+  ```
+<br>
+
+#### Run with custom parameters (all non specified are set to default): 
+  ``` cmd
+  sports2d --video_input demo.mp4 other_video.mp4
+  ```
   ``` cmd
   sports2d --show_graphs False --time_range 0 2.1 --result_dir path_to_result_dir
   ```
   ``` cmd
   sports2d --multiperson false --mode lightweight --det_frequency 50
   ```
-- Run with a toml configuration file: 
+<br>
+
+#### Run with a toml configuration file: 
   ``` cmd
-  sports2d --config path_to_config.toml
+  sports2d --config Config_demo.toml
   ```
-- Run within a Python script: 
+<br>
+
+#### Run within a Python script: 
   ``` python
   from Sports2D import Sports2D; Sports2D.process('Config_demo.toml')
+  ```
+  ``` python
+  from Sports2D import Sports2D; Sports2D.process(config_dict)
   ```
 
 <br>
@@ -200,30 +227,91 @@ Will be much faster, with no impact on accuracy. However, the installation takes
 <br>
 
 ### What you need is what you get
-- Choose a fraction of the video to analyze (in seconds)file. For example:
+
+#### Analyze a fraction of your video:
   ```cmd
   sports2d --time_range 0 2.1
   ```
-- Choose where to save the results. For example:
-  ```cmd
-  sports2d --result_dir path_to_result_dir
-  ```
-- Choose whether you want video, images, trc pose file, and angle mot file. For example:
+<br>
+
+#### Customize your output:
+- Choose whether you want video, images, trc pose file, and angle mot file:
   ```cmd
   sports2d --save_vid false --save_img true --save_trc false --save_mot true
   ```
-- Choose which angles you need. For example:
+- Choose which angles you need:
   ```cmd
   sports2d --joint_angles 'right knee' 'left knee' --segment_angles None
   ```
-- Choose where to display the angles: either as a list on the upper-left of the image, or near the joint/segment, or both. For example:
+- Choose where to display the angles: either as a list on the upper-left of the image, or near the joint/segment, or both:
   ```cmd
   sports2d --display_angle_values_on body
   ```
-- You can also decide not to calculate and display angles at all. For example:
+- You can also decide not to calculate and display angles at all:
   ```cmd
   sports2d --calculate_angles false
   ```
+<br>
+
+#### Run on several videos at once:
+You can individualize (or not) the parameters.
+  ```cmd
+  sports2d --video_input demo.mp4 other_video.mp4 --time_range 0 2.1
+  ```
+  ```cmd
+  sports2d --video_input demo.mp4 other_video.mp4 --time_range 0 2.1 0 3.5 0 2.1
+  ```
+  ``` cmd
+  sports2d --video_input demo.mp4 other_video.mp4 --person_height 1.65 1.76 --calib_on_person_id 2 0
+  ```
+
+<br>
+
+
+### Constrain results to a biomechanical model
+
+> Why + image\
+> Add explanation in "how it works" section
+
+#### Installation
+You will need to install OpenSim via conda, which makes installation slightly more complicated.
+
+1. **Install Anaconda or [Miniconda](https://docs.conda.io/en/latest/miniconda.html).**
+
+   Once installed, open an Anaconda prompt and create a virtual environment:
+   ```
+   conda create -n Sports2D python=3.9 -y 
+   conda activate Sports2D
+   ```
+
+2. **Install OpenSim**:\
+Install the OpenSim Python API (if you do not want to install via conda, refer [to this page](https://opensimconfluence.atlassian.net/wiki/spaces/OpenSim/pages/53085346/Scripting+in+Python#ScriptinginPython-SettingupyourPythonscriptingenvironment(ifnotusingconda))):
+   ```
+   conda install -c opensim-org opensim -y
+   ```
+   
+3. **Install Sports2D**:\
+Open a terminal. 
+    ``` cmd
+    pip install sports2d
+    ```
+<br>
+
+#### Usage
+
+Need person doing a 2D motion. If not, trim the video with `--time_range` option.
+
+```cmd
+sports2d --time_range 0 2.7 --ik true --person_orientation front none left
+```
+
+<br>
+
+#### Visualize the results
+- The simplest option is to use OpenSim GUI
+- If you want to see the skeleton overlay on the video, you can install the Pose2Sim Blender plugin.
+
+
 
 
 <br>
@@ -313,10 +401,13 @@ If you want to contribute to Sports2D, please follow [this guide](https://docs.g
 - [x] **Filtering and plotting tools**.
 - [x] Handle sudden **changes of direction**.
 - [x] **Batch processing** for the analysis of multiple videos at once.
+- [ ] **Convert positions to meters** by providing the person height, a calibration file, or 3D points [to click on the image](https://stackoverflow.com/questions/74248955/how-to-display-the-coordinates-of-the-points-clicked-on-the-image-in-google-cola)
+- [ ] Perform **Inverse kinematics and dynamics** with OpenSim (cf. [Pose2Sim](https://github.com/perfanalytics/pose2sim), but in 2D). Update [this model](https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Utilities/2D_gait.osim) (add arms, markers, remove muscles and contact spheres). Add pipeline example.
+- [ ] Run again without pose estimation with the option `--pose_file` for px .trc file.
+- [ ] Option to only analyze one person (more frames and more speed)
 - [ ] **Colab version**: more user-friendly, usable on a smartphone.
 - [ ] **GUI applications** for Windows, Mac, and Linux, as well as for Android and iOS.
-- [ ] **Convert positions to meters** by providing the distance [between two clicked points](https://stackoverflow.com/questions/74248955/how-to-display-the-coordinates-of-the-points-clicked-on-the-image-in-google-cola)
-- [ ] Perform **Inverse kinematics and dynamics** with OpenSim (cf. [Pose2Sim](https://github.com/perfanalytics/pose2sim), but in 2D). Update [this model](https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Utilities/2D_gait.osim) (add arms, markers, remove muscles and contact spheres). Add pipeline example.
+
 </br>
 
 - [ ] **Track other points and angles** with classic tracking methods (cf. [Kinovea](https://www.kinovea.org/features.html)), or by training a model (cf. [DeepLabCut](https://deeplabcut.github.io/DeepLabCut/README.html)).

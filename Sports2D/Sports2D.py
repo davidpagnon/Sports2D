@@ -140,6 +140,13 @@ DEFAULT_CONFIG =   {'project': {'video_input': ['demo.mp4'],
                                 'mode': 'balanced',
                                 'det_frequency': 4,
                                 'tracking_mode': 'sports2d',
+                                'to_meters': True,
+                                'calib_file': '',
+                                'person_height': 1.70,
+                                'calib_on_person_id': 0,
+                                'floor_angle': 'auto',
+                                'xy_origin': 'auto',
+                                'save_calib': True,
                                 'keypoint_likelihood_threshold': 0.3,
                                 'average_likelihood_threshold': 0.5,
                                 'keypoint_number_threshold': 0.3
@@ -182,13 +189,17 @@ DEFAULT_CONFIG =   {'project': {'video_input': ['demo.mp4'],
                                         'gaussian': {'sigma_kernel': 1},
                                         'loess': {'nb_values_used': 5},
                                         'median': {'kernel_size': 3}
-                                        }
+                                        },
+                    'inverse-kinematics':{'do_ik': False,
+                                          'person_orientation': ['front', None, 'left'],
+                                          'osim_setup_path': '../OpenSim_setup'
+                                          }
                     }
 
 CONFIG_HELP =   {'config': ["C", "Path to a toml configuration file"],
                 'video_input': ["i", "webcam, or video_path.mp4, or video1_path.avi video2_path.mp4 ... Beware that images won't be saved if paths contain non ASCII characters"],
                 'webcam_id': ["w", "webcam ID. 0 if not specified"],
-                'time_range': ["t", "start_time, end_time. In seconds. Whole video if not specified"],
+                'time_range': ["t", "start_time end_time. In seconds. Whole video if not specified. start_time1 end_time1 start_time2 end_time2 ... if multiple videos with different time ranges"],
                 'video_dir': ["d", "Current directory if not specified"],
                 'result_dir': ["r", "Current directory if not specified"],
                 'show_realtime_results': ["R", "show results in real-time. true if not specified"],
@@ -205,8 +216,17 @@ CONFIG_HELP =   {'config': ["C", "Path to a toml configuration file"],
                 'mode': ["m", "light, balanced, or performance. balanced if not specified"],
                 'det_frequency': ["f", "Run person detection only every N frames, and inbetween track previously detected bounding boxes. keypoint detection is still run on all frames.\n\
                                  Equal to or greater than 1, can be as high as you want in simple uncrowded cases. Much faster, but might be less accurate. 1 if not specified: detection runs on all frames"],
-                'multiperson': ["M", "Multiperson involves tracking: will be faster if set to false. true if not specified"],
-                'tracking_mode': ["", "sports2d or rtmlib. sports2d is generally much more accurate and comparable in speed. sports2d if not specified"],
+                'to_meters': ["M", "Convert pixels to meters. true if not specified"],
+                'person_height': ["H", "Height of the person in meters. 1.70 if not specified"],
+                'calib_on_person_id': ["", "Person ID to calibrate on. 0 if not specified"],
+                'floor_angle': ["", "Angle of the floor. 'auto' if not specified"],
+                'xy_origin': ["", "Origin of the xy plane. 'auto' if not specified"],
+                'calib_file': ["", "Path to calibration file. '' if not specified, eg no calibration file"],
+                'save_calib': ["", "Save calibration file. true if not specified"],
+                'do_ik': ["", "Do inverse kinematics. false if not specified"],
+                'osim_setup_path': ["", "Path to OpenSim setup. '../OpenSim_setup' if not specified"],
+                'person_orientation': ["", "front, back, left, right, auto, or None. 'front none left' if not specified. If 'auto', will be either left or right depending on the direction of the motion."],
+                'multiperson': ["", "Multiperson involves tracking: will be faster if set to false. true if not specified"],                'tracking_mode': ["", "sports2d or rtmlib. sports2d is generally much more accurate and comparable in speed. sports2d if not specified"],
                 'input_size': ["", "width, height. 1280, 720 if not specified. Lower resolution will be faster but less precise"],
                 'keypoint_likelihood_threshold': ["", "Detected keypoints are not retained if likelihood is below this threshold. 0.3 if not specified"],
                 'average_likelihood_threshold': ["", "Detected persons are not retained if average keypoint likelihood is below this threshold. 0.5 if not specified"],
@@ -286,16 +306,151 @@ def base_params(config_dict):
 
         # time_ranges
         time_ranges = np.array(config_dict.get('project').get('time_range'))
-        if time_ranges.shape == (0,):
+        # No time range provided
+        if time_ranges.shape == (0,): 
             time_ranges = [None] * len(video_files)
-        elif time_ranges.shape == (2,):
+        # Same time range for all videos
+        elif time_ranges.shape == (2,): 
             time_ranges = [time_ranges.tolist()] * len(video_files)
-        elif time_ranges.shape == (len(video_files), 2):
+        # Different time ranges for each video in Config file
+        elif time_ranges.shape == (len(video_files), 2): 
             time_ranges = time_ranges.tolist()
+        # Different time ranges for each video in cli arguments
+        elif time_ranges.shape == (len(video_files)*2,):
+            time_ranges = time_ranges.reshape(-1,2).tolist()
         else:
-            raise ValueError('Time range must be [] for analysing all frames of all videos, or [start_time, end_time] for analysing all videos from start_time to end_time, or [[start_time1, end_time1], [start_time2, end_time2], ...] for analysing each video for a different time_range.')
+            raise ValueError('time_range must be [] for analysing all frames of all videos, or [start_time, end_time] for analysing all videos from start_time to end_time, or [[start_time1, end_time1], [start_time2, end_time2], ...] for analysing each video for a different time_range.')
     
     return video_dir, video_files, frame_rates, time_ranges, result_dir
+
+
+def calib_params(config_dict, video_files):
+    '''
+    Retrieve calibration parameters.
+    '''
+
+    to_meters = config_dict.get('pose').get('to_meters')
+
+    # Calibration from file
+    calib_files = config_dict.get('pose').get('calib_file')
+    # No calibration file provided
+    if calib_files == '': 
+        calib_files = [None] * len(video_files)
+    # Same calibration file for all videos
+    elif isinstance(calib_files, str):
+        calib_files = [Path(calib_files).resolve()] * len(video_files)
+    # Different calibration files for each video
+    elif len(calib_files) == len(video_files):
+        calib_files = [Path(v) for v in calib_files]
+    else:
+        raise ValueError('calib_file must be a path or a list of paths (if different calibration for each video).')
+
+    # Calibration from person_height
+    person_heights = config_dict.get('pose').get('person_height')
+    # One height or none (default taken) provided
+    if isinstance(person_heights, float): 
+        person_heights = [float(person_heights)] * len(video_files)
+    # Different person heights for each video
+    elif len(person_heights) == len(video_files):
+        person_heights = [float(v) for v in person_heights]
+    else:
+        raise ValueError('person_height must be a float for using the same person height for all videos, or [height1, height2, ...] for using a different person height for each video.')
+
+    # Calib_on_person_id
+    calib_on_person_ids = config_dict.get('pose').get('calib_on_person_id')
+    # One person_id or none (default taken) provided
+    if isinstance(calib_on_person_ids, int):
+        calib_on_person_ids = [int(calib_on_person_ids)] * len(video_files)
+    # Different person ids for each video
+    elif len(calib_on_person_ids) == len(video_files):
+        calib_on_person_ids = [int(v) for v in calib_on_person_ids]
+    else:
+        raise ValueError('calib_on_person_id must be an int for using the same person id for all videos, or [id1, id2, ...] for using a different person id for each video.')
+    
+    # Floor_angle
+    floor_angles = config_dict.get('pose').get('floor_angle')
+    # One floor angle or none (default taken) provided
+    if isinstance(floor_angles, float) or isinstance(floor_angles, int) or isinstance(floor_angles, str):
+        floor_angles = [floor_angles] * len(video_files)
+    # Different floor angles for each video
+    elif len(floor_angles) == len(video_files):
+        floor_angles = floor_angles.tolist()
+    else:
+        raise ValueError('floor_angle must be "auto" or a float for using the same floor angle for all videos, or ["auto", "2.0", "0.0", ...] for using a different floor angle for each video.')
+
+    # Xy_origin
+    xy_origins = np.array(config_dict.get('pose').get('xy_origin'))
+    # 'auto' or none (default taken) provided
+    if xy_origins == 'auto':
+        xy_origins = ['auto'] * len(video_files)
+    # One xy_origin provided for all videos
+    elif xy_origins.shape == (2,):
+        xy_origins = [xy_origins.tolist()] * len(video_files)
+    # Different xy_origins for each video in Config file
+    elif xy_origins.shape == (len(video_files), 2):
+        xy_origins = xy_origins.tolist()
+    # Different xy_origins for each video (can mix 'auto' and x y values) in cli arguments
+    else:
+        xy_origins = reshape_list_with_auto(xy_origins).tolist()
+
+    # Save calibration
+    save_calib = config_dict.get('pose').get('save_calib')
+    # One save_calib or none (default taken) provided
+    if isinstance(save_calib, bool):
+        save_calib = [save_calib] * len(video_files)
+    # Different save_calib for each video
+    elif len(save_calib) == len(video_files):
+        save_calib = [bool(v) for v in save_calib]
+    else:
+        raise ValueError('save_calib must be a bool for using the same save calibration for all videos, or [bool1, bool2, ...] for using a different save calibration for each video.')
+
+    return to_meters, calib_files, person_heights, calib_on_person_ids, floor_angles, xy_origins, save_calib
+
+
+def ik_params(config_dict, video_files):
+    '''
+    Retrieve inverse kinematics parameters.
+    '''
+
+    do_ik = config_dict.get('inverse-kinematics').get('do_ik')
+    osim_setup_path = config_dict.get('inverse-kinematics').get('osim_setup_path')
+
+    # Person orientation
+    person_orientations = config_dict.get('inverse-kinematics').get('person_orientation')
+    # A single orientation 
+    if isinstance(person_orientations, str):
+        person_orientations = [person_orientations] * len(video_files) # IK on first person of all videos 
+    # Otherwise will determine person_id and video_file in process.py
+    
+    return do_ik, person_orientations, osim_setup_path
+
+
+def reshape_list_with_auto(arr, length):
+    '''
+    Reshape a list with 'auto' values to the desired length, e.g. 2.
+    For example, np.array(['auto', 1., 2., 2., 3., 'auto', 0., 2.])
+    becomes      np.array(['auto', [1.0,2.0], [2.0,3.0], 'auto', [0.0, 2.0]])
+
+    INPUTS:
+    - arr: list of values
+    - length: desired length of the sublists
+
+    OUTPUTS:
+    - result_array: reshaped array
+    '''
+
+    result = []
+    i = 0
+    while i < len(arr):
+        if arr[i] == 'auto':
+            result.append('auto')
+            i += 1
+        else: 
+            result.append(list(arr[i:i+length]))
+            i += length
+    result_array = np.array(result, dtype=object)
+
+    return result_array
 
 
 def get_leaf_keys(config, prefix=''):
@@ -367,6 +522,10 @@ def process(config='Config_demo.toml'):
     else:
         config_dict = read_config_file(config)
     video_dir, video_files, frame_rates, time_ranges, result_dir = base_params(config_dict)
+    calib_params_list = calib_params(config_dict, video_files)
+    ik_params_list = ik_params(config_dict, video_files)
+    print(calib_params_list)
+    print(ik_params_list)
         
     result_dir.mkdir(parents=True, exist_ok=True)
     with open(result_dir / 'logs.txt', 'a+') as log_f: pass
@@ -382,7 +541,7 @@ def process(config='Config_demo.toml'):
         logging.info(f"On {currentDateAndTime.strftime('%A %d. %B %Y, %H:%M:%S')}")
         logging.info("---------------------------------------------------------------------")
 
-        process_fun(config_dict, video_file, time_range, frame_rate, result_dir)
+        process_fun(config_dict, video_file, time_range, frame_rate, result_dir)#, calib_params_dict)#, kin_params_dict)
 
         elapsed_time = (datetime.now() - currentDateAndTime).total_seconds()        
         logging.info(f'\nProcessing {video_file} took {elapsed_time:.2f} s.')
@@ -424,14 +583,17 @@ def main():
     for leaf_name in list(CONFIG_HELP.keys())[1:]:
         short_key = CONFIG_HELP[leaf_name][0]
         arg_str = [f'-{short_key}', f'--{leaf_name}'] if short_key else [f'--{leaf_name}']
+        # Arg is bool
         if type(leaf_keys[leaf_name]) == bool:
             parser.add_argument(*arg_str, type=str2bool, help=CONFIG_HELP[leaf_name][1])
+        # Arg is list of floats or others
         elif type(leaf_keys[leaf_name]) == list:
             if len(leaf_keys[leaf_name])==0: 
                 list_type = float # time_range for example
             else:
                 list_type = type(leaf_keys[leaf_name][0])
             parser.add_argument(*arg_str, type=list_type, nargs='*', help=CONFIG_HELP[leaf_name][1])
+        # Arg is int, float, str
         else:
             parser.add_argument(*arg_str, type=type(leaf_keys[leaf_name]), help=CONFIG_HELP[leaf_name][1])
     args = parser.parse_args()
