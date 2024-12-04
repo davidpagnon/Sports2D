@@ -143,8 +143,11 @@ sports2d --help
 <br>
 
 #### Get coordinates in meters rather than in pixels: 
-> You either need to provide a calibration file, or simply the size of a person (note that the latter will not take distortions into account, and that it will be less accurate for motion in the frontal plane).\
-If needed, you can specify the person to calibrate on, the floor angle, or the origin of the xy axis.
+
+<!-- You either need to provide a calibration file, or simply the height of a person (Note that the latter will not take distortions into account, and that it will be less accurate for motion in the frontal plane).\-->
+Just provide the height of the analyzed person (and their ID in case of multiple person detection).\
+The floor angle and the origin of the xy axis are computed automatically from gait. If you analyze another type of motion, you can manually specify them.\
+Note that it does not take distortions into account, and that it will be less accurate for motions in the frontal plane.
 
   ``` cmd
   sports2d --to_meters True --calib_file calib_demo.toml
