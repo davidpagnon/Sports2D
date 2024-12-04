@@ -409,9 +409,9 @@ If you want to contribute to Sports2D, please follow [this guide](https://docs.g
 - [x] Handle sudden **changes of direction**.
 - [x] **Batch processing** for the analysis of multiple videos at once.
 - [x] Option to only save one person (with the highest average score, or with the most frames and fastest speed)
+- [x] Run again without pose estimation with the option `--load_trc` for px .trc file.
 - [x] **Convert positions to meters** by providing the person height, a calibration file, or 3D points [to click on the image](https://stackoverflow.com/questions/74248955/how-to-display-the-coordinates-of-the-points-clicked-on-the-image-in-google-cola)
 - [ ] Perform **Inverse kinematics and dynamics** with OpenSim (cf. [Pose2Sim](https://github.com/perfanalytics/pose2sim), but in 2D). Update [this model](https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Utilities/2D_gait.osim) (add arms, markers, remove muscles and contact spheres). Add pipeline example.
-- [ ] Run again without pose estimation with the option `--load_trc` for px .trc file.
 - [ ] Run with the options `--load_trc` and `--compare` to visually compare motion with a trc file. If run with a webcam input, the user can follow the motion of the trc file. Further calculation can then be done to compare specific variables.
 - [ ] **Colab version**: more user-friendly, usable on a smartphone.
 - [ ] **GUI applications** for Windows, Mac, and Linux, as well as for Android and iOS.
