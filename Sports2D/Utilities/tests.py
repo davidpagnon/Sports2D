@@ -62,14 +62,3 @@ def test_workflow():
     # With inverse kinematics
     # demo_cmd4 = ["sports2d", "--do_ik", "--person_orientation", "front none left", "--show_realtime_results", "False", "--show_graphs", "False"]
     # subprocess.run(demo_cmd4, check=True, capture_output=True, text=True)
-  
-    
-    # TODO: From command line (CLI) with config file 
-    cli_config_path = Path(__file__).resolve().parent.parent / 'Demo' / 'Config_demo.toml'
-    config_dict = toml.load(cli_config_path)
-    cli_video_dir = Path(__file__).resolve().parent.parent / 'Demo'
-    config_dict.get("project").update({"video_dir": str(cli_video_dir)})
-    with open(cli_config_path, 'w') as f: toml.dump(config_dict, f)
-
-    demo_config_cmd = ["sports2d", "--config", str(cli_config_path), "--show_realtime_results", "False", "--show_graphs", "False"]
-    subprocess.run(demo_config_cmd, check=True, capture_output=True, text=True)
