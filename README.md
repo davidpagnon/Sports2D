@@ -153,7 +153,7 @@ If needed, you can specify the person to calibrate on, the floor angle, or the o
   sports2d --to_meters True --person_height 1.65 --calib_on_person_id 2
   ```
   ``` cmd
-  sports2d --to_meters True --person_height 1.65 --floor_angle 0 --xy_origin 0 940
+  sports2d --to_meters True --person_height 1.65 --calib_on_person_id 2 --floor_angle 0 --xy_origin 0 940
   ```
 <br>
 
@@ -193,7 +193,7 @@ If needed, you can specify the person to calibrate on, the floor angle, or the o
 - Use `--multiperson false`: Can be used if one single person is present in the video. Otherwise, persons' IDs may be mixed up.
 - Use `--mode lightweight`: Will use a lighter version of RTMPose, which is faster but less accurate.
 - Use `--det_frequency 50`: Will detect poses only every 50 frames, and track keypoints in between, which is faster.
-- Use `--load_trc <path_to_file_px.trc>`: Will use pose estimation results from a file instead of running detection and pose estimation. Useful if you want to use different parameters for pixel to meter conversion or angle calculation.
+- Use `--load_trc <path_to_file_px.trc>`: Will use pose estimation results from a file. Useful if you want to use different parameters for pixel to meter conversion or angle calculation without running detection and pose estimation all over.
 
 <br> 
 
@@ -258,14 +258,11 @@ You can individualize (or not) the parameters.
   sports2d --video_input demo.mp4 other_video.mp4 --time_range 1.2 2.7
   ```
   ```cmd
-  sports2d --video_input demo.mp4 other_video.mp4 --time_range 1.2 2.7 0 3.5 0 2.1
-  ```
-  ``` cmd
-  sports2d --video_input demo.mp4 other_video.mp4 --person_height 1.65 1.76 --calib_on_person_id 2 0
+  sports2d --video_input demo.mp4 other_video.mp4 --time_range 1.2 2.7 0 3.5
   ```
 
+<!--
 <br>
-
 
 ### Constrain results to a biomechanical model
 
@@ -310,8 +307,7 @@ sports2d --time_range 1.2 2.7 --ik true --person_orientation front none left
 - The simplest option is to use OpenSim GUI
 - If you want to see the skeleton overlay on the video, you can install the Pose2Sim Blender plugin.
 
-
-
+-->
 
 <br>
 
@@ -319,25 +315,37 @@ sports2d --time_range 1.2 2.7 --ik true --person_orientation front none left
 
 Sports2D:
 - Detects 2D joint centers from a video or a webcam with RTMLib.
-- Computes selected joint and segment angles. 
+- Converts pixel coordinates to meters.
+- Optionally computes selected joint and segment angles. 
 - Optionally saves processed image files and video file. Optionally saves processed poses as a TRC file, and angles as a MOT file (OpenSim compatible).
 
 <br>
 
 **Okay but how does it work, really?**\
 Sports2D:
-1. Reads stream from a webcam, from one video, or from a list of videos. Selects the specified time range to process.
-2. Sets up the RTMLib pose tracker from RTMlib with specified parameters. It can be run in lightweight, balanced, or performance mode, and for faster inference, keypoints can be tracked instead of detected for a certain number of frames. Any RTMPose model can be used. 
-3. Tracks people so that their IDs are consistent across frames. A person is associated to another in the next frame when they are at a small distance. IDs remain consistent even if the person disappears from a few frames. This carefully crafted `sports2d` tracker runs at a comparable speed as the RTMlib one but is much more robust. The user can still choose the RTMLib method if they need it by specifying it in the Config.toml file.
-4. Retrieves the keypoints with high enough confidence, and only keeps the persons with high enough average confidence.
-5. Computes the selected joint and segment angles, and flips them on the left/right side if the respective foot is pointing to the left/right. 
-5. Draws bounding boxes around each person and writes their IDs\
+
+1. **Reads stream from a webcam, from one video, or from a list of videos**. Selects the specified time range to process.
+
+2. **Sets up pose estimation with RTMLib.** It can be run in lightweight, balanced, or performance mode, and for faster inference, keypoints can be tracked instead of detected for a certain number of frames. Any RTMPose model can be used. 
+
+3. **Tracks people** so that their IDs are consistent across frames. A person is associated to another in the next frame when they are at a small distance. IDs remain consistent even if the person disappears from a few frames. This carefully crafted `sports2d` tracker runs at a comparable speed as the RTMlib one but is much more robust. The user can still choose the RTMLib method if they need it by specifying it in the Config.toml file.
+
+4. **Chooses the right persons to keep.** In single-person mode, only keeps the person with the highest average scores over the sequence. In multi-person mode, only retrieves the keypoints with high enough confidence, and only keeps the persons with high enough average confidence over each frame.
+
+4. **Converts the pixel coordinates to meters.** The user can provide a calibration file, or simply the size of a specified person. The floor angle and the coordinate origin can either be detected automatically from the gait sequence, or be manually specified.
+
+5. **Computes the selected joint and segment angles**, and flips them on the left/right side if the respective foot is pointing to the left/right. 
+
+5. **Draws the results on the image:**\
+  Draws bounding boxes around each person and writes their IDs\
   Draws the skeleton and the keypoints, with a green to red color scale to account for their confidence\
   Draws joint and segment angles on the body, and writes the values either near the joint/segment, or on the upper-left of the image with a progress bar
-6. Interpolates missing pose and angle sequences if gaps are not too large. Filters them with the selected filter (among `Butterworth`, `Gaussian`, `LOESS`, or `Median`) and their parameters
-7. Optionally show processed images, saves them, or saves them as a video\
-  Optionally plots pose and angle data before and after processing for comparison\
-  Optionally saves poses for each person as a TRC file, and angles as a MOT file 
+
+6. **Interpolates and filters results:** Missing pose and angle sequences are interpolated unless gaps are too large. Results are filtered according to the selected filter (among `Butterworth`, `Gaussian`, `LOESS`, or `Median`) and their parameters
+
+7. **Optionally show** processed images, saves them, or saves them as a video\
+  **Optionally plots** pose and angle data before and after processing for comparison\
+  **Optionally saves** poses for each person as a TRC file in pixels and meters, angles as a MOT file, and calibration data as a [Pose2Sim](https://github.com/perfanalytics/pose2sim) TOML file 
 
 <br>
 
@@ -400,11 +408,11 @@ If you want to contribute to Sports2D, please follow [this guide](https://docs.g
 - [x] **Filtering and plotting tools**.
 - [x] Handle sudden **changes of direction**.
 - [x] **Batch processing** for the analysis of multiple videos at once.
+- [x] Option to only save one person (with the highest average score, or with the most frames and fastest speed)
 - [x] **Convert positions to meters** by providing the person height, a calibration file, or 3D points [to click on the image](https://stackoverflow.com/questions/74248955/how-to-display-the-coordinates-of-the-points-clicked-on-the-image-in-google-cola)
 - [ ] Perform **Inverse kinematics and dynamics** with OpenSim (cf. [Pose2Sim](https://github.com/perfanalytics/pose2sim), but in 2D). Update [this model](https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Utilities/2D_gait.osim) (add arms, markers, remove muscles and contact spheres). Add pipeline example.
 - [ ] Run again without pose estimation with the option `--load_trc` for px .trc file.
 - [ ] Run with the options `--load_trc` and `--compare` to visually compare motion with a trc file. If run with a webcam input, the user can follow the motion of the trc file. Further calculation can then be done to compare specific variables.
-- [ ] Option to only save one person (with most frames and fastest speed)
 - [ ] **Colab version**: more user-friendly, usable on a smartphone.
 - [ ] **GUI applications** for Windows, Mac, and Linux, as well as for Android and iOS.
 

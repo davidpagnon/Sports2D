@@ -853,6 +853,56 @@ def write_angle_as_list(img, ang, ang_name, person_label_position, ang_label_lin
     return ang_label_line
 
 
+def read_trc(trc_path):
+    '''
+    Read trc file
+
+    INPUTS:
+    - trc_path: path to the trc file
+
+    OUTPUTS:
+    - Q_coords: dataframe of coordinates
+    - frames_col: series of frames
+    - time_col: series of time
+    - markers: list of marker names
+    - header: list of header lines
+    '''
+    
+    with open(trc_path, 'r') as trc_file:
+        header = [next(trc_file) for line in range(5)]
+    markers = header[3].split('\t')[2::3]
+    
+    trc_df = pd.read_csv(trc_path, sep="\t", skiprows=4)
+    frames_col, time_col = pd.Series(trc_df.iloc[:,0], name='frames'), pd.Series(trc_df.iloc[:,1], name='time')
+    Q_coords = trc_df.drop(trc_df.columns[[0, 1]], axis=1)
+
+    return Q_coords, frames_col, time_col, markers, header
+
+
+def load_pose_file(Q_coords):
+    '''
+    Load 2D keypoints from a dataframe of XYZ coordinates
+
+    INPUTS:
+    - Q_coords: pd.DataFrame. The dataframe of XYZ coordinates
+
+    OUTPUTS:
+    - keypoints_all: np.array. The keypoints in the format (Nframes, 1, Nmarkers, 2)
+    - scores_all: np.array. The scores in the format (Nframes, 1, Nmarkers)
+    '''
+
+    Z_cols = [3*i+2 for i in range(len(Q_coords.columns)//3)]
+    Q_coords_xy = Q_coords.drop(Q_coords.columns[Z_cols], axis=1)
+    kpt_number = len(Q_coords_xy.columns)//2
+
+    # shape (Nframes, 2*Nmarkers) --> (Nframes, 1, Nmarkers, 2)
+    keypoints_all = np.array(Q_coords_xy).reshape(len(Q_coords_xy), 1, kpt_number, 2)
+    # shape (Nframes, 1, Nmarkers)
+    scores_all = np.ones((len(Q_coords), 1, kpt_number))
+
+    return keypoints_all, scores_all
+
+
 def make_trc_with_XYZ(X, Y, Z, time, trc_path):
     '''
     Write a trc file from 3D coordinates and time, compatible with OpenSim.
@@ -1379,18 +1429,6 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         img_output_dir.mkdir(parents=True, exist_ok=True)
 
 
-    # Retrieve keypoint names from model
-    model = eval(pose_model)
-    keypoints_ids = [node.id for _, _, node in RenderTree(model) if node.id!=None]
-    keypoints_names = [node.name for _, _, node in RenderTree(model) if node.id!=None]
-
-    Ltoe_idx = keypoints_ids[keypoints_names.index('LBigToe')]
-    LHeel_idx = keypoints_ids[keypoints_names.index('LHeel')]
-    Rtoe_idx = keypoints_ids[keypoints_names.index('RBigToe')]
-    RHeel_idx = keypoints_ids[keypoints_names.index('RHeel')]
-    L_R_direction_idx = [Ltoe_idx, LHeel_idx, Rtoe_idx, RHeel_idx]
-
-
     # Set up video capture
     if video_file == "webcam":
         cap, out_vid, cam_width, cam_height, fps = setup_webcam(webcam_id, save_vid, vid_output_path, input_size)
@@ -1407,20 +1445,37 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
 
 
     # Skip pose estimation or set it up:
+    model = eval(pose_model)
     if load_trc:
         if not '_px' in str(load_trc): 
             logging.error(f'\n{load_trc} file needs to be in px, not in meters.')
         logging.info(f'\nUsing a pose file instead of running pose tracking {load_trc}.')
         # Load pose file in px
-        # keypoints_all, scores_all = load_pose_file(load_trc)
+        Q_coords, _, _, keypoints_names, _ = read_trc(load_trc)
+        keypoints_ids = [i for i in range(len(keypoints_names))]
+        keypoints_all, scores_all = load_pose_file(Q_coords)
+        for pre, _, node in RenderTree(model):
+            if node.name in keypoints_names:
+                node.id = keypoints_names.index(node.name)
+    
     else:
+        # Retrieve keypoint names from model
+        keypoints_ids = [node.id for _, _, node in RenderTree(model) if node.id!=None]
+        keypoints_names = [node.name for _, _, node in RenderTree(model) if node.id!=None]
+
         tracking_rtmlib = True if (tracking_mode == 'rtmlib' and multiperson) else False
         pose_tracker = setup_pose_tracker(det_frequency, mode, tracking_rtmlib)
         logging.info(f'\nPose tracking set up for BodyWithFeet model in {mode} mode.')
         logging.info(f'Persons are detected every {det_frequency} frames and tracked inbetween. Multi-person is {"" if multiperson else "not "}selected.')
         logging.info(f"Parameters: {f'{tracking_mode=}, ' if multiperson else ''}{keypoint_likelihood_threshold=}, {average_likelihood_threshold=}, {keypoint_number_threshold=}")
 
-    
+    Ltoe_idx = keypoints_ids[keypoints_names.index('LBigToe')]
+    LHeel_idx = keypoints_ids[keypoints_names.index('LHeel')]
+    Rtoe_idx = keypoints_ids[keypoints_names.index('RBigToe')]
+    RHeel_idx = keypoints_ids[keypoints_names.index('RHeel')]
+    L_R_direction_idx = [Ltoe_idx, LHeel_idx, Rtoe_idx, RHeel_idx]
+
+
     # Process video or webcam feed
     logging.info(f"\nProcessing video stream...")
     # logging.info(f"{'Video, ' if save_vid else ''}{'Images, ' if save_img else ''}{'Pose, ' if save_pose else ''}{'Angles ' if save_angles else ''}{'and ' if save_angles or save_img or save_pose or save_vid else ''}Logs will be saved in {result_dir}.")
@@ -1454,8 +1509,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
 
             # Retrieve pose or Estimate pose and track people
             if load_trc: 
-                pass
-                # keypoints, scores = pose_file[frame_nb]
+                keypoints = keypoints_all[frame_nb]
+                scores = scores_all[frame_nb]
             else: 
                 # Detect poses
                 keypoints, scores = pose_tracker(frame)
