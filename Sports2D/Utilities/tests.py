@@ -52,7 +52,7 @@ def test_workflow():
     subprocess.run(demo_cmd, check=True, capture_output=True, text=True)
 
     # With custom parameters
-    demo_cmd2 = ["sports2d", "--to_meters", "False", "--multiperson", "False", "--mode", "lightweight", "--det_frequency", "50", "--time_range", "1.2 2.7",  "--slowmo_factor", "4", "--show_realtime_results", "False", "--show_graphs", "False"]
+    demo_cmd2 = ["sports2d", "--to_meters", "False", "--multiperson", "False", "--mode", "lightweight", "--det_frequency", "50", "--time_range", "1.2", "2.7",  "--slowmo_factor", "4", "--show_realtime_results", "False", "--show_graphs", "False"]
     subprocess.run(demo_cmd2, check=True, capture_output=True, text=True)
     
     # With inverse kinematics
