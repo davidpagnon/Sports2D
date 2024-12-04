@@ -13,8 +13,9 @@
 
 [project]
 video_input = 'demo.mp4' # 'webcam' or '<video_path.ext>', or ['video1_path.mp4', 'video2_path.avi>', ...]
-                        # Time ranges can be different for each video. All other processing parameters will be identical.
+                        # Time ranges can be different for each video. All other processing arguments will be identical.
                         # Beware that images won't be saved if paths contain non ASCII characters.
+person_height = 1.70    # Height of the person in meters (for pixels -> meters conversion)
 
 # Video parameters
 time_range = [] # [] for the whole video, or [start_time, end_time] (in seconds), or [[start_time1, end_time1], [start_time2, end_time2], ...]
@@ -26,7 +27,7 @@ input_size = [1280, 720] # [W, H]. Lower resolution will be faster but less prec
 
 
 [process]
-multiperson = true # Multiperson involves tracking: will be faster if false
+multiperson = true # Multiperson involves tracking: will be slightly faster if false
 show_realtime_results = true
 save_vid = true
 save_img = true
@@ -40,31 +41,34 @@ result_dir = '' # BETWEEN SINGLE QUOTES! # If empty, project dir is current dir
 # ADVANCED CONFIGURATION #
 ##########################
 [pose]
-# Pose detection parameters
-pose_model = 'body_with_feet' # Only body_with_feet is available for now
-mode = 'balanced' # 'lightweight', 'balanced', or 'performance'
-det_frequency = 4 # Run person detection only every N frames, and inbetween track previously detected bounding boxes (keypoint detection is still run on all frames). 
-                  # Equal to or greater than 1, can be as high as you want in simple uncrowded cases. Much faster, but might be less accurate. 
-tracking_mode = 'sports2d' # 'rtmlib' or 'sports2d'. 'sports2d' is generally much more accurate and comparable in speed
-
 # Pixel to meters conversion
 to_meters = true
-calib_file = 'calib_demo.toml' # Calibration in the Pose2Sim format. '<calib_path.toml>', or ['<calib_path_vid1.toml>', '<calib_path_vid2.toml>', ...] if different for each video.
-# If you don't have a calibration file, use person_height instead
-person_height = 1.70  # Height of the person in meters. H or [H_vid1, H_vid2, ...] if different for each video.
-calib_on_person_id = 0 # Person to use for calibration. P or [p_vid1, p_vid2, ...] if different for each video. 
-floor_angle = 'auto' # 'auto' or a value in degrees. If 'auto', estimated from the line formed by the toes when they are on the ground (where speed = 0). Or [ang_vid1, ang_vid2, ...] if different for each video. 
-xy_origin = 'auto' # 'auto' or [px_x,px_y]. N.B.: px_y points downwards. If 'auto', direction estimated from the start to the end of the line formed by the toes when they are on the ground. Or [[px_x1,px_y1], [px_x2,px_y2], ...] if different for each video.
+# If conversion from a calibration file
+calib_file = ''         # Calibration in the Pose2Sim format. 'calib_demo.toml', or '' if not available
+# If conversion from person_height
+calib_on_person_id = 2  # Person to use for calibration
+floor_angle = 'auto'    # 'auto' or a value in degrees. If 'auto', estimated from the line formed by the toes when they are on the ground (where speed = 0)
+xy_origin = 'auto'      # 'auto' or [px_x,px_y]. N.B.: px_y points downwards. If 'auto', direction estimated from the start to the end of the line formed by the toes when they are on the ground
 save_calib = true
+
+# Slow motion factor
+slowmo_factor = 1       # 1 for normal speed. For a video recorded at 240 fps and exported to 30 fps, it would be 240/30 = 8
+
+# Pose detection parameters
+pose_model = 'body_with_feet' # Only body_with_feet is available for now
+mode = 'balanced'       # 'lightweight', 'balanced', or 'performance'
+det_frequency = 1       # Run person detection only every N frames, and inbetween track previously detected bounding boxes (keypoint detection is still run on all frames). 
+                        # Equal to or greater than 1, can be as high as you want in simple uncrowded cases. Much faster, but might be less accurate. 
+tracking_mode = 'sports2d' # 'rtmlib' or 'sports2d'. 'sports2d' is generally much more accurate and comparable in speed
 
 # Processing parameters
 keypoint_likelihood_threshold = 0.3 # Keypoints whose likelihood is lower will not be taken into account
-average_likelihood_threshold = 0.5 # Person will be ignored if average likelihood of good keypoints is lower than this value
-keypoint_number_threshold = 0.3 # Person will be ignored if the number of good keypoints is less than this fraction
+average_likelihood_threshold = 0.5  # Person will be ignored if average likelihood of good keypoints is lower than this value
+keypoint_number_threshold = 0.3     # Person will be ignored if the number of good keypoints is less than this fraction
 
 
 [angles]
-display_angle_values_on = ['body','list'] # 'body', 'list', ['body', 'list'], None. Display angle values on the body, as a list in the upper left of the image, both, or do not display them.
+display_angle_values_on = ['body', 'list'] # 'body', 'list', ['body', 'list'], 'none'. Display angle values on the body, as a list in the upper left of the image, both, or do not display them.
 fontSize = 0.3
 
 # Select joint angles among
@@ -75,17 +79,17 @@ joint_angles = ['Right ankle', 'Left ankle', 'Right knee', 'Left knee', 'Right h
 segment_angles = ['Right foot', 'Left foot', 'Right shank', 'Left shank', 'Right thigh', 'Left thigh', 'Pelvis', 'Trunk', 'Shoulders', 'Head', 'Right arm', 'Left arm', 'Right forearm', 'Left forearm']
 
 # Processing parameters
-flip_left_right = true # Same angles whether the participant faces left/right. Set it to false if you want timeseries to be continuous even when the participent switches their stance.
+flip_left_right = true  # Same angles whether the participant faces left/right. Set it to false if you want timeseries to be continuous even when the participent switches their stance.
 
 
 [post-processing]
 interpolate = true
-interp_gap_smaller_than = 10 # do not interpolate bigger gaps
+interp_gap_smaller_than = 10        # do not interpolate bigger gaps
 fill_large_gaps_with = 'last_value' # 'last_value', 'nan', or 'zeros' 
 
 filter = true
-show_graphs = true # Show plots of raw and processed results
-filter_type = 'butterworth' # butterworth, gaussian, LOESS, median
+show_graphs = true            # Show plots of raw and processed results
+filter_type = 'butterworth'   # butterworth, gaussian, LOESS, median
    [post-processing.butterworth]
    order = 4 
    cut_off_frequency = 3 # Hz
@@ -99,10 +103,9 @@ filter_type = 'butterworth' # butterworth, gaussian, LOESS, median
 
 [inverse-kinematics]
 do_ik = false # Do scaling and inverse kinematics?
-person_orientation = ['front', 'none', 'left'] # Choose among 'auto', 'none', 'front', 'back', 'left', 'right'
-                     # if 'none', means that no IK is performed on the corresponding person; 
+person_orientation = ['front', '', 'left'] # Choose among 'auto', '', 'front', 'back', 'left', 'right'
+                     # if '', means that no IK is performed on the corresponding person; 
                      # if 'auto', will be either left or right depending on the direction of the motion.
                      # Example with one person on one video: 'front'
-                     # Or ['front', 'none', 'left'] with 3 persons on one videos or one person on 3 videos
-                     # Or [['front', 'none'], ['left', 'right']] with 2 people on 2 videos
+                     # Or ['front', 'none', 'left'] with 3 persons on one video
 osim_setup_path = '../OpenSim_setup' # Path to the OpenSim setup folder

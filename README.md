@@ -144,9 +144,8 @@ sports2d --help
 <br>
 
 #### Get coordinates in meters rather than in pixels: 
-> You either need to provide a calibration file, or simply the size of a person.\
-If needed, you can specify the person to calibrate on, the floor angle, or the origin of the xy axis.\
-If you run several videos at the same time, parameters can be different for each video.
+> You either need to provide a calibration file, or simply the size of a person (note that the latter will not take distortions into account, and that it will be less accurate for motion in the frontal plane).\
+If needed, you can specify the person to calibrate on, the floor angle, or the origin of the xy axis.
 
   ``` cmd
   sports2d --to_meters True --calib_file calib_demo.toml
@@ -164,10 +163,10 @@ If you run several videos at the same time, parameters can be different for each
   sports2d --video_input demo.mp4 other_video.mp4
   ```
   ``` cmd
-  sports2d --show_graphs False --time_range 0 2.1 --result_dir path_to_result_dir
+  sports2d --show_graphs False --time_range 0 2.1 --result_dir path_to_result_dir --slowmo_factor 4
   ```
   ``` cmd
-  sports2d --multiperson false --mode lightweight --det_frequency 50
+  sports2d --multiperson false --mode lightweight --det_frequency 50 
   ```
 <br>
 

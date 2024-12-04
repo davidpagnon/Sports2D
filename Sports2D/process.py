@@ -402,59 +402,85 @@ def min_with_single_indices(L, T):
     return np.array(minL), np.array(argminL), np.array(T_minL)
     
     
-def sort_people_sports2d(keyptpre, keypt, scores):
+def pad_shape(arr, target_len, fill_value=np.nan):
     '''
-    Associate persons across frames (Pose2Sim method)
+    Pads an array to the target length with specified fill values
+    
+    INPUTS:
+    - arr: Input array to be padded.
+    - target_len: The target length of the first dimension after padding.
+    - fill_value: The value to use for padding (default: np.nan).
+    
+    OUTPUTS:
+    - Padded array with shape (target_len, ...) matching the input dimensions.
+    '''
+
+    if len(arr) < target_len:
+        pad_shape = (target_len - len(arr),) + arr.shape[1:]
+        padding = np.full(pad_shape, fill_value)
+        return np.concatenate((arr, padding))
+    
+    return arr
+
+
+def sort_people_sports2d(keyptpre, keypt, scores=None):
+    '''
+    Associate persons across frames (Sports2D method)
     Persons' indices are sometimes swapped when changing frame
     A person is associated to another in the next frame when they are at a small distance
     
     N.B.: Requires min_with_single_indices and euclidian_distance function (see common.py)
 
     INPUTS:
-    - keyptpre: array of shape K, L, M with K the number of detected persons,
-    L the number of detected keypoints, M their 2D coordinates
+    - keyptpre: (K, L, M) array of 2D coordinates for K persons in the previous frame, L keypoints, M 2D coordinates
     - keypt: idem keyptpre, for current frame
-    - score: array of shape K, L with K the number of detected persons,
-    L the confidence of detected keypoints
+    - score: (K, L) array of confidence scores for K persons, L keypoints (optional) 
     
     OUTPUTS:
     - sorted_prev_keypoints: array with reordered persons with values of previous frame if current is empty
-    - sorted_keypoints: array with reordered persons
-    - sorted_scores: array with reordered scores
+    - sorted_keypoints: array with reordered persons --> if scores is not None
+    - sorted_scores: array with reordered scores     --> if scores is not None
+    - associated_tuples: list of tuples with correspondences between persons across frames --> if scores is None (for Pose2Sim.triangulation())
     '''
     
     # Generate possible person correspondences across frames
-    if len(keyptpre) < len(keypt):
-        keyptpre = np.concatenate((keyptpre, np.full((len(keypt)-len(keyptpre), keypt.shape[1], 2), np.nan)))
-    if len(keypt) < len(keyptpre):
-        keypt = np.concatenate((keypt, np.full((len(keyptpre)-len(keypt), keypt.shape[1], 2), np.nan)))
-        scores = np.concatenate((scores, np.full((len(keyptpre)-len(scores), scores.shape[1]), np.nan)))
-    personsIDs_comb = sorted(list(it.product(range(len(keyptpre)), range(len(keypt)))))
+    max_len = max(len(keyptpre), len(keypt))
+    keyptpre = pad_shape(keyptpre, max_len, fill_value=np.nan)
+    keypt = pad_shape(keypt, max_len, fill_value=np.nan)
+    if scores is not None:
+        scores = pad_shape(scores, max_len, fill_value=np.nan)
     
     # Compute distance between persons from one frame to another
-    frame_by_frame_dist = []
-    for comb in personsIDs_comb:
-        frame_by_frame_dist += [euclidean_distance(keyptpre[comb[0]],keypt[comb[1]])]
+    personsIDs_comb = sorted(list(it.product(range(len(keyptpre)), range(len(keypt)))))
+    frame_by_frame_dist = [euclidean_distance(keyptpre[comb[0]],keypt[comb[1]]) for comb in personsIDs_comb]
+    frame_by_frame_dist = np.mean(frame_by_frame_dist, axis=1)
     
     # Sort correspondences by distance
     _, _, associated_tuples = min_with_single_indices(frame_by_frame_dist, personsIDs_comb)
     
     # Associate points to same index across frames, nan if no correspondence
-    sorted_keypoints, sorted_scores = [], []
+    sorted_keypoints = []
     for i in range(len(keyptpre)):
         id_in_old =  associated_tuples[:,1][associated_tuples[:,0] == i].tolist()
-        if len(id_in_old) > 0:
-            sorted_keypoints += [keypt[id_in_old[0]]]
-            sorted_scores += [scores[id_in_old[0]]]
-        else:
-            sorted_keypoints += [keypt[i]]
-            sorted_scores += [scores[i]]
-    sorted_keypoints, sorted_scores = np.array(sorted_keypoints), np.array(sorted_scores)
+        if len(id_in_old) > 0:      sorted_keypoints += [keypt[id_in_old[0]]]
+        else:                       sorted_keypoints += [keypt[i]]
+    sorted_keypoints = np.array(sorted_keypoints)
+
+    if scores is not None:
+        sorted_scores = []
+        for i in range(len(keyptpre)):
+            id_in_old =  associated_tuples[:,1][associated_tuples[:,0] == i].tolist()
+            if len(id_in_old) > 0:  sorted_scores += [scores[id_in_old[0]]]
+            else:                   sorted_scores += [scores[i]]
+        sorted_scores = np.array(sorted_scores)
 
     # Keep track of previous values even when missing for more than one frame
     sorted_prev_keypoints = np.where(np.isnan(sorted_keypoints) & ~np.isnan(keyptpre), keyptpre, sorted_keypoints)
     
-    return sorted_prev_keypoints, sorted_keypoints, sorted_scores
+    if scores is not None:
+        return sorted_prev_keypoints, sorted_keypoints, sorted_scores
+    else: # For Pose2Sim.triangulation()
+        return sorted_keypoints, associated_tuples
 
 
 def sort_people_rtmlib(pose_tracker, keypoints, scores):
@@ -848,7 +874,7 @@ def make_trc_with_XYZ(X, Y, Z, time, trc_path):
     NumFrames = len(X)
     NumMarkers = len(X.columns)
     keypoint_names = X.columns
-    header_trc = ['PathFileType\t4\t(X/Y/Z)\t' + trc_path, 
+    header_trc = ['PathFileType\t4\t(X/Y/Z)\t' + str(trc_path), 
             'DataRate\tCameraRate\tNumFrames\tNumMarkers\tUnits\tOrigDataRate\tOrigDataStartFrame\tOrigNumFrames', 
             '\t'.join(map(str,[DataRate, CameraRate, NumFrames, NumMarkers, 'm', OrigDataRate, 0, NumFrames])),
             'Frame#\tTime\t' + '\t\t\t'.join(keypoint_names) + '\t\t',
@@ -864,6 +890,35 @@ def make_trc_with_XYZ(X, Y, Z, time, trc_path):
         trc_data.to_csv(trc_o, sep='\t', index=True, header=None, lineterminator='\n')
 
     return trc_data
+
+
+def make_trc_with_trc_data(trc_data, trc_path, fps=30):
+    '''
+    Write a TRC file from a DataFrame of time and coordinates
+
+    INPUTS:
+    - trc_data: pd.DataFrame. The time and coordinates of the keypoints. 
+                    The column names must be 't', 'kpt1', 'kpt1', 'kpt1', 'kpt2', 'kpt2', 'kpt2', ...
+    - trc_path: Path. The path to the TRC file to save
+    - fps: float. The framerate of the video
+
+    OUTPUT:
+    - None
+    '''
+
+    DataRate = CameraRate = OrigDataRate = fps
+    NumFrames = len(trc_data)
+    NumMarkers = (len(trc_data.columns)-1)//3
+    keypoint_names = trc_data.columns[1::3]
+    header_trc = ['PathFileType\t4\t(X/Y/Z)\t' + str(trc_path), 
+            'DataRate\tCameraRate\tNumFrames\tNumMarkers\tUnits\tOrigDataRate\tOrigDataStartFrame\tOrigNumFrames', 
+            '\t'.join(map(str,[DataRate, CameraRate, NumFrames, NumMarkers, 'm', OrigDataRate, 0, NumFrames])),
+            'Frame#\tTime\t' + '\t\t\t'.join(keypoint_names) + '\t\t',
+            '\t\t'+'\t'.join([f'X{i+1}\tY{i+1}\tZ{i+1}' for i in range(len(keypoint_names))])]
+
+    with open(trc_path, 'w') as trc_o:
+        [trc_o.write(line+'\n') for line in header_trc]
+        trc_data.to_csv(trc_o, sep='\t', index=True, header=None, lineterminator='\n')
 
 
 def make_mot_with_angles(angles, time, mot_path):
@@ -982,6 +1037,190 @@ def angle_plots(angle_data_unfiltered, angle_data, person_id):
     pw.show()
 
 
+def compute_floor_line(trc_data, keypoint_names = ['LBigToe', 'RBigToe'], speed_threshold = 2.5):
+    '''
+    Compute the floor line equation and angle 
+    from the feet keypoints when they have zero speed.
+
+    N.B.: Y coordinates point downwards
+
+    INPUTS:
+    - trc_data: pd.DataFrame. The trc data
+    - keypoint_names: list of str. The names of the keypoints to use
+    - speed_threshold: float. The speed threshold below which the keypoints are considered as not moving
+
+    OUTPUT:
+    - angle: float. The angle of the floor line in radians
+    - xy_origin: list. The origin of the floor line
+    '''
+
+    # Retrieve zero-speed coordinates for the foot
+    low_speeds_X, low_speeds_Y = [], []
+    for kpt in keypoint_names:
+        speeds = np.linalg.norm(trc_data[kpt].diff(), axis=1)
+        
+        low_speed_frames = trc_data[speeds<speed_threshold].index
+        low_speeds_coords = trc_data[kpt].loc[low_speed_frames]
+        low_speeds_coords = low_speeds_coords[low_speeds_coords!=0]
+
+        low_speeds_X += low_speeds_coords.iloc[:,0].tolist()
+        low_speeds_Y += low_speeds_coords.iloc[:,1].tolist()
+
+    # Fit a line to the zero-speed coordinates
+    floor_line = np.polyfit(low_speeds_X, low_speeds_Y, 1) # (slope, intercept)
+    xy_origin = [0, floor_line[1]]
+
+    # Compute the angle of the floor line in degrees
+    angle = -np.arctan(floor_line[0])
+
+    return angle, xy_origin
+
+
+def mean_angles(Q_coords, markers, ang_to_consider = ['right knee', 'left knee', 'right hip', 'left hip']):
+    '''
+    Compute the mean angle time series from 3D points for a given list of angles.
+
+    INPUTS:
+    - Q_coords (DataFrame): The triangulated coordinates of the markers.
+    - markers (list): The list of marker names.
+    - ang_to_consider (list): The list of angles to consider (requires angle_dict).
+
+    OUTPUTS:
+    - ang_mean: The mean angle time series.
+    '''
+
+    ang_to_consider = ['right knee', 'left knee', 'right hip', 'left hip']
+
+    angs = []
+    for ang_name in ang_to_consider:
+        ang_params = angle_dict[ang_name]
+        ang_mk = ang_params[0]
+        
+        pts_for_angles = []
+        for pt in ang_mk:
+            pts_for_angles.append(Q_coords.iloc[:,markers.index(pt)*3:markers.index(pt)*3+3])
+        ang = points_to_angles(pts_for_angles)
+
+        ang += ang_params[2]
+        ang *= ang_params[3]
+        ang = np.abs(ang)
+
+        angs.append(ang)
+
+    ang_mean = np.mean(angs, axis=0)
+
+    return ang_mean
+
+
+def best_coords_for_measurements(Q_coords, keypoints_names, fastest_frames_to_remove_percent=0.2, large_hip_knee_angles=45):
+    '''
+    Compute the best coordinates for measurements, after removing:
+    - 20% fastest frames (may be outliers)
+    - frames when speed is zero (person is out of frame)
+    - frames when hip and knee angle below 45° (imprecise coordinates when person is crouching)
+    
+    INPUTS:
+    - Q_coords: pd.DataFrame. The XYZ coordinates of each marker
+    - keypoints_names: list. The list of marker names
+    - fastest_frames_to_remove_percent: float
+    - large_hip_knee_angles: int
+    - trimmed_extrema_percent
+
+    OUTPUT:
+    - Q_coords_low_speeds_low_angles: pd.DataFrame. The best coordinates for measurements
+    '''
+
+    n_markers = len(keypoints_names)
+
+    # Using 80% slowest frames
+    sum_speeds = pd.Series(np.nansum([np.linalg.norm(Q_coords.iloc[:,kpt:kpt+3].diff(), axis=1) for kpt in range(n_markers)], axis=0))
+    sum_speeds = sum_speeds[sum_speeds>50] # Removing when speeds close to zero (out of frame)
+    min_speed_indices = sum_speeds.abs().nsmallest(int(len(sum_speeds) * (1-fastest_frames_to_remove_percent))).index
+    Q_coords_low_speeds = Q_coords.iloc[min_speed_indices].reset_index(drop=True)    
+    
+    # Only keep frames with hip and knee flexion angles below 45% 
+    # (if more than 50 of them, else take 50 smallest values)
+    ang_mean = mean_angles(Q_coords_low_speeds, keypoints_names, ang_to_consider = ['right knee', 'left knee', 'right hip', 'left hip'])
+    Q_coords_low_speeds_low_angles = Q_coords_low_speeds[ang_mean < large_hip_knee_angles]
+    if len(Q_coords_low_speeds_low_angles) < 50:
+        Q_coords_low_speeds_low_angles = Q_coords_low_speeds.iloc[pd.Series(ang_mean).nsmallest(50).index]
+
+    return Q_coords_low_speeds_low_angles
+
+
+def compute_height_px(Q_coords, keypoints_names):
+    '''
+    Compute the height of the person in pixels from the trc data.
+
+    INPUTS:
+    - Q_coords: pd.DataFrame. The XYZ coordinates of each marker
+    - keypoints_names: list. The list of marker names
+
+    OUTPUT:
+    - height: float. The height of the person in pixels
+    '''
+
+    fastest_frames_to_remove_percent=0.2 # frames with high speed are considered as outliers (frames with zero speed are also removed))
+    large_hip_knee_angles=45 # hip and knee angles below this value are considered as imprecise
+    trimmed_extrema_percent=0.5  # proportion of the most extreme segment values to remove before calculating their mean)
+
+    # Retrieve most reliable coordinates
+    Q_coords_low_speeds_low_angles = best_coords_for_measurements(Q_coords, keypoints_names, 
+                                                                  fastest_frames_to_remove_percent=fastest_frames_to_remove_percent, large_hip_knee_angles=large_hip_knee_angles)
+    Q_coords_low_speeds_low_angles.columns = np.array([[m]*3 for m in keypoints_names]).flatten()
+
+    # Add MidShoulder column
+    df_MidShoulder = pd.DataFrame((Q_coords_low_speeds_low_angles['RShoulder'].values + Q_coords_low_speeds_low_angles['LShoulder'].values) /2)
+    df_MidShoulder.columns = ['MidShoulder']*3
+    Q_coords_low_speeds_low_angles = pd.concat((Q_coords_low_speeds_low_angles.reset_index(drop=True), df_MidShoulder), axis=1)
+
+    # Compute the height of the person in pixels
+    pairs_up_to_shoulders = [['RHeel', 'RAnkle'], ['RAnkle', 'RKnee'], ['RKnee', 'RHip'], ['RHip', 'RShoulder'],
+                            ['LHeel', 'LAnkle'], ['LAnkle', 'LKnee'], ['LKnee', 'LHip'], ['LHip', 'LShoulder']]
+    try:
+        rfoot, rshank, rfemur, rback, lfoot, lshank, lfemur, lback = [euclidean_distance(Q_coords_low_speeds_low_angles[pair[0]],Q_coords_low_speeds_low_angles[pair[1]]) for pair in pairs_up_to_shoulders]
+    except:
+        raise ValueError('At least one of the following markers is missing for computing the height of the person:\
+                         RHeel, RAnkle, RKnee, RHip, RShoulder, LHeel, LAnkle, LKnee, LHip, LShoulder.\
+                         Make sure that the person is entirely visible, or use a calibration file instead, or set "to_meters=false".')
+    if 'Head' in keypoints_names:
+        head = euclidean_distance(Q_coords_low_speeds_low_angles['MidShoulder'], Q_coords_low_speeds_low_angles['Head'])
+    else:
+        head = euclidean_distance(Q_coords_low_speeds_low_angles['MidShoulder'], Q_coords_low_speeds_low_angles['Nose'])*1.33
+    heights = (rfoot + lfoot)/2 + (rshank + lshank)/2 + (rfemur + lfemur)/2 + (rback + lback)/2 + head
+    
+    # Remove the 20% most extreme values
+    height = trimmed_mean(heights, trimmed_extrema_percent=trimmed_extrema_percent)
+
+    return height
+
+
+def convert_px_to_meters(Q_coords_kpt, person_height_m, height_px, cx, cy, floor_angle):
+    '''
+    Convert pixel coordinates to meters.
+
+    INPUTS:
+    - Q_coords_kpt: pd.DataFrame. The xyz coordinates of a keypoint in pixels, with z filled with zeros
+    - person_height_m: float. The height of the person in meters
+    - height_px: float. The height of the person in pixels
+    - cx, cy: float. The origin of the image in pixels
+    - floor_angle: float. The angle of the floor in radians
+
+    OUTPUT:
+    - Q_coords_kpt_m: pd.DataFrame. The XYZ coordinates of a keypoint in meters
+    '''
+
+    u = Q_coords_kpt.iloc[:,0]
+    v = Q_coords_kpt.iloc[:,1]
+
+    X = person_height_m / height_px * ((u-cx) + (v-cy)*np.sin(floor_angle))
+    Y = - person_height_m / height_px * np.cos(floor_angle) * (v-cy - np.tan(floor_angle)*(u-cx))
+
+    Q_coords_kpt_m = pd.DataFrame(np.array([X, Y, np.zeros_like(X)]).T, columns=Q_coords_kpt.columns)
+
+    return Q_coords_kpt_m
+
+
 def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     '''
     Detect 2D joint centers from a video or a webcam with RTMLib.
@@ -1028,6 +1267,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     
     # Base parameters
     video_dir = Path(config_dict.get('project').get('video_dir'))
+    person_height_m = config_dict.get('project').get('person_height')
     webcam_id =  config_dict.get('project').get('webcam_id')
     input_size = config_dict.get('project').get('input_size')
 
@@ -1041,18 +1281,23 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     save_angles = config_dict.get('process').get('save_angles')
 
     # Pose_advanced settings
+    slowmo_factor = config_dict.get('pose').get('slowmo_factor')
     pose_model = config_dict.get('pose').get('pose_model')
     mode = config_dict.get('pose').get('mode')
     det_frequency = config_dict.get('pose').get('det_frequency')
     tracking_mode = config_dict.get('pose').get('tracking_mode')
+    
     # Pixel to meters conversion
-    
-    
-
-
-
-    
-
+    to_meters = config_dict.get('pose').get('to_meters')
+    save_calib = config_dict.get('pose').get('save_calib')
+    # Calibration from file
+    calib_file = config_dict.get('pose').get('calib_file')
+    if calib_file == '': calib_file = None
+    else: calib_file = Path(calib_file).resolve()
+    # Calibration from person height
+    calib_on_person_id = int(config_dict.get('pose').get('calib_on_person_id'))
+    floor_angle = config_dict.get('pose').get('floor_angle') # 'auto' or float
+    xy_origin = config_dict.get('pose').get('xy_origin') # 'auto' or [x, y]    
 
     keypoint_likelihood_threshold = config_dict.get('pose').get('keypoint_likelihood_threshold')
     average_likelihood_threshold = config_dict.get('pose').get('average_likelihood_threshold')
@@ -1085,6 +1330,10 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                            butterworth_filter_order, butterworth_filter_cutoff, frame_rate,
                            gaussian_filter_kernel, loess_filter_kernel, median_filter_kernel]
 
+    # Inverse kinematics settings
+    do_ik = config_dict.get('inverse-kinematics').get('do_ik')
+    osim_setup_path = config_dict.get('inverse-kinematics').get('osim_setup_path')
+    person_orientations = config_dict.get('inverse-kinematics').get('person_orientation')
 
     # Create output directories
     if video_file == "webcam":
@@ -1135,10 +1384,17 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     # Set up pose tracker
     tracking_rtmlib = True if (tracking_mode == 'rtmlib' and tracking) else False
     pose_tracker = setup_pose_tracker(det_frequency, mode, tracking_rtmlib)
-    logging.info(f'Pose tracking set up for BodyWithFeet model in {mode} mode.')
+    logging.info(f'\nPose tracking set up for BodyWithFeet model in {mode} mode.')
     logging.info(f'Persons are detected every {det_frequency} frames and tracked inbetween. Multi-person is {"" if tracking else "not "}selected.')
     logging.info(f"Parameters: {f'{tracking_mode=}, ' if tracking else ''}{keypoint_likelihood_threshold=}, {average_likelihood_threshold=}, {keypoint_number_threshold=}")
 
+    if to_meters:
+        if not calib_file and not person_height_m:
+            logging.info('No calibration file nor person_height_m provided. Calibration using default person height of 1.70m.')
+        if calib_file:
+            logging.info(f'Using calibration file to convert coordinates in meters: {calib_file}.')
+        if person_height_m:
+            logging.info(f'Using height of person #{calib_on_person_id} ({person_height_m}m) to convert coordinates in meters. Floor angle: {floor_angle}, xy_origin: {xy_origin}.')
 
     # Process video or webcam feed
     logging.info(f"\nProcessing video stream...")
@@ -1179,7 +1435,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     keypoints, scores = sort_people_rtmlib(pose_tracker, keypoints, scores)
                 else:
                     if 'prev_keypoints' not in locals(): prev_keypoints = keypoints
-                    prev_keypoints, keypoints, scores = sort_people_sports2d(prev_keypoints, keypoints, scores)
+                    prev_keypoints, keypoints, scores = sort_people_sports2d(prev_keypoints, keypoints, scores=scores)
             else: # single person
                 keypoints, scores = np.array([keypoints[0]]), np.array([scores[0]])
             
@@ -1266,27 +1522,30 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
 
     # Post-processing: Interpolate, filter, and save pose and angles
     frame_range = [0,frame_count] if video_file == 'webcam' else frame_range
-    all_frames_time = pd.Series(np.linspace(frame_range[0]/fps, frame_range[1]/fps, frame_count), name='time')
+    all_frames_time = pd.Series(np.linspace(frame_range[0]/fps/slowmo_factor, frame_range[1]/fps/slowmo_factor, frame_count+1), name='time')
     
     if save_pose:
         logging.info('\nPost-processing pose:')
         # Select only the keypoints that are in the model from skeletons.py, invert Y axis, divide pixel values by 1000
-        all_frames_X = make_homogeneous(all_frames_X)
-        all_frames_X = all_frames_X[...,keypoints_ids] / 1000
-        all_frames_Y = make_homogeneous(all_frames_Y)
-        all_frames_Y = -all_frames_Y[...,keypoints_ids] / 1000
-        all_frames_Z_person = pd.DataFrame(np.zeros_like(all_frames_X)[:,0,:], columns=keypoints_names)
+        all_frames_X_homog = make_homogeneous(all_frames_X)
+        all_frames_X_homog = all_frames_X_homog[...,keypoints_ids]
+        all_frames_Y_homog = make_homogeneous(all_frames_Y)
+        all_frames_Y_homog = all_frames_Y_homog[...,keypoints_ids]
+        all_frames_Z_homog = pd.DataFrame(np.zeros_like(all_frames_X_homog)[:,0,:], columns=keypoints_names)
         
         # Process pose for each person
-        for i in range(all_frames_X.shape[1]):
+        trc_data = []
+        for i in range(all_frames_X_homog.shape[1]):
             pose_path_person = pose_output_path.parent / (pose_output_path.stem + f'_person{i:02d}.trc')
-            pose_path_person_m = pose_output_path.parent / (pose_output_path_m.stem + f'_person{i:02d}.trc')
-            all_frames_X_person = pd.DataFrame(all_frames_X[:,i,:], columns=keypoints_names)
-            all_frames_Y_person = pd.DataFrame(all_frames_Y[:,i,:], columns=keypoints_names)
+            all_frames_X_person = pd.DataFrame(all_frames_X_homog[:,i,:], columns=keypoints_names)
+            all_frames_Y_person = pd.DataFrame(all_frames_Y_homog[:,i,:], columns=keypoints_names)
 
             # Delete person if less than 4 valid frames
             pose_nan_count = len(np.where(all_frames_X_person.sum(axis=1)==0)[0])
             if frame_count - pose_nan_count <= 4:
+                trc_data_i = pd.DataFrame(0, index=all_frames_X_person.index, columns=np.array([[c]*3 for c in all_frames_X_person.columns]).flatten())
+                trc_data_i.insert(0, 't', all_frames_time)
+                trc_data.append(trc_data_i)
                 logging.info(f'- Person {i}: Less than 4 valid frames. Deleting person.')
 
             else:
@@ -1299,10 +1558,10 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     logging.info(f'- Person {i}: Interpolating missing sequences if they are smaller than {interp_gap_smaller_than} frames. Large gaps filled with {fill_large_gaps_with}.')
                     all_frames_X_person_interp = all_frames_X_person.apply(interpolate_zeros_nans, axis=0, args = [interp_gap_smaller_than, 'linear'])
                     all_frames_Y_person_interp = all_frames_Y_person.apply(interpolate_zeros_nans, axis=0, args = [interp_gap_smaller_than, 'linear'])
-                    if fill_large_gaps_with == 'last_value':
+                    if fill_large_gaps_with.lower() == 'last_value':
                         all_frames_X_person_interp = all_frames_X_person_interp.ffill(axis=0).bfill(axis=0)
                         all_frames_Y_person_interp = all_frames_Y_person_interp.ffill(axis=0).bfill(axis=0)
-                    elif fill_large_gaps_with == 'zeros':
+                    elif fill_large_gaps_with.lower() == 'zeros':
                         all_frames_X_person_interp.replace(np.nan, 0, inplace=True)
                         all_frames_Y_person_interp.replace(np.nan, 0, inplace=True)
 
@@ -1336,29 +1595,99 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     all_frames_Y_person_filt = all_frames_Y_person_interp.apply(filter.filter1d, axis=0, args=filter_options)
 
                 # Build TRC file
-                trc_data = make_trc_with_XYZ(all_frames_X_person_filt, all_frames_Y_person_filt, all_frames_Z_person, all_frames_time, str(pose_path_person))
-                logging.info(f'Pose saved to {pose_path_person.resolve()}.')
+                trc_data_i = make_trc_with_XYZ(all_frames_X_person_filt, all_frames_Y_person_filt, all_frames_Z_homog, all_frames_time, str(pose_path_person))
+                trc_data.append(trc_data_i)
+                logging.info(f'Pose in pixels saved to {pose_path_person.resolve()}.')
 
                 # Plotting coordinates before and after interpolation and filtering
                 if show_plots:
-                    trc_data_unfiltered = pd.concat([pd.concat([all_frames_X_person.iloc[:,kpt], all_frames_Y_person.iloc[:,kpt], all_frames_Z_person.iloc[:,kpt]], axis=1) for kpt in range(len(all_frames_X_person.columns))], axis=1)
+                    trc_data_unfiltered = pd.concat([pd.concat([all_frames_X_person.iloc[:,kpt], all_frames_Y_person.iloc[:,kpt], all_frames_Z_homog.iloc[:,kpt]], axis=1) for kpt in range(len(all_frames_X_person.columns))], axis=1)
                     trc_data_unfiltered.insert(0, 't', all_frames_time)
-                    pose_plots(trc_data_unfiltered, trc_data, i) # i = current person
+                    pose_plots(trc_data_unfiltered, trc_data_i, i) # i = current person
             
-        # # Convert px to meters
-        # if to_meters:
-        #     # if not calib_file and not person_height:
-        #     #     logging.error('No calibration file nor person_height provided. Using default person height of 1.70m.')
-        #     # if calib_file:
-        #     #     calib = np.load(calib_file)
-        #     #     all_frames_X_person_m = all_frames_X_person_filt * calib['px_to_m']
-        #     #     all_frames_Y_person_m = all_frames_Y_person_filt * calib['px_to_m']
-        #     #     all_frames_Z_person_m = all_frames_Z_person * calib['px_to_m']
-        #     #     trc_data_m = make_trc_with_XYZ(all_frames_X_person_m, all_frames_Y_person_m, all_frames_Z_person_m, all_frames_time, str(pose_path_person_m))
-        #     #     logging.info(f'Pose in meters saved to {pose_path_person_m.resolve()}.')
 
-        #     # else:
-        #         trc_data[person_id]
+        # Convert px to meters
+        if to_meters:
+            if not calib_file and not person_height_m:
+                logging.info('No calibration file nor person_height_m provided. Calibration using default person height of 1.70m.')
+
+            if calib_file:
+                calib_params_dict = retrieve_calib_params(calib_file)
+            #     all_frames_X_person_m = all_frames_X_person_filt * calib['px_to_m']
+            #     all_frames_Y_person_m = all_frames_Y_person_filt * calib['px_to_m']
+            #     all_frames_Z_person_m = all_frames_Z_homog * calib['px_to_m']
+            #     trc_data_m = make_trc_with_XYZ(all_frames_X_person_m, all_frames_Y_person_m, all_frames_Z_person_m, all_frames_time, str(pose_path_person_m))
+            #     logging.info(f'Pose in meters saved to {pose_path_person_m.resolve()}.')
+
+            else:
+                # Compute calibration parameters
+                height_px = compute_height_px(trc_data[calib_on_person_id].iloc[:,1:], keypoints_names)
+
+                if floor_angle == 'auto' or xy_origin == 'auto':
+                    # estimated from the line formed by the toes when they are on the ground (where speed = 0)
+                    floor_angle_estim, xy_origin_estim = compute_floor_line(trc_data[calib_on_person_id], keypoint_names=['LBigToe', 'RBigToe'])
+                    if floor_angle == 'auto':
+                        floor_angle = floor_angle_estim
+                    if xy_origin == 'auto':
+                        cx, cy = xy_origin_estim
+                    else:
+                        cx, cy = xy_origin
+
+                # Coordinates in m
+                for i in range(len(trc_data)):
+                    trc_data_m_i = pd.concat([convert_px_to_meters(trc_data[i][kpt_name], person_height_m, height_px, cx, cy, floor_angle) for kpt_name in keypoints_names], axis=1)
+                    trc_data_m_i.insert(0, 't', all_frames_time)
+                    
+                    # Write to trc file
+                    pose_path_person_m_i = (pose_output_path.parent / (pose_output_path_m.stem + f'_person{i:02d}.trc'))
+                    make_trc_with_trc_data(trc_data_m_i, pose_path_person_m_i)
+                    logging.info(f'Poses in meters saved to {pose_path_person_m_i.resolve()}.')
+                    
+                
+            
+
+
+
+
+
+
+
+                # # plt.plot(trc_data_m.iloc[:,0], trc_data_m.iloc[:,1])
+                # # plt.ylim([0,2])
+                # # plt.show()
+
+
+
+                # z = 3.0 # distance between the camera and the person. Required in the calibration file but simplified in the equations
+                # f = height_px / person_height_m * z
+
+
+                # # Name
+                # N = [video_file]
+
+                # # Size
+                # S = [[cam_width, cam_height]]
+
+                # # Distortions
+                # D = [[0.0, 0.0, 0.0, 0.0]]
+                        
+                # # Camera matrix
+                # K = [[[f, 0.0, cx], [0.0, f, cy], [0.0, 0.0, 1.0]]] # f and Z do not matter in 2D
+                
+                # # Rot, Trans
+                # R = 
+                # T = 
+
+                # # Save calibration file
+
+                # # Convert to meters
+                # trc_data = 
+
+
+
+
+                
+
 
 
 
