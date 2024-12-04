@@ -1037,6 +1037,23 @@ def angle_plots(angle_data_unfiltered, angle_data, person_id):
     pw.show()
 
 
+def get_personID_with_highest_scores(all_frames_scores):
+    '''
+    Get the person ID with the highest scores
+
+    INPUTS:
+    - all_frames_scores: array of scores for all frames, all persons, all keypoints
+
+    OUTPUT:
+    - person_id: int. The person ID with the highest scores
+    '''
+
+    # Get the person with the highest scores over all frames and all keypoints
+    person_id = np.argmax(np.nansum(np.nansum(all_frames_scores, axis=0), axis=1))
+
+    return person_id
+
+
 def compute_floor_line(trc_data, keypoint_names = ['LBigToe', 'RBigToe'], speed_threshold = 2.5):
     '''
     Compute the floor line equation and angle 
@@ -1544,11 +1561,13 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         all_frames_X_homog = all_frames_X_homog[...,keypoints_ids]
         all_frames_Y_homog = make_homogeneous(all_frames_Y)
         all_frames_Y_homog = all_frames_Y_homog[...,keypoints_ids]
+        all_frames_scores = make_homogeneous(all_frames_scores)
+
         all_frames_Z_homog = pd.DataFrame(np.zeros_like(all_frames_X_homog)[:,0,:], columns=keypoints_names)
         
         # Process pose for each person
         if not multiperson:
-            detected_persons = [1]
+            detected_persons = [get_personID_with_highest_scores(all_frames_scores)]
         else:
             detected_persons = range(all_frames_X_homog.shape[1])
 
@@ -1565,6 +1584,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 trc_data_i = pd.DataFrame(0, index=all_frames_X_person.index, columns=np.array([[c]*3 for c in all_frames_X_person.columns]).flatten())
                 trc_data_i.insert(0, 't', all_frames_time)
                 trc_data.append(trc_data_i)
+                trc_data_unfiltered_i = trc_data_i.copy()
+                trc_data_unfiltered.append(trc_data_unfiltered_i)
                 logging.info(f'- Person {i}: Less than 4 valid frames. Deleting person.')
 
             else:
@@ -1623,9 +1644,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 trc_data_unfiltered_i.insert(0, 't', all_frames_time)
                 trc_data_unfiltered.append(trc_data_unfiltered_i)
                 if show_plots and not to_meters:
-                    pose_plots(trc_data_unfiltered_i, trc_data_i, i) # i = current person
+                    pose_plots(trc_data_unfiltered_i, trc_data_i, i)
             
-
         # Convert px to meters
         if to_meters:
             logging.info('\nConverting pose to meters:')
@@ -1655,18 +1675,19 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
 
             # Coordinates in m
             for i in range(len(trc_data)):
-                trc_data_m_i = pd.concat([convert_px_to_meters(trc_data[i][kpt_name], person_height_m, height_px, cx, cy, floor_angle) for kpt_name in keypoints_names], axis=1)
-                trc_data_m_i.insert(0, 't', all_frames_time)
-                trc_data_unfiltered_m_i = pd.concat([convert_px_to_meters(trc_data_unfiltered[i][kpt_name], person_height_m, height_px, cx, cy, floor_angle) for kpt_name in keypoints_names], axis=1)
-                trc_data_unfiltered_m_i.insert(0, 't', all_frames_time)
+                if not np.array(trc_data[i].iloc[:,1:] ==0).all():
+                    trc_data_m_i = pd.concat([convert_px_to_meters(trc_data[i][kpt_name], person_height_m, height_px, cx, cy, floor_angle) for kpt_name in keypoints_names], axis=1)
+                    trc_data_m_i.insert(0, 't', all_frames_time)
+                    trc_data_unfiltered_m_i = pd.concat([convert_px_to_meters(trc_data_unfiltered[i][kpt_name], person_height_m, height_px, cx, cy, floor_angle) for kpt_name in keypoints_names], axis=1)
+                    trc_data_unfiltered_m_i.insert(0, 't', all_frames_time)
 
-                if to_meters:
-                    pose_plots(trc_data_unfiltered_m_i, trc_data_m_i, i)
-                
-                # Write to trc file
-                pose_path_person_m_i = (pose_output_path.parent / (pose_output_path_m.stem + f'_person{i:02d}.trc'))
-                make_trc_with_trc_data(trc_data_m_i, pose_path_person_m_i)
-                logging.info(f'Person {i}: Pose in meters saved to {pose_path_person_m_i.resolve()}.')
+                    if to_meters:
+                        pose_plots(trc_data_unfiltered_m_i, trc_data_m_i, i)
+                    
+                    # Write to trc file
+                    pose_path_person_m_i = (pose_output_path.parent / (pose_output_path_m.stem + f'_person{i:02d}.trc'))
+                    make_trc_with_trc_data(trc_data_m_i, pose_path_person_m_i)
+                    logging.info(f'Person {i}: Pose in meters saved to {pose_path_person_m_i.resolve()}.')
                     
                 
             
@@ -1722,7 +1743,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         all_frames_angles = make_homogeneous(all_frames_angles)
 
         # Process angles for each person
-        for i in range(all_frames_angles.shape[1]):
+        for i in detected_persons:
             angles_path_person = angles_output_path.parent / (angles_output_path.stem + f'_person{i:02d}.mot')
             all_frames_angles_person = pd.DataFrame(all_frames_angles[:,i,:], columns=angle_names)
             
