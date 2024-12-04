@@ -1467,7 +1467,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         pose_tracker = setup_pose_tracker(det_frequency, mode, tracking_rtmlib)
         logging.info(f'\nPose tracking set up for BodyWithFeet model in {mode} mode.')
         logging.info(f'Persons are detected every {det_frequency} frames and tracked inbetween. Multi-person is {"" if multiperson else "not "}selected.')
-        logging.info(f"Parameters: {f'{tracking_mode=}, ' if multiperson else ''}{keypoint_likelihood_threshold=}, {average_likelihood_threshold=}, {keypoint_number_threshold=}")
+        logging.info(f"Parameters: {keypoint_likelihood_threshold=}, {average_likelihood_threshold=}, {keypoint_number_threshold=}")
 
     Ltoe_idx = keypoints_ids[keypoints_names.index('LBigToe')]
     LHeel_idx = keypoints_ids[keypoints_names.index('LHeel')]
@@ -1736,7 +1736,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     trc_data_unfiltered_m_i = pd.concat([convert_px_to_meters(trc_data_unfiltered[i][kpt_name], person_height_m, height_px, cx, cy, floor_angle) for kpt_name in keypoints_names], axis=1)
                     trc_data_unfiltered_m_i.insert(0, 't', all_frames_time)
 
-                    if to_meters:
+                    if to_meters and show_plots:
                         pose_plots(trc_data_unfiltered_m_i, trc_data_m_i, i)
                     
                     # Write to trc file

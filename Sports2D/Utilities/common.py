@@ -17,12 +17,14 @@
 ## INIT
 import re
 import sys
+import toml
 import subprocess
 from pathlib import Path
 
 import numpy as np
 from scipy import interpolate
 import imageio_ffmpeg as ffmpeg
+import cv2
 
 from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget, QTabWidget, QVBoxLayout
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -256,19 +258,110 @@ def points_to_angles(points_list):
 def euclidean_distance(q1, q2):
     '''
     Euclidean distance between 2 points (N-dim).
-
+    
     INPUTS:
     - q1: list of N_dimensional coordinates of point
+         or list of N points of N_dimensional coordinates
     - q2: idem
 
     OUTPUTS:
     - euc_dist: float. Euclidian distance between q1 and q2
     '''
-
+    
     q1 = np.array(q1)
     q2 = np.array(q2)
     dist = q2 - q1
-
-    euc_dist = np.sqrt(np.sum( [d**2 for d in dist]))
-
+    if np.isnan(dist).all():
+        dist =  np.empty_like(dist)
+        dist[...] = np.inf
+    
+    if len(dist.shape)==1:
+        euc_dist = np.sqrt(np.nansum( [d**2 for d in dist]))
+    else:
+        euc_dist = np.sqrt(np.nansum( [d**2 for d in dist], axis=1))
+    
     return euc_dist
+
+
+def trimmed_mean(arr, trimmed_extrema_percent=0.5):
+    '''
+    Trimmed mean calculation for an array.
+
+    INPUTS:
+    - arr (np.array): The input array.
+    - trimmed_extrema_percent (float): The percentage of values to be trimmed from both ends.
+
+    OUTPUTS:
+    - float: The trimmed mean of the array.
+    '''
+
+    # Sort the array
+    sorted_arr = np.sort(arr)
+    
+    # Determine the indices for the 25th and 75th percentiles (if trimmed_percent = 0.5)
+    lower_idx = int(len(sorted_arr) * (trimmed_extrema_percent/2))
+    upper_idx = int(len(sorted_arr) * (1 - trimmed_extrema_percent/2))
+    
+    # Slice the array to exclude the 25% lowest and highest values
+    trimmed_arr = sorted_arr[lower_idx:upper_idx]
+    
+    # Return the mean of the remaining values
+    return np.mean(trimmed_arr)
+
+
+def retrieve_calib_params(calib_file):
+    '''
+    Compute projection matrices from toml calibration file.
+    
+    INPUT:
+    - calib_file: calibration .toml file.
+    
+    OUTPUT:
+    - S: (h,w) vectors as list of 2x1 arrays
+    - K: intrinsic matrices as list of 3x3 arrays
+    - dist: distortion vectors as list of 4x1 arrays
+    - inv_K: inverse intrinsic matrices as list of 3x3 arrays
+    - optim_K: intrinsic matrices for undistorting points as list of 3x3 arrays
+    - R: rotation rodrigue vectors as list of 3x1 arrays
+    - T: translation vectors as list of 3x1 arrays
+    '''
+    
+    calib = toml.load(calib_file)
+
+    cal_keys = [c for c in calib.keys() 
+                if c not in ['metadata', 'capture_volume', 'charuco', 'checkerboard'] 
+                and isinstance(calib[c],dict)]
+    S, K, dist, optim_K, inv_K, R, R_mat, T = [], [], [], [], [], [], [], []
+    for c, cam in enumerate(cal_keys):
+        S.append(np.array(calib[cam]['size']))
+        K.append(np.array(calib[cam]['matrix']))
+        dist.append(np.array(calib[cam]['distortions']))
+        optim_K.append(cv2.getOptimalNewCameraMatrix(K[c], dist[c], [int(s) for s in S[c]], 1, [int(s) for s in S[c]])[0])
+        inv_K.append(np.linalg.inv(K[c]))
+        R.append(np.array(calib[cam]['rotation']))
+        R_mat.append(cv2.Rodrigues(R[c])[0])
+        T.append(np.array(calib[cam]['translation']))
+    calib_params_dict = {'S': S, 'K': K, 'dist': dist, 'inv_K': inv_K, 'optim_K': optim_K, 'R': R, 'R_mat': R_mat, 'T': T}
+            
+    return calib_params_dict
+
+
+def write_calibration(calib_params, toml_path):
+    '''
+    Write calibration file from calibration parameters
+    '''
+    
+    S, D, N, K, R, T, P = calib_params
+    with open(toml_path, 'w+') as cal_f:
+        for c in range(len(S)):
+            cam_str = f'[{N[c]}]\n'
+            name_str = f'name = "{N[c]}"\n'
+            size_str = f'size = {S[c]} \n'
+            mat_str = f'matrix = {K[c]} \n'
+            dist_str = f'distortions = {D[c]} \n' 
+            rot_str = f'rotation = {R[c]} \n'
+            tran_str = f'translation = {T[c]} \n'
+            fish_str = f'fisheye = false\n\n'
+            cal_f.write(cam_str + name_str + size_str + mat_str + dist_str + rot_str + tran_str + fish_str)
+        meta = '[metadata]\nadjusted = false\nerror = 0.0\n'
+        cal_f.write(meta)
