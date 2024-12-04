@@ -135,7 +135,6 @@ sports2d --help
   ``` cmd
   sports2d --video_input path_to_video.mp4
   ```
-<br>
 
 #### Run on webcam with default parameters: 
   ``` cmd
@@ -151,10 +150,10 @@ If needed, you can specify the person to calibrate on, the floor angle, or the o
   sports2d --to_meters True --calib_file calib_demo.toml
   ```
   ``` cmd
-  sports2d --to_meters True --person_height 1.65
+  sports2d --to_meters True --person_height 1.65 --calib_on_person_id 2
   ```
   ``` cmd
-  sports2d --to_meters True --person_height 1.65 --calib_on_person_id 2 --floor_angle 0 --xy_origin 0 940
+  sports2d --to_meters True --person_height 1.65 --floor_angle 0 --xy_origin 0 940
   ```
 <br>
 
@@ -163,7 +162,7 @@ If needed, you can specify the person to calibrate on, the floor angle, or the o
   sports2d --video_input demo.mp4 other_video.mp4
   ```
   ``` cmd
-  sports2d --show_graphs False --time_range 0 2.1 --result_dir path_to_result_dir --slowmo_factor 4
+  sports2d --show_graphs False --time_range 1.2 2.7 --result_dir path_to_result_dir --slowmo_factor 4
   ```
   ``` cmd
   sports2d --multiperson false --mode lightweight --det_frequency 50 
@@ -193,7 +192,8 @@ If needed, you can specify the person to calibrate on, the floor angle, or the o
 **Quick fixes:**
 - Use `--multiperson false`: Can be used if one single person is present in the video. Otherwise, persons' IDs may be mixed up.
 - Use `--mode lightweight`: Will use a lighter version of RTMPose, which is faster but less accurate.
-- Use `--det_frequency 50`: Will detect poses only every 50 frames, and track keypoints inbetween, which is faster.
+- Use `--det_frequency 50`: Will detect poses only every 50 frames, and track keypoints in between, which is faster.
+- Use `--load_trc <path_to_file_px.trc>`: Will use pose estimation results from a file instead of running detection and pose estimation. Useful if you want to use different parameters for pixel to meter conversion or angle calculation.
 
 <br> 
 
@@ -229,7 +229,7 @@ Will be much faster, with no impact on accuracy. However, the installation takes
 
 #### Analyze a fraction of your video:
   ```cmd
-  sports2d --time_range 0 2.1
+  sports2d --time_range 1.2 2.7
   ```
 <br>
 
@@ -255,10 +255,10 @@ Will be much faster, with no impact on accuracy. However, the installation takes
 #### Run on several videos at once:
 You can individualize (or not) the parameters.
   ```cmd
-  sports2d --video_input demo.mp4 other_video.mp4 --time_range 0 2.1
+  sports2d --video_input demo.mp4 other_video.mp4 --time_range 1.2 2.7
   ```
   ```cmd
-  sports2d --video_input demo.mp4 other_video.mp4 --time_range 0 2.1 0 3.5 0 2.1
+  sports2d --video_input demo.mp4 other_video.mp4 --time_range 1.2 2.7 0 3.5 0 2.1
   ```
   ``` cmd
   sports2d --video_input demo.mp4 other_video.mp4 --person_height 1.65 1.76 --calib_on_person_id 2 0
@@ -301,7 +301,7 @@ Open a terminal.
 Need person doing a 2D motion. If not, trim the video with `--time_range` option.
 
 ```cmd
-sports2d --time_range 0 2.7 --ik true --person_orientation front none left
+sports2d --time_range 1.2 2.7 --ik true --person_orientation front none left
 ```
 
 <br>
@@ -400,10 +400,11 @@ If you want to contribute to Sports2D, please follow [this guide](https://docs.g
 - [x] **Filtering and plotting tools**.
 - [x] Handle sudden **changes of direction**.
 - [x] **Batch processing** for the analysis of multiple videos at once.
-- [ ] **Convert positions to meters** by providing the person height, a calibration file, or 3D points [to click on the image](https://stackoverflow.com/questions/74248955/how-to-display-the-coordinates-of-the-points-clicked-on-the-image-in-google-cola)
+- [x] **Convert positions to meters** by providing the person height, a calibration file, or 3D points [to click on the image](https://stackoverflow.com/questions/74248955/how-to-display-the-coordinates-of-the-points-clicked-on-the-image-in-google-cola)
 - [ ] Perform **Inverse kinematics and dynamics** with OpenSim (cf. [Pose2Sim](https://github.com/perfanalytics/pose2sim), but in 2D). Update [this model](https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Utilities/2D_gait.osim) (add arms, markers, remove muscles and contact spheres). Add pipeline example.
-- [ ] Run again without pose estimation with the option `--pose_file` for px .trc file.
-- [ ] Option to only analyze one person (more frames and more speed)
+- [ ] Run again without pose estimation with the option `--load_trc` for px .trc file.
+- [ ] Run with the options `--load_trc` and `--compare` to visually compare motion with a trc file. If run with a webcam input, the user can follow the motion of the trc file. Further calculation can then be done to compare specific variables.
+- [ ] Option to only save one person (with most frames and fastest speed)
 - [ ] **Colab version**: more user-friendly, usable on a smartphone.
 - [ ] **GUI applications** for Windows, Mac, and Linux, as well as for Android and iOS.
 

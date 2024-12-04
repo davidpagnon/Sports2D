@@ -16,10 +16,12 @@ video_input = 'demo.mp4' # 'webcam' or '<video_path.ext>', or ['video1_path.mp4'
                         # Time ranges can be different for each video. All other processing arguments will be identical.
                         # Beware that images won't be saved if paths contain non ASCII characters.
 person_height = 1.70    # Height of the person in meters (for pixels -> meters conversion)
+load_trc = ''           # If you do not want to recalculate pose, load it from a trc file (in px, not in m)
+compare = false         # Not implemented yet
 
 # Video parameters
-time_range = [] # [] for the whole video, or [start_time, end_time] (in seconds), or [[start_time1, end_time1], [start_time2, end_time2], ...]
-video_dir = '' # BETWEEN SINGLE QUOTES! # If empty, result dir is current dir
+time_range = []   # [] for the whole video, or [start_time, end_time] (in seconds), or [[start_time1, end_time1], [start_time2, end_time2], ...]
+video_dir = ''    # If empty, result dir is current dir
 
 # Webcam parameters
 webcam_id = 0 # your webcam id (0 is default)
@@ -27,14 +29,15 @@ input_size = [1280, 720] # [W, H]. Lower resolution will be faster but less prec
 
 
 [process]
-multiperson = true # Multiperson involves tracking: will be slightly faster if false
+multiperson = true   # Saving the motions of all the persons detected and tracked in the video. 
+                     # If false, the person saved will be the one with the highest sum of keypoint scores over the video
 show_realtime_results = true
 save_vid = true
 save_img = true
 save_pose = true
 calculate_angles = true
 save_angles = true
-result_dir = '' # BETWEEN SINGLE QUOTES! # If empty, project dir is current dir
+result_dir = '' # If empty, project dir is current dir
 
 
 ##########################
@@ -46,9 +49,9 @@ to_meters = true
 # If conversion from a calibration file
 calib_file = ''         # Calibration in the Pose2Sim format. 'calib_demo.toml', or '' if not available
 # If conversion from person_height
-calib_on_person_id = 2  # Person to use for calibration
-floor_angle = 'auto'    # 'auto' or a value in degrees. If 'auto', estimated from the line formed by the toes when they are on the ground (where speed = 0)
-xy_origin = 'auto'      # 'auto' or [px_x,px_y]. N.B.: px_y points downwards. If 'auto', direction estimated from the start to the end of the line formed by the toes when they are on the ground
+calib_on_person_id = 0  # Person to use for calibration
+floor_angle = 'auto'    # 'auto' or a value in degrees, eg 2.3. If 'auto', estimated from the line formed by the toes when they are on the ground (where speed = 0)
+xy_origin = ['auto']    # ['auto'] or [px_x,px_y]. N.B.: px_y points downwards. If ['auto'], direction estimated from the start to the end of the line formed by the toes when they are on the ground
 save_calib = true
 
 # Slow motion factor
@@ -104,8 +107,8 @@ filter_type = 'butterworth'   # butterworth, gaussian, LOESS, median
 [inverse-kinematics]
 do_ik = false # Do scaling and inverse kinematics?
 person_orientation = ['front', '', 'left'] # Choose among 'auto', '', 'front', 'back', 'left', 'right'
-                     # if '', means that no IK is performed on the corresponding person; 
-                     # if 'auto', will be either left or right depending on the direction of the motion.
-                     # Example with one person on one video: 'front'
+                     # if '', no IK will be performed on the corresponding person
+                     # if 'auto', will be either 'left' or 'right' depending on the direction of the motion
+                     # Example with one person on one video: ['front']
                      # Or ['front', 'none', 'left'] with 3 persons on one video
 osim_setup_path = '../OpenSim_setup' # Path to the OpenSim setup folder

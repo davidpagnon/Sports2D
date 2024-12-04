@@ -123,6 +123,8 @@ from Sports2D import Sports2D
 ## CONSTANTS
 DEFAULT_CONFIG =   {'project': {'video_input': ['demo.mp4'],
                                 'person_height': 1.70,
+                                'load_trc': '',
+                                'compare': False,
                                 'time_range': [],
                                 'video_dir': '',
                                 'webcam_id': 0,
@@ -146,7 +148,7 @@ DEFAULT_CONFIG =   {'project': {'video_input': ['demo.mp4'],
                                 'calib_file': '',
                                 'calib_on_person_id': 0,
                                 'floor_angle': 'auto',
-                                'xy_origin': 'auto',
+                                'xy_origin': ['auto'],
                                 'save_calib': True,
                                 'keypoint_likelihood_threshold': 0.3,
                                 'average_likelihood_threshold': 0.5,
@@ -200,6 +202,8 @@ DEFAULT_CONFIG =   {'project': {'video_input': ['demo.mp4'],
 CONFIG_HELP =   {'config': ["C", "path to a toml configuration file"],
                 'video_input': ["i", "webcam, or video_path.mp4, or video1_path.avi video2_path.mp4 ... Beware that images won't be saved if paths contain non ASCII characters"],
                 'person_height': ["H", "height of the person in meters. 1.70 if not specified"],
+                'load_trc': ["", "load trc file to avaid running pose estimation again. false if not specified"],
+                'compare': ["", "visually compare motion with trc file. false if not specified"],
                 'webcam_id': ["w", "webcam ID. 0 if not specified"],
                 'time_range': ["t", "start_time end_time. In seconds. Whole video if not specified. start_time1 end_time1 start_time2 end_time2 ... if multiple videos with different time ranges"],
                 'video_dir': ["d", "current directory if not specified"],
@@ -227,7 +231,7 @@ CONFIG_HELP =   {'config': ["C", "path to a toml configuration file"],
                 'save_calib': ["", "save calibration file. true if not specified"],
                 'do_ik': ["", "do inverse kinematics. false if not specified"],
                 'osim_setup_path': ["", "path to OpenSim setup. '../OpenSim_setup' if not specified"],
-                'person_orientation': ["", "front, back, left, right, auto, or None. 'front none left' if not specified. If 'auto', will be either left or right depending on the direction of the motion."],
+                'person_orientation': ["", "front, back, left, right, auto, or ''. 'front none left' if not specified. If 'auto', will be either left or right depending on the direction of the motion."],
                 'multiperson': ["", "multiperson involves tracking: will be faster if set to false. true if not specified"],                'tracking_mode': ["", "sports2d or rtmlib. sports2d is generally much more accurate and comparable in speed. sports2d if not specified"],
                 'input_size': ["", "width, height. 1280, 720 if not specified. Lower resolution will be faster but less precise"],
                 'keypoint_likelihood_threshold': ["", "detected keypoints are not retained if likelihood is below this threshold. 0.3 if not specified"],
@@ -461,7 +465,7 @@ def main():
         # Arg is list of floats or others
         elif type(leaf_keys[leaf_name]) == list:
             if len(leaf_keys[leaf_name])==0: 
-                list_type = float # time_range for example
+                list_type = float # time_range=[] for example
             else:
                 list_type = type(leaf_keys[leaf_name][0])
             parser.add_argument(*arg_str, type=list_type, nargs='*', help=CONFIG_HELP[leaf_name][1])

@@ -1268,11 +1268,17 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     # Base parameters
     video_dir = Path(config_dict.get('project').get('video_dir'))
     person_height_m = config_dict.get('project').get('person_height')
+    # Pose from file
+    load_trc = config_dict.get('project').get('load_trc')
+    if load_trc == '': load_trc = None
+    else: load_trc = Path(load_trc).resolve()
+    compare = config_dict.get('project').get('compare')
+    # Webcam settings
     webcam_id =  config_dict.get('project').get('webcam_id')
     input_size = config_dict.get('project').get('input_size')
 
     # Process settings
-    tracking = config_dict.get('process').get('multiperson')
+    multiperson = config_dict.get('process').get('multiperson')
     show_realtime_results = config_dict.get('process').get('show_realtime_results')
     save_vid = config_dict.get('process').get('save_vid')
     save_img = config_dict.get('process').get('save_img')
@@ -1297,7 +1303,9 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     # Calibration from person height
     calib_on_person_id = int(config_dict.get('pose').get('calib_on_person_id'))
     floor_angle = config_dict.get('pose').get('floor_angle') # 'auto' or float
-    xy_origin = config_dict.get('pose').get('xy_origin') # 'auto' or [x, y]    
+    floor_angle = np.radians(float(floor_angle)) if floor_angle != 'auto' else floor_angle
+    xy_origin = config_dict.get('pose').get('xy_origin') # ['auto'] or [x, y]    
+    xy_origin = [float(o) for o in xy_origin] if xy_origin != ['auto'] else 'auto'
 
     keypoint_likelihood_threshold = config_dict.get('pose').get('keypoint_likelihood_threshold')
     average_likelihood_threshold = config_dict.get('pose').get('average_likelihood_threshold')
@@ -1381,21 +1389,21 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         cv2.setWindowProperty(f'{video_file} Sports2D', cv2.WND_PROP_ASPECT_RATIO, cv2.WINDOW_FULLSCREEN)
 
 
-    # Set up pose tracker
-    tracking_rtmlib = True if (tracking_mode == 'rtmlib' and tracking) else False
-    pose_tracker = setup_pose_tracker(det_frequency, mode, tracking_rtmlib)
-    logging.info(f'\nPose tracking set up for BodyWithFeet model in {mode} mode.')
-    logging.info(f'Persons are detected every {det_frequency} frames and tracked inbetween. Multi-person is {"" if tracking else "not "}selected.')
-    logging.info(f"Parameters: {f'{tracking_mode=}, ' if tracking else ''}{keypoint_likelihood_threshold=}, {average_likelihood_threshold=}, {keypoint_number_threshold=}")
+    # Skip pose estimation or set it up:
+    if load_trc:
+        if not '_px' in str(load_trc): 
+            logging.error(f'\n{load_trc} file needs to be in px, not in meters.')
+        logging.info(f'\nUsing a pose file instead of running pose tracking {load_trc}.')
+        # Load pose file in px
+        # keypoints_all, scores_all = load_pose_file(load_trc)
+    else:
+        tracking_rtmlib = True if (tracking_mode == 'rtmlib' and multiperson) else False
+        pose_tracker = setup_pose_tracker(det_frequency, mode, tracking_rtmlib)
+        logging.info(f'\nPose tracking set up for BodyWithFeet model in {mode} mode.')
+        logging.info(f'Persons are detected every {det_frequency} frames and tracked inbetween. Multi-person is {"" if multiperson else "not "}selected.')
+        logging.info(f"Parameters: {f'{tracking_mode=}, ' if multiperson else ''}{keypoint_likelihood_threshold=}, {average_likelihood_threshold=}, {keypoint_number_threshold=}")
 
-    if to_meters:
-        if not calib_file and not person_height_m:
-            logging.info('No calibration file nor person_height_m provided. Calibration using default person height of 1.70m.')
-        if calib_file:
-            logging.info(f'Using calibration file to convert coordinates in meters: {calib_file}.')
-        if person_height_m:
-            logging.info(f'Using height of person #{calib_on_person_id} ({person_height_m}m) to convert coordinates in meters. Floor angle: {floor_angle}, xy_origin: {xy_origin}.')
-
+    
     # Process video or webcam feed
     logging.info(f"\nProcessing video stream...")
     # logging.info(f"{'Video, ' if save_vid else ''}{'Images, ' if save_img else ''}{'Pose, ' if save_pose else ''}{'Angles ' if save_angles else ''}{'and ' if save_angles or save_img or save_pose or save_vid else ''}Logs will be saved in {result_dir}.")
@@ -1425,20 +1433,22 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             else:
                 cv2.putText(frame, f"Press 'q' to quit", (cam_width-int(400*fontSize), cam_height-20), cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (255,255,255), thickness+1, cv2.LINE_AA)
                 cv2.putText(frame, f"Press 'q' to quit", (cam_width-int(400*fontSize), cam_height-20), cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (0,0,255), thickness, cv2.LINE_AA)
-            
-            # Detect poses
-            keypoints, scores = pose_tracker(frame)
 
-            # Track persons
-            if tracking: # multi-person
+
+            # Retrieve pose or Estimate pose and track people
+            if load_trc: 
+                pass
+                # keypoints, scores = pose_file[frame_nb]
+            else: 
+                # Detect poses
+                keypoints, scores = pose_tracker(frame)
+                # Track persons
                 if tracking_rtmlib:
                     keypoints, scores = sort_people_rtmlib(pose_tracker, keypoints, scores)
                 else:
                     if 'prev_keypoints' not in locals(): prev_keypoints = keypoints
                     prev_keypoints, keypoints, scores = sort_people_sports2d(prev_keypoints, keypoints, scores=scores)
-            else: # single person
-                keypoints, scores = np.array([keypoints[0]]), np.array([scores[0]])
-            
+                
             
             # Process coordinates and compute angles
             valid_X, valid_Y, valid_scores = [], [], []
@@ -1460,6 +1470,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 valid_Y.append(person_Y)
                 valid_scores.append(person_scores)
 
+
+                # Compute angles
                 if calculate_angles:
                     # Check whether the person is looking to the left or right
                     if flip_left_right:
@@ -1474,6 +1486,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                         ang = compute_angle(ang_name, person_X_flipped, person_Y, angle_dict, keypoints_ids, keypoints_names)
                         person_angles.append(ang)
                     valid_angles.append(person_angles)
+
 
             # Draw keypoints and skeleton
             if show_realtime_results or save_vid or save_img:
@@ -1534,8 +1547,14 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         all_frames_Z_homog = pd.DataFrame(np.zeros_like(all_frames_X_homog)[:,0,:], columns=keypoints_names)
         
         # Process pose for each person
+        if not multiperson:
+            detected_persons = [1]
+        else:
+            detected_persons = range(all_frames_X_homog.shape[1])
+
         trc_data = []
-        for i in range(all_frames_X_homog.shape[1]):
+        trc_data_unfiltered = []
+        for i in detected_persons:
             pose_path_person = pose_output_path.parent / (pose_output_path.stem + f'_person{i:02d}.trc')
             all_frames_X_person = pd.DataFrame(all_frames_X_homog[:,i,:], columns=keypoints_names)
             all_frames_Y_person = pd.DataFrame(all_frames_Y_homog[:,i,:], columns=keypoints_names)
@@ -1600,18 +1619,18 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 logging.info(f'Pose in pixels saved to {pose_path_person.resolve()}.')
 
                 # Plotting coordinates before and after interpolation and filtering
-                if show_plots:
-                    trc_data_unfiltered = pd.concat([pd.concat([all_frames_X_person.iloc[:,kpt], all_frames_Y_person.iloc[:,kpt], all_frames_Z_homog.iloc[:,kpt]], axis=1) for kpt in range(len(all_frames_X_person.columns))], axis=1)
-                    trc_data_unfiltered.insert(0, 't', all_frames_time)
-                    pose_plots(trc_data_unfiltered, trc_data_i, i) # i = current person
+                trc_data_unfiltered_i = pd.concat([pd.concat([all_frames_X_person.iloc[:,kpt], all_frames_Y_person.iloc[:,kpt], all_frames_Z_homog.iloc[:,kpt]], axis=1) for kpt in range(len(all_frames_X_person.columns))], axis=1)
+                trc_data_unfiltered_i.insert(0, 't', all_frames_time)
+                trc_data_unfiltered.append(trc_data_unfiltered_i)
+                if show_plots and not to_meters:
+                    pose_plots(trc_data_unfiltered_i, trc_data_i, i) # i = current person
             
 
         # Convert px to meters
         if to_meters:
-            if not calib_file and not person_height_m:
-                logging.info('No calibration file nor person_height_m provided. Calibration using default person height of 1.70m.')
-
+            logging.info('\nConverting pose to meters:')
             if calib_file:
+                logging.info(f'Using calibration file to convert coordinates in meters: {calib_file}.')
                 calib_params_dict = retrieve_calib_params(calib_file)
             #     all_frames_X_person_m = all_frames_X_person_filt * calib['px_to_m']
             #     all_frames_Y_person_m = all_frames_Y_person_filt * calib['px_to_m']
@@ -1620,28 +1639,34 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             #     logging.info(f'Pose in meters saved to {pose_path_person_m.resolve()}.')
 
             else:
+                logging.info(f'Using height of person #{calib_on_person_id} ({person_height_m}m) to convert coordinates in meters. Floor angle: {floor_angle}, xy_origin: {xy_origin}.')
                 # Compute calibration parameters
                 height_px = compute_height_px(trc_data[calib_on_person_id].iloc[:,1:], keypoints_names)
 
                 if floor_angle == 'auto' or xy_origin == 'auto':
                     # estimated from the line formed by the toes when they are on the ground (where speed = 0)
                     floor_angle_estim, xy_origin_estim = compute_floor_line(trc_data[calib_on_person_id], keypoint_names=['LBigToe', 'RBigToe'])
-                    if floor_angle == 'auto':
-                        floor_angle = floor_angle_estim
-                    if xy_origin == 'auto':
-                        cx, cy = xy_origin_estim
-                    else:
-                        cx, cy = xy_origin
+                if floor_angle == 'auto':
+                    floor_angle = floor_angle_estim
+                if xy_origin == 'auto':
+                    cx, cy = xy_origin_estim
+                else:
+                    cx, cy = xy_origin
 
-                # Coordinates in m
-                for i in range(len(trc_data)):
-                    trc_data_m_i = pd.concat([convert_px_to_meters(trc_data[i][kpt_name], person_height_m, height_px, cx, cy, floor_angle) for kpt_name in keypoints_names], axis=1)
-                    trc_data_m_i.insert(0, 't', all_frames_time)
-                    
-                    # Write to trc file
-                    pose_path_person_m_i = (pose_output_path.parent / (pose_output_path_m.stem + f'_person{i:02d}.trc'))
-                    make_trc_with_trc_data(trc_data_m_i, pose_path_person_m_i)
-                    logging.info(f'Poses in meters saved to {pose_path_person_m_i.resolve()}.')
+            # Coordinates in m
+            for i in range(len(trc_data)):
+                trc_data_m_i = pd.concat([convert_px_to_meters(trc_data[i][kpt_name], person_height_m, height_px, cx, cy, floor_angle) for kpt_name in keypoints_names], axis=1)
+                trc_data_m_i.insert(0, 't', all_frames_time)
+                trc_data_unfiltered_m_i = pd.concat([convert_px_to_meters(trc_data_unfiltered[i][kpt_name], person_height_m, height_px, cx, cy, floor_angle) for kpt_name in keypoints_names], axis=1)
+                trc_data_unfiltered_m_i.insert(0, 't', all_frames_time)
+
+                if to_meters:
+                    pose_plots(trc_data_unfiltered_m_i, trc_data_m_i, i)
+                
+                # Write to trc file
+                pose_path_person_m_i = (pose_output_path.parent / (pose_output_path_m.stem + f'_person{i:02d}.trc'))
+                make_trc_with_trc_data(trc_data_m_i, pose_path_person_m_i)
+                logging.info(f'Person {i}: Pose in meters saved to {pose_path_person_m_i.resolve()}.')
                     
                 
             
