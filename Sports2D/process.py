@@ -1559,10 +1559,10 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 if save_img:
                     cv2.imwrite(str((img_output_dir / f'{output_dir_name}_{frame_count:06d}.png')), img)
 
-            if save_pose:
-                all_frames_X.append(np.array(valid_X))
-                all_frames_Y.append(np.array(valid_Y))
-                all_frames_scores.append(np.array(valid_scores))
+            all_frames_X.append(np.array(valid_X))
+            all_frames_Y.append(np.array(valid_Y))
+            all_frames_scores.append(np.array(valid_scores))
+            
             if save_angles and calculate_angles:
                 all_frames_angles.append(np.array(valid_angles))
             if video_file=='webcam' and save_vid:   # To adjust framerate of output video
@@ -1587,26 +1587,25 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     
 
     # Post-processing: Interpolate, filter, and save pose and angles
+    all_frames_X_homog = make_homogeneous(all_frames_X)
+    all_frames_X_homog = all_frames_X_homog[...,keypoints_ids]
+    all_frames_Y_homog = make_homogeneous(all_frames_Y)
+    all_frames_Y_homog = all_frames_Y_homog[...,keypoints_ids]
+    all_frames_Z_homog = pd.DataFrame(np.zeros_like(all_frames_X_homog)[:,0,:], columns=keypoints_names)
+    all_frames_scores = make_homogeneous(all_frames_scores)
+
     frame_range = [0,frame_count] if video_file == 'webcam' else frame_range
     all_frames_time = pd.Series(np.linspace(frame_range[0]/fps/slowmo_factor, frame_range[1]/fps/slowmo_factor, frame_count+1), name='time')
-    
+    if not multiperson:
+        detected_persons = [get_personID_with_highest_scores(all_frames_scores)]
+    else:
+        detected_persons = range(all_frames_X_homog.shape[1])
+
+    # Post-processing pose
     if save_pose:
         logging.info('\nPost-processing pose:')
-        # Select only the keypoints that are in the model from skeletons.py, invert Y axis, divide pixel values by 1000
-        all_frames_X_homog = make_homogeneous(all_frames_X)
-        all_frames_X_homog = all_frames_X_homog[...,keypoints_ids]
-        all_frames_Y_homog = make_homogeneous(all_frames_Y)
-        all_frames_Y_homog = all_frames_Y_homog[...,keypoints_ids]
-        all_frames_scores = make_homogeneous(all_frames_scores)
 
-        all_frames_Z_homog = pd.DataFrame(np.zeros_like(all_frames_X_homog)[:,0,:], columns=keypoints_names)
-        
         # Process pose for each person
-        if not multiperson:
-            detected_persons = [get_personID_with_highest_scores(all_frames_scores)]
-        else:
-            detected_persons = range(all_frames_X_homog.shape[1])
-
         trc_data = []
         trc_data_unfiltered = []
         for i in detected_persons:
@@ -1706,7 +1705,6 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     cx, cy = xy_origin_estim
                 else:
                     cx, cy = xy_origin
-                print(xy_origin_estim, xy_origin)
                 logging.info(f'Using height of person #{calib_on_person_id} ({person_height_m}m) to convert coordinates in meters. '
                              f'Floor angle: {np.degrees(-floor_angle_estim) if not floor_angle=="auto" else f"auto (estimation: {round(np.degrees(-floor_angle_estim),2)}°)"}, '
                              f'xy_origin: {xy_origin if not xy_origin=="auto" else f"auto (estimation: {[round(c,2) for c in xy_origin_estim]})"}.')
@@ -1775,7 +1773,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
 
 
 
-    # Angles post-processing
+    # Post-processing angles
     if save_angles and calculate_angles:
         logging.info('\nPost-processing angles:')
         all_frames_angles = make_homogeneous(all_frames_angles)

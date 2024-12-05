@@ -237,9 +237,9 @@ Will be much faster, with no impact on accuracy. However, the installation takes
 <br>
 
 #### Customize your output:
-- Choose whether you want video, images, trc pose file, and angle mot file:
+- Choose whether you want video, images, trc pose file, angle mot file, and real-time display:
   ```cmd
-  sports2d --save_vid false --save_img true --save_trc false --save_mot true
+  sports2d --save_vid false --save_img true --save_pose false --save_angles true --show_realtime_results false
   ```
 - Choose which angles you need:
   ```cmd
@@ -415,7 +415,7 @@ If you want to contribute to Sports2D, please follow [this guide](https://docs.g
 - [x] Run again without pose estimation with the option `--load_trc` for px .trc file.
 - [x] **Convert positions to meters** by providing the person height, a calibration file, or 3D points [to click on the image](https://stackoverflow.com/questions/74248955/how-to-display-the-coordinates-of-the-points-clicked-on-the-image-in-google-cola)
 - [ ] Perform **Inverse kinematics and dynamics** with OpenSim (cf. [Pose2Sim](https://github.com/perfanalytics/pose2sim), but in 2D). Update [this model](https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Utilities/2D_gait.osim) (add arms, markers, remove muscles and contact spheres). Add pipeline example.
-- [ ] Run with the options `--load_trc` and `--compare` to visually compare motion with a trc file. If run with a webcam input, the user can follow the motion of the trc file. Further calculation can then be done to compare specific variables.
+- [ ] Run with the option `--compare_to` to visually compare motion with a trc file. If run with a webcam input, the user can follow the motion of the trc file. Further calculation can then be done to compare specific variables.
 - [ ] **Colab version**: more user-friendly, usable on a smartphone.
 - [ ] **GUI applications** for Windows, Mac, and Linux, as well as for Android and iOS.
 
