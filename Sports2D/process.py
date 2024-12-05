@@ -903,41 +903,22 @@ def load_pose_file(Q_coords):
     return keypoints_all, scores_all
 
 
-def make_trc_with_XYZ(X, Y, Z, time, trc_path):
+def trc_data_from_XYZtime(X, Y, Z, time):
     '''
-    Write a trc file from 3D coordinates and time, compatible with OpenSim.
+    Constructs trc_data from 3D coordinates and time.
 
     INPUTS:
     - X: pd.DataFrame. The x coordinates of the keypoints
     - Y: pd.DataFrame. The y coordinates of the keypoints
     - Z: pd.DataFrame. The z coordinates of the keypoints
     - time: pd.Series. The time series for the coordinates
-    - trc_path: str. The path where to save the trc file
 
     OUTPUT:
-    - trc_data: pd.DataFrame. The data that has been written to the TRC file
+    - trc_data: pd.DataFrame. Dataframe of trc data
     '''
 
-    #Header
-    frame_rate = (len(X)-1)/(time.iloc[-1] - time.iloc[0])
-    DataRate = CameraRate = OrigDataRate = frame_rate
-    NumFrames = len(X)
-    NumMarkers = len(X.columns)
-    keypoint_names = X.columns
-    header_trc = ['PathFileType\t4\t(X/Y/Z)\t' + str(trc_path), 
-            'DataRate\tCameraRate\tNumFrames\tNumMarkers\tUnits\tOrigDataRate\tOrigDataStartFrame\tOrigNumFrames', 
-            '\t'.join(map(str,[DataRate, CameraRate, NumFrames, NumMarkers, 'm', OrigDataRate, 0, NumFrames])),
-            'Frame#\tTime\t' + '\t\t\t'.join(keypoint_names) + '\t\t',
-            '\t\t'+'\t'.join([f'X{i+1}\tY{i+1}\tZ{i+1}' for i in range(len(keypoint_names))])]
-    
-    # Data
     trc_data = pd.concat([pd.concat([X.iloc[:,kpt], Y.iloc[:,kpt], Z.iloc[:,kpt]], axis=1) for kpt in range(len(X.columns))], axis=1)
     trc_data.insert(0, 't', time)
-
-    # Write file
-    with open(trc_path, 'w') as trc_o:
-        [trc_o.write(line+'\n') for line in header_trc]
-        trc_data.to_csv(trc_o, sep='\t', index=True, header=None, lineterminator='\n')
 
     return trc_data
 
@@ -1215,19 +1196,19 @@ def best_coords_for_measurements(Q_coords, keypoints_names, fastest_frames_to_re
     return Q_coords_low_speeds_low_angles
 
 
-def compute_height_px(Q_coords, keypoints_names):
+def compute_height(Q_coords, keypoints_names):
     '''
-    Compute the height of the person in pixels from the trc data.
+    Compute the height of the person from the trc data.
 
     INPUTS:
     - Q_coords: pd.DataFrame. The XYZ coordinates of each marker
     - keypoints_names: list. The list of marker names
 
     OUTPUT:
-    - height: float. The height of the person in pixels
+    - height: float. The estimated height of the person
     '''
 
-    fastest_frames_to_remove_percent=0.2 # frames with high speed are considered as outliers (frames with zero speed are also removed))
+    fastest_frames_to_remove_percent=0.1 # frames with high speed are considered as outliers (frames with zero speed are also removed))
     large_hip_knee_angles=45 # hip and knee angles below this value are considered as imprecise
     trimmed_extrema_percent=0.5  # proportion of the most extreme segment values to remove before calculating their mean)
 
@@ -1241,7 +1222,7 @@ def compute_height_px(Q_coords, keypoints_names):
     df_MidShoulder.columns = ['MidShoulder']*3
     Q_coords_low_speeds_low_angles = pd.concat((Q_coords_low_speeds_low_angles.reset_index(drop=True), df_MidShoulder), axis=1)
 
-    # Compute the height of the person in pixels
+    # Automatically compute the height of the person
     pairs_up_to_shoulders = [['RHeel', 'RAnkle'], ['RAnkle', 'RKnee'], ['RKnee', 'RHip'], ['RHip', 'RShoulder'],
                             ['LHeel', 'LAnkle'], ['LAnkle', 'LKnee'], ['LKnee', 'LHip'], ['LHip', 'LShoulder']]
     try:
@@ -1690,9 +1671,11 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     all_frames_Y_person_filt = all_frames_Y_person_interp.apply(filter.filter1d, axis=0, args=filter_options)
 
                 # Build TRC file
-                trc_data_i = make_trc_with_XYZ(all_frames_X_person_filt, all_frames_Y_person_filt, all_frames_Z_homog, all_frames_time, str(pose_path_person))
+                trc_data_i = trc_data_from_XYZtime(all_frames_X_person_filt, all_frames_Y_person_filt, all_frames_Z_homog, all_frames_time)
                 trc_data.append(trc_data_i)
-                logging.info(f'Pose in pixels saved to {pose_path_person.resolve()}.')
+                if not load_trc:
+                    make_trc_with_trc_data(trc_data_i, str(pose_path_person), fps=fps)
+                    logging.info(f'Pose in pixels saved to {pose_path_person.resolve()}.')
 
                 # Plotting coordinates before and after interpolation and filtering
                 trc_data_unfiltered_i = pd.concat([pd.concat([all_frames_X_person.iloc[:,kpt], all_frames_Y_person.iloc[:,kpt], all_frames_Z_homog.iloc[:,kpt]], axis=1) for kpt in range(len(all_frames_X_person.columns))], axis=1)
@@ -1707,33 +1690,32 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             if calib_file:
                 logging.info(f'Using calibration file to convert coordinates in meters: {calib_file}.')
                 calib_params_dict = retrieve_calib_params(calib_file)
-            #     all_frames_X_person_m = all_frames_X_person_filt * calib['px_to_m']
-            #     all_frames_Y_person_m = all_frames_Y_person_filt * calib['px_to_m']
-            #     all_frames_Z_person_m = all_frames_Z_homog * calib['px_to_m']
-            #     trc_data_m = make_trc_with_XYZ(all_frames_X_person_m, all_frames_Y_person_m, all_frames_Z_person_m, all_frames_time, str(pose_path_person_m))
-            #     logging.info(f'Pose in meters saved to {pose_path_person_m.resolve()}.')
+                # TODO
 
             else:
-                logging.info(f'Using height of person #{calib_on_person_id} ({person_height_m}m) to convert coordinates in meters. Floor angle: {floor_angle}, xy_origin: {xy_origin}.')
                 # Compute calibration parameters
-                height_px = compute_height_px(trc_data[calib_on_person_id].iloc[:,1:], keypoints_names)
+                height_px = compute_height(trc_data[calib_on_person_id].iloc[:,1:], keypoints_names)
 
                 if floor_angle == 'auto' or xy_origin == 'auto':
                     # estimated from the line formed by the toes when they are on the ground (where speed = 0)
                     floor_angle_estim, xy_origin_estim = compute_floor_line(trc_data[calib_on_person_id], keypoint_names=['LBigToe', 'RBigToe'])
-                if floor_angle == 'auto':
-                    floor_angle = floor_angle_estim
+                if not floor_angle == 'auto':
+                    floor_angle_estim = floor_angle
+                floor_angle_estim = -floor_angle_estim # Y points downwards
                 if xy_origin == 'auto':
                     cx, cy = xy_origin_estim
                 else:
                     cx, cy = xy_origin
+                logging.info(f'Using height of person #{calib_on_person_id} ({person_height_m}m) to convert coordinates in meters. '
+                             f'Floor angle: {np.degrees(-floor_angle_estim) if not floor_angle=="auto" else f"auto (estimation: {round(np.degrees(-floor_angle_estim),2)}°)"}, '
+                             f'xy_origin: {xy_origin if not xy_origin=="auto" else f"auto (estimation: {round(xy_origin_estim,2)})"}.')
 
             # Coordinates in m
             for i in range(len(trc_data)):
                 if not np.array(trc_data[i].iloc[:,1:] ==0).all():
-                    trc_data_m_i = pd.concat([convert_px_to_meters(trc_data[i][kpt_name], person_height_m, height_px, cx, cy, floor_angle) for kpt_name in keypoints_names], axis=1)
+                    trc_data_m_i = pd.concat([convert_px_to_meters(trc_data[i][kpt_name], person_height_m, height_px, cx, cy, floor_angle_estim) for kpt_name in keypoints_names], axis=1)
                     trc_data_m_i.insert(0, 't', all_frames_time)
-                    trc_data_unfiltered_m_i = pd.concat([convert_px_to_meters(trc_data_unfiltered[i][kpt_name], person_height_m, height_px, cx, cy, floor_angle) for kpt_name in keypoints_names], axis=1)
+                    trc_data_unfiltered_m_i = pd.concat([convert_px_to_meters(trc_data_unfiltered[i][kpt_name], person_height_m, height_px, cx, cy, floor_angle_estim) for kpt_name in keypoints_names], axis=1)
                     trc_data_unfiltered_m_i.insert(0, 't', all_frames_time)
 
                     if to_meters and show_plots:
