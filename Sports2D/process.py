@@ -1706,9 +1706,10 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     cx, cy = xy_origin_estim
                 else:
                     cx, cy = xy_origin
+                print(xy_origin_estim, xy_origin)
                 logging.info(f'Using height of person #{calib_on_person_id} ({person_height_m}m) to convert coordinates in meters. '
                              f'Floor angle: {np.degrees(-floor_angle_estim) if not floor_angle=="auto" else f"auto (estimation: {round(np.degrees(-floor_angle_estim),2)}°)"}, '
-                             f'xy_origin: {xy_origin if not xy_origin=="auto" else f"auto (estimation: {round(xy_origin_estim,2)})"}.')
+                             f'xy_origin: {xy_origin if not xy_origin=="auto" else f"auto (estimation: {[round(c,2) for c in xy_origin_estim]})"}.')
 
             # Coordinates in m
             for i in range(len(trc_data)):
