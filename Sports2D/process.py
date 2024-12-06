@@ -1160,17 +1160,18 @@ def mean_angles(Q_coords, markers, ang_to_consider = ['right knee', 'left knee',
     return ang_mean
 
 
-def best_coords_for_measurements(Q_coords, keypoints_names, fastest_frames_to_remove_percent=0.2, large_hip_knee_angles=45):
+def best_coords_for_measurements(Q_coords, keypoints_names, fastest_frames_to_remove_percent=0.2, close_to_zero_speed=0.2, large_hip_knee_angles=45):
     '''
     Compute the best coordinates for measurements, after removing:
     - 20% fastest frames (may be outliers)
-    - frames when speed is zero (person is out of frame)
+    - frames when speed is close to zero (person is out of frame): 0.2 m/frame, or 50 px/frame
     - frames when hip and knee angle below 45° (imprecise coordinates when person is crouching)
     
     INPUTS:
     - Q_coords: pd.DataFrame. The XYZ coordinates of each marker
     - keypoints_names: list. The list of marker names
     - fastest_frames_to_remove_percent: float
+    - close_to_zero_speed: float (sum for all keypoints: about 50 px/frame or 0.2 m/frame)
     - large_hip_knee_angles: int
     - trimmed_extrema_percent
 
@@ -1182,7 +1183,7 @@ def best_coords_for_measurements(Q_coords, keypoints_names, fastest_frames_to_re
 
     # Using 80% slowest frames
     sum_speeds = pd.Series(np.nansum([np.linalg.norm(Q_coords.iloc[:,kpt:kpt+3].diff(), axis=1) for kpt in range(n_markers)], axis=0))
-    sum_speeds = sum_speeds[sum_speeds>50] # Removing when speeds close to zero (out of frame)
+    sum_speeds = sum_speeds[sum_speeds>close_to_zero_speed] # Removing when speeds close to zero (out of frame)
     min_speed_indices = sum_speeds.abs().nsmallest(int(len(sum_speeds) * (1-fastest_frames_to_remove_percent))).index
     Q_coords_low_speeds = Q_coords.iloc[min_speed_indices].reset_index(drop=True)    
     
@@ -1196,25 +1197,25 @@ def best_coords_for_measurements(Q_coords, keypoints_names, fastest_frames_to_re
     return Q_coords_low_speeds_low_angles
 
 
-def compute_height(Q_coords, keypoints_names):
+def compute_height(Q_coords, keypoints_names, fastest_frames_to_remove_percent=0.1, close_to_zero_speed=50, large_hip_knee_angles=45, trimmed_extrema_percent=0.5):
     '''
     Compute the height of the person from the trc data.
 
     INPUTS:
     - Q_coords: pd.DataFrame. The XYZ coordinates of each marker
     - keypoints_names: list. The list of marker names
-
+    - fastest_frames_to_remove_percent: float. Frames with high speed are considered as outliers
+    - close_to_zero_speed: float. Sum for all keypoints: about 50 px/frame or 0.2 m/frame
+    - large_hip_knee_angles5: float. Hip and knee angles below this value are considered as imprecise
+    - trimmed_extrema_percent: float. Proportion of the most extreme segment values to remove before calculating their mean)
+    
     OUTPUT:
     - height: float. The estimated height of the person
     '''
-
-    fastest_frames_to_remove_percent=0.1 # frames with high speed are considered as outliers (frames with zero speed are also removed))
-    large_hip_knee_angles=45 # hip and knee angles below this value are considered as imprecise
-    trimmed_extrema_percent=0.5  # proportion of the most extreme segment values to remove before calculating their mean)
-
+    
     # Retrieve most reliable coordinates
     Q_coords_low_speeds_low_angles = best_coords_for_measurements(Q_coords, keypoints_names, 
-                                                                  fastest_frames_to_remove_percent=fastest_frames_to_remove_percent, large_hip_knee_angles=large_hip_knee_angles)
+                                                                  fastest_frames_to_remove_percent=fastest_frames_to_remove_percent, close_to_zero_speed=close_to_zero_speed, large_hip_knee_angles=large_hip_knee_angles)
     Q_coords_low_speeds_low_angles.columns = np.array([[m]*3 for m in keypoints_names]).flatten()
 
     # Add MidShoulder column
@@ -1342,18 +1343,23 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     tracking_mode = config_dict.get('pose').get('tracking_mode')
     
     # Pixel to meters conversion
-    to_meters = config_dict.get('pose').get('to_meters')
-    save_calib = config_dict.get('pose').get('save_calib')
+    to_meters = config_dict.get('px_to_meters_conversion').get('to_meters')
+    save_calib = config_dict.get('px_to_meters_conversion').get('save_calib')
     # Calibration from file
-    calib_file = config_dict.get('pose').get('calib_file')
+    calib_file = config_dict.get('px_to_meters_conversion').get('calib_file')
     if calib_file == '': calib_file = None
     else: calib_file = Path(calib_file).resolve()
     # Calibration from person height
-    calib_on_person_id = int(config_dict.get('pose').get('calib_on_person_id'))
-    floor_angle = config_dict.get('pose').get('floor_angle') # 'auto' or float
+    calib_on_person_id = int(config_dict.get('px_to_meters_conversion').get('calib_on_person_id'))
+    floor_angle = config_dict.get('px_to_meters_conversion').get('floor_angle') # 'auto' or float
     floor_angle = np.radians(float(floor_angle)) if floor_angle != 'auto' else floor_angle
-    xy_origin = config_dict.get('pose').get('xy_origin') # ['auto'] or [x, y]    
+    xy_origin = config_dict.get('px_to_meters_conversion').get('xy_origin') # ['auto'] or [x, y]    
     xy_origin = [float(o) for o in xy_origin] if xy_origin != ['auto'] else 'auto'
+
+    fastest_frames_to_remove_percent = config_dict.get('px_to_meters_conversion').get('fastest_frames_to_remove_percent')
+    large_hip_knee_angles = config_dict.get('px_to_meters_conversion').get('large_hip_knee_angles')
+    trimmed_extrema_percent = config_dict.get('px_to_meters_conversion').get('trimmed_extrema_percent')
+    close_to_zero_speed_px = config_dict.get('px_to_meters_conversion').get('close_to_zero_speed_px')
 
     keypoint_likelihood_threshold = config_dict.get('pose').get('keypoint_likelihood_threshold')
     average_likelihood_threshold = config_dict.get('pose').get('average_likelihood_threshold')
@@ -1693,7 +1699,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
 
             else:
                 # Compute calibration parameters
-                height_px = compute_height(trc_data[calib_on_person_id].iloc[:,1:], keypoints_names)
+                height_px = compute_height(trc_data[calib_on_person_id].iloc[:,1:], keypoints_names,
+                                            fastest_frames_to_remove_percent=fastest_frames_to_remove_percent, close_to_zero_speed=close_to_zero_speed_px, large_hip_knee_angles=large_hip_knee_angles, trimmed_extrema_percent=trimmed_extrema_percent)
 
                 if floor_angle == 'auto' or xy_origin == 'auto':
                     # estimated from the line formed by the toes when they are on the ground (where speed = 0)

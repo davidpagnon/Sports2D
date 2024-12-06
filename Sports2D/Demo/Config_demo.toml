@@ -44,16 +44,6 @@ result_dir = '' # If empty, project dir is current dir
 # ADVANCED CONFIGURATION #
 ##########################
 [pose]
-# Pixel to meters conversion
-to_meters = true
-# If conversion from a calibration file
-calib_file = ''         # Calibration in the Pose2Sim format. 'calib_demo.toml', or '' if not available
-# If conversion from person_height
-calib_on_person_id = 0  # Person to use for calibration
-floor_angle = 'auto'    # 'auto' or a value in degrees, eg 2.3. If 'auto', estimated from the line formed by the toes when they are on the ground (where speed = 0)
-xy_origin = ['auto']    # ['auto'] or [px_x,px_y]. N.B.: px_y points downwards. If ['auto'], direction estimated from the start to the end of the line formed by the toes when they are on the ground
-save_calib = true
-
 # Slow motion factor
 slowmo_factor = 1       # 1 for normal speed. For a video recorded at 240 fps and exported to 30 fps, it would be 240/30 = 8
 
@@ -68,6 +58,23 @@ tracking_mode = 'sports2d' # 'rtmlib' or 'sports2d'. 'sports2d' is generally muc
 keypoint_likelihood_threshold = 0.3 # Keypoints whose likelihood is lower will not be taken into account
 average_likelihood_threshold = 0.5  # Person will be ignored if average likelihood of good keypoints is lower than this value
 keypoint_number_threshold = 0.3     # Person will be ignored if the number of good keypoints is less than this fraction
+
+
+[px_to_meters_conversion]
+# Pixel to meters conversion
+to_meters = true
+# If conversion from a calibration file
+calib_file = ''         # Calibration in the Pose2Sim format. 'calib_demo.toml', or '' if not available
+# If conversion from person_height
+calib_on_person_id = 0  # Person to use for calibration
+floor_angle = 'auto'    # 'auto' or a value in degrees, eg 2.3. If 'auto', estimated from the line formed by the toes when they are on the ground (where speed = 0)
+xy_origin = ['auto']    # ['auto'] or [px_x,px_y]. N.B.: px_y points downwards. If ['auto'], direction estimated from the start to the end of the line formed by the toes when they are on the ground
+save_calib = true
+
+fastest_frames_to_remove_percent = 0.1 # Frames with high speed are considered as outliers
+close_to_zero_speed_px = 50 # Sum for all keypoints: about 50 px/frame or 0.2 m/frame
+large_hip_knee_angles = 45 # Hip and knee angles below this value are considered as imprecise
+trimmed_extrema_percent = 0.5 # Proportion of the most extreme segment values to remove before calculating their mean)
 
 
 [angles]
@@ -112,3 +119,4 @@ person_orientation = ['front', 'none', 'left'] # Choose among 'auto', 'none', 'f
                      # Example with one person on one video: ['front']
                      # Or ['front', 'none', 'left'] with 3 persons on one video
 osim_setup_path = '../OpenSim_setup' # Path to the OpenSim setup folder
+close_to_zero_speed_m = 0.2 
