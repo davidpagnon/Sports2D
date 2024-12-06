@@ -201,7 +201,8 @@ DEFAULT_CONFIG =   {'project': {'video_input': ['demo.mp4'],
                                         },
                     'inverse-kinematics':{'do_ik': False,
                                           'person_orientation': ['front', '', 'left'],
-                                          'osim_setup_path': '../OpenSim_setup'
+                                          'osim_setup_path': '../OpenSim_setup',
+                                          'close_to_zero_speed_m': 0.2
                                           }
                     }
 
@@ -238,6 +239,7 @@ CONFIG_HELP =   {'config': ["C", "path to a toml configuration file"],
                 'do_ik': ["", "do inverse kinematics. false if not specified"],
                 'osim_setup_path': ["", "path to OpenSim setup. '../OpenSim_setup' if not specified"],
                 'person_orientation': ["", "front, back, left, right, auto, or none. 'front none left' if not specified. If 'auto', will be either left or right depending on the direction of the motion."],
+                'close_to_zero_speed_m': ["","Sum for all keypoints: about 50 px/frame or 0.2 m/frame"], 
                 'multiperson': ["", "multiperson involves tracking: will be faster if set to false. true if not specified"],                'tracking_mode': ["", "sports2d or rtmlib. sports2d is generally much more accurate and comparable in speed. sports2d if not specified"],
                 'input_size': ["", "width, height. 1280, 720 if not specified. Lower resolution will be faster but less precise"],
                 'keypoint_likelihood_threshold': ["", "detected keypoints are not retained if likelihood is below this threshold. 0.3 if not specified"],
