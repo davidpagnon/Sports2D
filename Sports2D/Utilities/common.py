@@ -20,6 +20,7 @@ import sys
 import toml
 import subprocess
 from pathlib import Path
+import logging
 
 import numpy as np
 from scipy import interpolate
@@ -206,7 +207,12 @@ def get_start_time_ffmpeg(video_path):
     Get the start time of a video using FFmpeg.
     '''
 
-    ffmpeg_path = ffmpeg.get_ffmpeg_exe()
+    try:
+        ffmpeg_path = ffmpeg.get_ffmpeg_exe()
+    except Exception as e:
+        logging.warning(f"No ffmpeg exe could be found. Starting time set to 0.0. Error: {e}")
+        return 0.0
+    
     cmd = [ffmpeg_path, "-i", video_path]
     result = subprocess.run(cmd, stderr=subprocess.PIPE, stdout=subprocess.DEVNULL, text=True)
     for line in result.stderr.splitlines():
