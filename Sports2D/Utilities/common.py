@@ -170,13 +170,16 @@ def make_homogeneous(list_of_arrays):
                 [item for sublist in list_of_arrays for item in sublist])
         else:
             # Determine the maximum shape across all list_of_arrays at this level
-            return [len(list_of_arrays)] + [max(arr.shape[i] for arr in list_of_arrays) for i in range(list_of_arrays[0].ndim)]
+            return [len(list_of_arrays)] + [max(arr.shape[i] for arr in list_of_arrays if arr.size > 0) for i in range(list_of_arrays[0].ndim)]
 
     def pad_with_nans(list_of_arrays, target_shape):
         '''
         Recursively pad list_of_arrays with nans to match the target shape.
         '''
         if isinstance(list_of_arrays, np.ndarray):
+            if list_of_arrays.size == 0:  # Handle empty arrays
+            # Return an array of nans with the correct target shape
+                return np.full(target_shape, np.nan, dtype=float)
             # Pad the current array to the target shape
             pad_width = [(0, max_dim - curr_dim) for curr_dim, max_dim in zip(list_of_arrays.shape, target_shape)]
             return np.pad(list_of_arrays.astype(float), pad_width, constant_values=np.nan)

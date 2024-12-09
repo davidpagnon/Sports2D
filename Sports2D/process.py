@@ -195,7 +195,7 @@ def setup_video(video_file_path, save_vid, vid_output_path):
     if video_file_path.name == video_file_path.stem:
         raise ValueError("Please set video_input to 'webcam' or to a video file (with extension) in Config.toml")
     try:
-        cap = cv2.VideoCapture(video_file_path)
+        cap = cv2.VideoCapture(str(video_file_path.absolute()))
         if not cap.isOpened():
             raise
     except:
@@ -210,12 +210,12 @@ def setup_video(video_file_path, save_vid, vid_output_path):
     if save_vid:
         # try:
         #     fourcc = cv2.VideoWriter_fourcc(*'avc1') # =h264. better compression and quality but may fail on some systems
-        #     out_vid = cv2.VideoWriter(vid_output_path, fourcc, fps, (cam_width, cam_height))
+        #     out_vid = cv2.VideoWriter(str(vid_output_path.absolute()), fourcc, fps, (cam_width, cam_height))
         #     if not out_vid.isOpened():
         #         raise ValueError("Failed to open video writer with 'avc1' (h264)")
         # except Exception:
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        out_vid = cv2.VideoWriter(vid_output_path, fourcc, fps, (cam_width, cam_height))
+        out_vid = cv2.VideoWriter(str(vid_output_path.absolute()), fourcc, fps, (cam_width, cam_height))
             # logging.info("Failed to open video writer with 'avc1' (h264). Using 'mp4v' instead.")
     
     return cap, out_vid, cam_width, cam_height, fps
@@ -1195,6 +1195,15 @@ def best_coords_for_measurements(Q_coords, keypoints_names, fastest_frames_to_re
     - Q_coords_low_speeds_low_angles: pd.DataFrame. The best coordinates for measurements
     '''
 
+    # Add Hip column if not present
+    n_markers_init = len(keypoints_names)
+    if 'Hip' not in keypoints_names:
+        RHip_df = Q_coords.iloc[:,keypoints_names.index('RHip')*3:keypoints_names.index('RHip')*3+3]
+        LHip_df = Q_coords.iloc[:,keypoints_names.index('LHip')*3:keypoints_names.index('RHip')*3+3]
+        Hip_df = RHip_df.add(LHip_df, fill_value=0) /2
+        Hip_df.columns = [col+ str(int(Q_coords.columns[-1][1:])+1) for col in ['X','Y','Z']]
+        keypoints_names += ['Hip']
+        Q_coords = pd.concat([Q_coords, Hip_df], axis=1)
     n_markers = len(keypoints_names)
 
     # Using 80% slowest frames
@@ -1209,6 +1218,9 @@ def best_coords_for_measurements(Q_coords, keypoints_names, fastest_frames_to_re
     Q_coords_low_speeds_low_angles = Q_coords_low_speeds[ang_mean < large_hip_knee_angles]
     if len(Q_coords_low_speeds_low_angles) < 50:
         Q_coords_low_speeds_low_angles = Q_coords_low_speeds.iloc[pd.Series(ang_mean).nsmallest(50).index]
+
+    if n_markers_init < n_markers:
+        Q_coords_low_speeds_low_angles = Q_coords_low_speeds_low_angles.iloc[:,:-3]
 
     return Q_coords_low_speeds_low_angles
 
