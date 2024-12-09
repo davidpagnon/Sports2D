@@ -1504,11 +1504,12 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     all_frames_scores.append([])
                 if save_angles:
                     all_frames_angles.append([])
+                frame_count += 1
                 continue
             else:
                 cv2.putText(frame, f"Press 'q' to quit", (cam_width-int(400*fontSize), cam_height-20), cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (255,255,255), thickness+1, cv2.LINE_AA)
                 cv2.putText(frame, f"Press 'q' to quit", (cam_width-int(400*fontSize), cam_height-20), cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (0,0,255), thickness, cv2.LINE_AA)
-
+                frame_count += 1
 
             # Retrieve pose or Estimate pose and track people
             if load_trc: 
@@ -1579,7 +1580,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 if save_vid:
                     out_vid.write(img)
                 if save_img:
-                    cv2.imwrite(str((img_output_dir / f'{output_dir_name}_{frame_count:06d}.png')), img)
+                    cv2.imwrite(str((img_output_dir / f'{output_dir_name}_{(frame_count-1):06d}.png')), img)
 
             all_frames_X.append(np.array(valid_X))
             all_frames_Y.append(np.array(valid_Y))
@@ -1590,7 +1591,6 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             if video_file=='webcam' and save_vid:   # To adjust framerate of output video
                 elapsed_time = (datetime.now() - start_time).total_seconds()
                 frame_processing_times.append(elapsed_time)
-            frame_count += 1
 
         cap.release()
         logging.info(f"Video processing completed.")
