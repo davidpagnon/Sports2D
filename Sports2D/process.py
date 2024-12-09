@@ -1416,6 +1416,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     gaussian_filter_kernel = config_dict.get('post-processing').get('gaussian').get('sigma_kernel')
     loess_filter_kernel = config_dict.get('post-processing').get('loess').get('nb_values_used')
     median_filter_kernel = config_dict.get('post-processing').get('median').get('kernel_size')
+    butterworth_filter_cutoff /= slowmo_factor
     filter_options = [do_filter, filter_type,
                            butterworth_filter_order, butterworth_filter_cutoff, frame_rate,
                            gaussian_filter_kernel, loess_filter_kernel, median_filter_kernel]
@@ -1452,7 +1453,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         logging.warning('Webcam input: the framerate may vary. If results are filtered, Sports2D will use the average framerate as input.')
     else:
         cap, out_vid, cam_width, cam_height, fps = setup_video(video_file_path, save_vid, vid_output_path)
-        frame_range = [int(time_range[0] * frame_rate), int(time_range[1] * frame_rate)] if time_range else [0, int(cap.get(cv2.CAP_PROP_FRAME_COUNT))]
+        start_time = get_start_time_ffmpeg(video_file_path)
+        frame_range = [int((time_range[0]-start_time) * frame_rate), int((time_range[1]-start_time) * frame_rate)] if time_range else [0, int(cap.get(cv2.CAP_PROP_FRAME_COUNT))]
         frame_iterator = tqdm(range(*frame_range)) # use a progress bar
     if show_realtime_results:
         cv2.namedWindow(f'{video_file} Sports2D', cv2.WINDOW_NORMAL + cv2.WINDOW_KEEPRATIO)
@@ -1498,6 +1500,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     frame_processing_times = []
     frame_count = 0
     while cap.isOpened():
+        # Skip to the starting frame
         if frame_count < frame_range[0]:
             cap.read()
             frame_count += 1

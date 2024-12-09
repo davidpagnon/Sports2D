@@ -194,7 +194,7 @@ DEFAULT_CONFIG =   {'project': {'video_input': ['demo.mp4'],
                                         'filter': True,
                                         'show_graphs': True,
                                         'filter_type': 'butterworth',
-                                        'butterworth': {'order': 4, 'cut_off_frequency': 3},
+                                        'butterworth': {'order': 4, 'cut_off_frequency': 6},
                                         'gaussian': {'sigma_kernel': 1},
                                         'loess': {'nb_values_used': 5},
                                         'median': {'kernel_size': 3}

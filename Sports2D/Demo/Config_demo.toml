@@ -102,7 +102,7 @@ show_graphs = true            # Show plots of raw and processed results
 filter_type = 'butterworth'   # butterworth, gaussian, LOESS, median
    [post-processing.butterworth]
    order = 4 
-   cut_off_frequency = 3 # Hz
+   cut_off_frequency = 6 # Hz # Will be divided by slowmo_factor to be equivalent to non slowed-down video
    [post-processing.gaussian]
    sigma_kernel = 1 #px
    [post-processing.loess]

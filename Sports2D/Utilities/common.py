@@ -164,6 +164,9 @@ def make_homogeneous(list_of_arrays):
     '''
     
     def get_max_shape(list_of_arrays):
+        '''
+        Recursively determine the maximum shape of a list of arrays.
+        '''
         if isinstance(list_of_arrays[0], list):
             # Maximum length at the current level plus the max shape at the next level
             return [max(len(arr) for arr in list_of_arrays)] + get_max_shape(
@@ -176,12 +179,16 @@ def make_homogeneous(list_of_arrays):
         '''
         Recursively pad list_of_arrays with nans to match the target shape.
         '''
-        if isinstance(list_of_arrays, np.ndarray):
-            if list_of_arrays.size == 0:  # Handle empty arrays
-            # Return an array of nans with the correct target shape
-                return np.full(target_shape, np.nan, dtype=float)
-            # Pad the current array to the target shape
-            pad_width = [(0, max_dim - curr_dim) for curr_dim, max_dim in zip(list_of_arrays.shape, target_shape)]
+        if isinstance(list_of_arrays, np.ndarray):        
+            # Pad the current array to the target shape        
+            pad_width = []        
+            for dim_index in range(0, len(target_shape)):
+                if dim_index == len(list_of_arrays.shape) or dim_index > len(list_of_arrays.shape):
+                    list_of_arrays = np.expand_dims(list_of_arrays, 0)
+            for dim_index in range(0, len(target_shape)):
+                max_dim = target_shape[dim_index]
+                curr_dim = list_of_arrays.shape[dim_index]
+                pad_width.append((0, max_dim - curr_dim))
             return np.pad(list_of_arrays.astype(float), pad_width, constant_values=np.nan)
         # Recursively pad each array in the list
         return [pad_with_nans(array, target_shape[1:]) for array in list_of_arrays]
@@ -192,6 +199,22 @@ def make_homogeneous(list_of_arrays):
     list_of_arrays = pad_with_nans(list_of_arrays, max_shape)
 
     return np.array(list_of_arrays)
+
+
+def get_start_time_ffmpeg(video_path):
+    '''
+    Get the start time of a video using FFmpeg.
+    '''
+
+    cmd = ["ffmpeg", "-i", video_path]
+    result = subprocess.run(cmd, stderr=subprocess.PIPE, stdout=subprocess.DEVNULL, text=True)
+    for line in result.stderr.splitlines():
+        if "start:" in line:
+            parts = line.split("start:")
+            if len(parts) > 1:
+                start_time = parts[1].split(",")[0].strip()
+                return float(start_time)
+    return 0.0  # Default to 0 if not found
 
 
 def resample_video(vid_output_path, fps, desired_framerate):
