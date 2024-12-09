@@ -206,7 +206,8 @@ def get_start_time_ffmpeg(video_path):
     Get the start time of a video using FFmpeg.
     '''
 
-    cmd = ["ffmpeg", "-i", video_path]
+    ffmpeg_path = ffmpeg.get_ffmpeg_exe()
+    cmd = [ffmpeg_path, "-i", video_path]
     result = subprocess.run(cmd, stderr=subprocess.PIPE, stdout=subprocess.DEVNULL, text=True)
     for line in result.stderr.splitlines():
         if "start:" in line:
