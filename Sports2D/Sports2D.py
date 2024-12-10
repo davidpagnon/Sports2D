@@ -203,7 +203,8 @@ DEFAULT_CONFIG =   {'project': {'video_input': ['demo.mp4'],
                                           'person_orientation': ['front', '', 'left'],
                                           'osim_setup_path': '../OpenSim_setup',
                                           'close_to_zero_speed_m': 0.2
-                                          }
+                                          },
+                    'logging': {'use_custom_logging': False}
                     }
 
 CONFIG_HELP =   {'config': ["C", "path to a toml configuration file"],
@@ -260,7 +261,8 @@ CONFIG_HELP =   {'config': ["C", "path to a toml configuration file"],
                 'cut_off_frequency': ["", "cut-off frequency of the Butterworth filter. 3 if not specified"],
                 'sigma_kernel': ["", "sigma of the gaussian filter. 1 if not specified"],
                 'nb_values_used': ["", "number of values used for the loess filter. 5 if not specified"],
-                'kernel_size': ["", "kernel size of the median filter. 3 if not specified"]
+                'kernel_size': ["", "kernel size of the median filter. 3 if not specified"],
+                'use_custom_logging': ["", "use custom logging. false if not specified"]
                 }
 
 
