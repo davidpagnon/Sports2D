@@ -120,3 +120,6 @@ person_orientation = ['front', 'none', 'left'] # Choose among 'auto', 'none', 'f
                      # Or ['front', 'none', 'left'] with 3 persons on one video
 osim_setup_path = '../OpenSim_setup' # Path to the OpenSim setup folder
 close_to_zero_speed_m = 0.2 # Sum for all keypoints: about 50 px/frame or 0.2 m/frame 
+
+[logging]
+use_custom_logging = false # if integrated in an API that already has logging

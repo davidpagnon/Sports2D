@@ -414,11 +414,13 @@ def process(config='Config_demo.toml'):
     else:
         config_dict = read_config_file(config)
     video_dir, video_files, frame_rates, time_ranges, result_dir = base_params(config_dict)
+    use_custom_logging = config_dict.get('logging').get('use_custom_logging')
         
     result_dir.mkdir(parents=True, exist_ok=True)
-    with open(result_dir / 'logs.txt', 'a+') as log_f: pass
-    logging.basicConfig(format='%(message)s', level=logging.INFO, force=True, 
-        handlers = [logging.handlers.TimedRotatingFileHandler(result_dir / 'logs.txt', when='D', interval=7), logging.StreamHandler()]) 
+    if not use_custom_logging: 
+        with open(result_dir / 'logs.txt', 'a+') as log_f: pass
+        logging.basicConfig(format='%(message)s', level=logging.INFO, force=True, 
+            handlers = [logging.handlers.TimedRotatingFileHandler(result_dir / 'logs.txt', when='D', interval=7), logging.StreamHandler()]) 
     
     for video_file, time_range, frame_rate in zip(video_files, time_ranges, frame_rates):
         currentDateAndTime = datetime.now()
