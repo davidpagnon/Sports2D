@@ -1101,7 +1101,7 @@ def get_personID_with_highest_scores(all_frames_scores):
     return person_id
 
 
-def compute_floor_line(trc_data, keypoint_names = ['LBigToe', 'RBigToe'], speed_threshold = 2.5):
+def compute_floor_line(trc_data, keypoint_names = ['LBigToe', 'RBigToe'], toe_speed_below = 1.0, tot_speed_above=2.0):
     '''
     Compute the floor line equation and angle 
     from the feet keypoints when they have zero speed.
@@ -1111,19 +1111,24 @@ def compute_floor_line(trc_data, keypoint_names = ['LBigToe', 'RBigToe'], speed_
     INPUTS:
     - trc_data: pd.DataFrame. The trc data
     - keypoint_names: list of str. The names of the keypoints to use
-    - speed_threshold: float. The speed threshold below which the keypoints are considered as not moving
+    - toe_speed_below: float. The speed threshold (px/frame) below which the keypoints are considered as not moving
 
     OUTPUT:
     - angle: float. The angle of the floor line in radians
     - xy_origin: list. The origin of the floor line
     '''
 
+
+    # Remove frames where the person is mostly not moving (outlier)
+    av_speeds = np.nanmean([np.linalg.norm(trc_data[kpt].diff(), axis=1) for kpt in trc_data.columns.unique()[1:]], axis=0)
+    trc_data = trc_data[av_speeds>tot_speed_above]
+
     # Retrieve zero-speed coordinates for the foot
     low_speeds_X, low_speeds_Y = [], []
     for kpt in keypoint_names:
         speeds = np.linalg.norm(trc_data[kpt].diff(), axis=1)
         
-        low_speed_frames = trc_data[speeds<speed_threshold].index
+        low_speed_frames = trc_data[speeds<toe_speed_below].index
         low_speeds_coords = trc_data[kpt].loc[low_speed_frames]
         low_speeds_coords = low_speeds_coords[low_speeds_coords!=0]
 
@@ -1501,7 +1506,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     frame_count = 0
     while cap.isOpened():
         # Skip to the starting frame
-        if frame_count < frame_range[0]:
+        if frame_count < frame_range[0] and not load_trc:
             cap.read()
             frame_count += 1
             continue
@@ -1528,6 +1533,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
 
             # Retrieve pose or Estimate pose and track people
             if load_trc: 
+                if frame_nb >= len(keypoints_all):
+                    break
                 keypoints = keypoints_all[frame_nb]
                 scores = scores_all[frame_nb]
             else: 
@@ -1545,18 +1552,23 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             valid_X, valid_Y, valid_scores = [], [], []
             valid_X_flipped, valid_angles = [], []
             for person_idx in range(len(keypoints)):
-                # Retrieve keypoints and scores for the person, remove low-confidence keypoints
-                person_X, person_Y = np.where(scores[person_idx][:, np.newaxis] < keypoint_likelihood_threshold, np.nan, keypoints[person_idx]).T
-                person_scores = np.where(scores[person_idx] < keypoint_likelihood_threshold, np.nan, scores[person_idx])
+                if load_trc:
+                    person_X = keypoints[person_idx][:,0]
+                    person_Y = keypoints[person_idx][:,1]
+                    person_scores = scores[person_idx]
+                else:
+                    # Retrieve keypoints and scores for the person, remove low-confidence keypoints
+                    person_X, person_Y = np.where(scores[person_idx][:, np.newaxis] < keypoint_likelihood_threshold, np.nan, keypoints[person_idx]).T
+                    person_scores = np.where(scores[person_idx] < keypoint_likelihood_threshold, np.nan, scores[person_idx])
 
-                # Skip person if the fraction of valid detected keypoints is too low
-                enough_good_keypoints = len(person_scores[~np.isnan(person_scores)]) >= len(person_scores) * keypoint_number_threshold
-                scores_of_good_keypoints = person_scores[~np.isnan(person_scores)]
-                average_score_of_remaining_keypoints_is_enough = (np.nanmean(scores_of_good_keypoints) if len(scores_of_good_keypoints)>0 else 0) >= average_likelihood_threshold
-                if not enough_good_keypoints or not average_score_of_remaining_keypoints_is_enough:
-                    person_X = np.full_like(person_X, np.nan)
-                    person_Y = np.full_like(person_Y, np.nan)
-                    person_scores = np.full_like(person_scores, np.nan)
+                    # Skip person if the fraction of valid detected keypoints is too low
+                    enough_good_keypoints = len(person_scores[~np.isnan(person_scores)]) >= len(person_scores) * keypoint_number_threshold
+                    scores_of_good_keypoints = person_scores[~np.isnan(person_scores)]
+                    average_score_of_remaining_keypoints_is_enough = (np.nanmean(scores_of_good_keypoints) if len(scores_of_good_keypoints)>0 else 0) >= average_likelihood_threshold
+                    if not enough_good_keypoints or not average_score_of_remaining_keypoints_is_enough:
+                        person_X = np.full_like(person_X, np.nan)
+                        person_Y = np.full_like(person_Y, np.nan)
+                        person_scores = np.full_like(person_scores, np.nan)
                 valid_X.append(person_X)
                 valid_Y.append(person_Y)
                 valid_scores.append(person_scores)
@@ -1634,7 +1646,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     frame_range = [0,frame_count] if video_file == 'webcam' else frame_range
     all_frames_time = pd.Series(np.linspace(frame_range[0]/fps/slowmo_factor, frame_range[1]/fps/slowmo_factor, frame_count+1), name='time')
     if not multiperson:
-        detected_persons = [get_personID_with_highest_scores(all_frames_scores)]
+        calib_on_person_id = get_personID_with_highest_scores(all_frames_scores)
+        detected_persons = [calib_on_person_id]
     else:
         detected_persons = range(all_frames_X_homog.shape[1])
 
@@ -1735,24 +1748,26 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
 
                 if floor_angle == 'auto' or xy_origin == 'auto':
                     # estimated from the line formed by the toes when they are on the ground (where speed = 0)
-                    floor_angle_estim, xy_origin_estim = compute_floor_line(trc_data[calib_on_person_id], keypoint_names=['LBigToe', 'RBigToe'])
+                    toe_speed_below = 1 # m/s (below which the foot is considered to be stationary)
+                    px_per_m = height_px/person_height_m
+                    toe_speed_below_px_frame = toe_speed_below * px_per_m / (fps*slowmo_factor)
+                    floor_angle_estim, xy_origin_estim = compute_floor_line(trc_data[calib_on_person_id], keypoint_names=['LBigToe', 'RBigToe'], toe_speed_below=toe_speed_below_px_frame)
                 if not floor_angle == 'auto':
                     floor_angle_estim = floor_angle
-                floor_angle_estim = -floor_angle_estim # Y points downwards
                 if xy_origin == 'auto':
                     cx, cy = xy_origin_estim
                 else:
                     cx, cy = xy_origin
                 logging.info(f'Using height of person #{calib_on_person_id} ({person_height_m}m) to convert coordinates in meters. '
-                             f'Floor angle: {np.degrees(-floor_angle_estim) if not floor_angle=="auto" else f"auto (estimation: {round(np.degrees(-floor_angle_estim),2)}°)"}, '
-                             f'xy_origin: {xy_origin if not xy_origin=="auto" else f"auto (estimation: {[round(c,2) for c in xy_origin_estim]})"}.')
+                             f'Floor angle: {np.degrees(floor_angle_estim) if not floor_angle=="auto" else f"auto (estimation: {round(np.degrees(floor_angle_estim),2)}°)"}, '
+                             f'xy_origin: {xy_origin if not xy_origin=="auto" else f"auto (estimation: {[round(c) for c in xy_origin_estim]})"}.')
 
             # Coordinates in m
             for i in range(len(trc_data)):
                 if not np.array(trc_data[i].iloc[:,1:] ==0).all():
-                    trc_data_m_i = pd.concat([convert_px_to_meters(trc_data[i][kpt_name], person_height_m, height_px, cx, cy, floor_angle_estim) for kpt_name in keypoints_names], axis=1)
+                    trc_data_m_i = pd.concat([convert_px_to_meters(trc_data[i][kpt_name], person_height_m, height_px, cx, cy, -floor_angle_estim) for kpt_name in keypoints_names], axis=1)
                     trc_data_m_i.insert(0, 't', all_frames_time)
-                    trc_data_unfiltered_m_i = pd.concat([convert_px_to_meters(trc_data_unfiltered[i][kpt_name], person_height_m, height_px, cx, cy, floor_angle_estim) for kpt_name in keypoints_names], axis=1)
+                    trc_data_unfiltered_m_i = pd.concat([convert_px_to_meters(trc_data_unfiltered[i][kpt_name], person_height_m, height_px, cx, cy, -floor_angle_estim) for kpt_name in keypoints_names], axis=1)
                     trc_data_unfiltered_m_i.insert(0, 't', all_frames_time)
 
                     if to_meters and show_plots:
@@ -1815,6 +1830,9 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     if save_angles and calculate_angles:
         logging.info('\nPost-processing angles:')
         all_frames_angles = make_homogeneous(all_frames_angles)
+        
+        # unwrap angles
+        all_frames_angles = np.unwrap(all_frames_angles, axis=0, period=180)
 
         # Process angles for each person
         for i in detected_persons:
