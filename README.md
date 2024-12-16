@@ -193,9 +193,10 @@ Note that it does not take distortions into account, and that it will be less ac
 ### Too slow for you?
 
 **Quick fixes:**
-- Use `--multiperson false`: Can be used if one single person is present in the video. Otherwise, persons' IDs may be mixed up.
+- Use ` --save_vid false --save_img false --show_realtime_results false`: Will not save images or videos, and will not display the results in real time. 
 - Use `--mode lightweight`: Will use a lighter version of RTMPose, which is faster but less accurate.
 - Use `--det_frequency 50`: Will detect poses only every 50 frames, and track keypoints in between, which is faster.
+- Use `--multiperson false`: Can be used if one single person is present in the video. Otherwise, persons' IDs may be mixed up.
 - Use `--load_trc <path_to_file_px.trc>`: Will use pose estimation results from a file. Useful if you want to use different parameters for pixel to meter conversion or angle calculation without running detection and pose estimation all over.
 
 <br> 

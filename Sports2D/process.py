@@ -1118,9 +1118,8 @@ def compute_floor_line(trc_data, keypoint_names = ['LBigToe', 'RBigToe'], toe_sp
     - xy_origin: list. The origin of the floor line
     '''
 
-
     # Remove frames where the person is mostly not moving (outlier)
-    av_speeds = np.nanmean([np.linalg.norm(trc_data[kpt].diff(), axis=1) for kpt in trc_data.columns.unique()[1:]], axis=0)
+    av_speeds = np.nanmean([np.insert(np.linalg.norm(trc_data[kpt].diff(), axis=1)[1:],0,0) for kpt in trc_data.columns.unique()[1:]], axis=0)
     trc_data = trc_data[av_speeds>tot_speed_above]
 
     # Retrieve zero-speed coordinates for the foot
@@ -1421,7 +1420,6 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     gaussian_filter_kernel = config_dict.get('post-processing').get('gaussian').get('sigma_kernel')
     loess_filter_kernel = config_dict.get('post-processing').get('loess').get('nb_values_used')
     median_filter_kernel = config_dict.get('post-processing').get('median').get('kernel_size')
-    butterworth_filter_cutoff /= slowmo_factor
     filter_options = [do_filter, filter_type,
                            butterworth_filter_order, butterworth_filter_cutoff, frame_rate,
                            gaussian_filter_kernel, loess_filter_kernel, median_filter_kernel]
@@ -1458,6 +1456,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         logging.warning('Webcam input: the framerate may vary. If results are filtered, Sports2D will use the average framerate as input.')
     else:
         cap, out_vid, cam_width, cam_height, fps = setup_video(video_file_path, save_vid, vid_output_path)
+        fps *= slowmo_factor
         start_time = get_start_time_ffmpeg(video_file_path)
         frame_range = [int((time_range[0]-start_time) * frame_rate), int((time_range[1]-start_time) * frame_rate)] if time_range else [0, int(cap.get(cv2.CAP_PROP_FRAME_COUNT))]
         frame_iterator = tqdm(range(*frame_range)) # use a progress bar
@@ -1471,7 +1470,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     if load_trc:
         if not '_px' in str(load_trc): 
             logging.error(f'\n{load_trc} file needs to be in px, not in meters.')
-        logging.info(f'\nUsing a pose file instead of running pose tracking {load_trc}.')
+        logging.info(f'\nUsing a pose file instead of running pose estimation and tracking: {load_trc}.')
         # Load pose file in px
         Q_coords, _, _, keypoints_names, _ = read_trc(load_trc)
         keypoints_ids = [i for i in range(len(keypoints_names))]
@@ -1644,7 +1643,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     all_frames_scores = make_homogeneous(all_frames_scores)
 
     frame_range = [0,frame_count] if video_file == 'webcam' else frame_range
-    all_frames_time = pd.Series(np.linspace(frame_range[0]/fps/slowmo_factor, frame_range[1]/fps/slowmo_factor, frame_count+1), name='time')
+    all_frames_time = pd.Series(np.linspace(frame_range[0]/fps, frame_range[1]/fps, frame_count+1), name='time')
     if not multiperson:
         calib_on_person_id = get_personID_with_highest_scores(all_frames_scores)
         detected_persons = [calib_on_person_id]
@@ -1698,15 +1697,13 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 else:
                     filter_type = filter_options[1]
                     if filter_type == 'butterworth':
+                        cutoff = filter_options[3]
                         if video_file == 'webcam':
-                            cutoff = filter_options[3]
                             if cutoff / (fps / 2) >= 1:
                                 cutoff_old = cutoff
                                 cutoff = fps/(2+0.001)
                                 args = f'\n{cutoff_old:.1f} Hz cut-off framerate too large for a real-time framerate of {fps:.1f} Hz. Using a cut-off framerate of {cutoff:.1f} Hz instead.'
                                 filter_options[3] = cutoff
-                        else: 
-                            args = ''
                         args = f'Butterworth filter, {filter_options[2]}th order, {filter_options[3]} Hz.'
                         filter_options[4] = fps
                     if filter_type == 'gaussian':
@@ -1743,6 +1740,9 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
 
             else:
                 # Compute calibration parameters
+                if not multiperson: 
+                    selected_person_id = calib_on_person_id
+                    calib_on_person_id = 0
                 height_px = compute_height(trc_data[calib_on_person_id].iloc[:,1:], keypoints_names,
                                             fastest_frames_to_remove_percent=fastest_frames_to_remove_percent, close_to_zero_speed=close_to_zero_speed_px, large_hip_knee_angles=large_hip_knee_angles, trimmed_extrema_percent=trimmed_extrema_percent)
 
@@ -1750,7 +1750,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     # estimated from the line formed by the toes when they are on the ground (where speed = 0)
                     toe_speed_below = 1 # m/s (below which the foot is considered to be stationary)
                     px_per_m = height_px/person_height_m
-                    toe_speed_below_px_frame = toe_speed_below * px_per_m / (fps*slowmo_factor)
+                    toe_speed_below_px_frame = toe_speed_below * px_per_m / fps
                     floor_angle_estim, xy_origin_estim = compute_floor_line(trc_data[calib_on_person_id], keypoint_names=['LBigToe', 'RBigToe'], toe_speed_below=toe_speed_below_px_frame)
                 if not floor_angle == 'auto':
                     floor_angle_estim = floor_angle
@@ -1774,9 +1774,10 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                         pose_plots(trc_data_unfiltered_m_i, trc_data_m_i, i)
                     
                     # Write to trc file
-                    pose_path_person_m_i = (pose_output_path.parent / (pose_output_path_m.stem + f'_person{i:02d}.trc'))
+                    idx_path = selected_person_id if not multiperson and not calib_file else i
+                    pose_path_person_m_i = (pose_output_path.parent / (pose_output_path_m.stem + f'_person{idx_path:02d}.trc'))
                     make_trc_with_trc_data(trc_data_m_i, pose_path_person_m_i)
-                    logging.info(f'Person {i}: Pose in meters saved to {pose_path_person_m_i.resolve()}.')
+                    logging.info(f'Person {idx_path}: Pose in meters saved to {pose_path_person_m_i.resolve()}.')
                     
                 
             
@@ -1832,7 +1833,11 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         all_frames_angles = make_homogeneous(all_frames_angles)
         
         # unwrap angles
-        all_frames_angles = np.unwrap(all_frames_angles, axis=0, period=180)
+        # all_frames_angles = np.unwrap(all_frames_angles, axis=0, period=180) # This give all nan values -> need to mask nans
+        for i in range(all_frames_angles.shape[1]):  # for each person
+            for j in range(all_frames_angles.shape[2]):  # for each angle
+                valid_mask = ~np.isnan(all_frames_angles[:, i, j])
+                all_frames_angles[valid_mask, i, j] = np.unwrap(all_frames_angles[valid_mask, i, j], period=180)
 
         # Process angles for each person
         for i in detected_persons:
@@ -1864,16 +1869,14 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 else:
                     filter_type = filter_options[1]
                     if filter_type == 'butterworth':
+                        cutoff = filter_options[3]
                         if video_file == 'webcam':
-                            cutoff = filter_options[3]
                             if cutoff / (fps / 2) >= 1:
                                 cutoff_old = cutoff
                                 cutoff = fps/(2+0.001)
                                 args = f'\n{cutoff_old:.1f} Hz cut-off framerate too large for a real-time framerate of {fps:.1f} Hz. Using a cut-off framerate of {cutoff:.1f} Hz instead.'
                                 filter_options[3] = cutoff
-                        else: 
-                            args = ''
-                        args = f'Butterworth filter, {filter_options[2]}th order, {filter_options[3]} Hz. ' + args
+                        args = f'Butterworth filter, {filter_options[2]}th order, {filter_options[3]} Hz.'
                         filter_options[4] = fps
                     if filter_type == 'gaussian':
                         args = f'Gaussian filter, Sigma kernel {filter_options[5]}.'
