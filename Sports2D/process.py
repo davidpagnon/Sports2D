@@ -1776,7 +1776,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     # Write to trc file
                     idx_path = selected_person_id if not multiperson and not calib_file else i
                     pose_path_person_m_i = (pose_output_path.parent / (pose_output_path_m.stem + f'_person{idx_path:02d}.trc'))
-                    make_trc_with_trc_data(trc_data_m_i, pose_path_person_m_i)
+                    make_trc_with_trc_data(trc_data_m_i, pose_path_person_m_i, fps=fps)
                     logging.info(f'Person {idx_path}: Pose in meters saved to {pose_path_person_m_i.resolve()}.')
                     
                 

@@ -435,7 +435,7 @@ def process(config='Config_demo.toml'):
 
         process_fun(config_dict, video_file, time_range, frame_rate, result_dir)
 
-        elapsed_time = (datetime.now() - currentDateAndTime).total_seconds()        
+        elapsed_time = (datetime.now() - currentDateAndTime).total_seconds()
         logging.info(f'\nProcessing {video_file} took {elapsed_time:.2f} s.')
 
     logging.shutdown()
