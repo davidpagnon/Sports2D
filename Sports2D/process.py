@@ -153,7 +153,7 @@ def setup_webcam(webcam_id, save_vid, vid_output_path, input_size):
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, input_size[1])
     cam_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     cam_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    fps = cap.get(cv2.CAP_PROP_FPS)
+    fps = round(cap.get(cv2.CAP_PROP_FPS))
     if fps == 0: fps = 30
     
     if cam_width != input_size[0] or cam_height != input_size[1]:
@@ -205,7 +205,7 @@ def setup_video(video_file_path, save_vid, vid_output_path):
     cam_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
     out_vid = None
-    fps = cap.get(cv2.CAP_PROP_FPS)
+    fps = round(cap.get(cv2.CAP_PROP_FPS))
     if fps == 0: fps = 30
     if save_vid:
         # try:

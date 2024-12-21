@@ -320,7 +320,7 @@ def base_params(config_dict):
             video = cv2.VideoCapture(str(video_dir / video_file)) if video_dir else cv2.VideoCapture(str(video_file))
             if not video.isOpened():
                 raise FileNotFoundError(f'Error: Could not open {video_dir/video_file}. Check that the file exists.')
-            frame_rate = video.get(cv2.CAP_PROP_FPS)
+            frame_rate = round(video.get(cv2.CAP_PROP_FPS))
             if frame_rate == 0:
                 frame_rate = 30
                 logging.warning(f'Error: Could not retrieve frame rate from {video_dir/video_file}. Defaulting to 30fps.')
