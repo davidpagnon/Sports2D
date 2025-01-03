@@ -238,9 +238,9 @@ Will be much faster, with no impact on accuracy. However, the installation takes
 <br>
 
 #### Customize your output:
-- Choose whether you want video, images, trc pose file, angle mot file, and real-time display:
+- Choose whether you want video, images, trc pose file, angle mot file, real-time display, and plots:
   ```cmd
-  sports2d --save_vid false --save_img true --save_pose false --save_angles true --show_realtime_results false
+  sports2d --save_vid false --save_img true --save_pose false --save_angles true --show_realtime_results false --show_graphs false
   ```
 - Choose which angles you need:
   ```cmd
