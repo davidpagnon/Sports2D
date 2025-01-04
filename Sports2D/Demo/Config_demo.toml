@@ -48,11 +48,14 @@ result_dir = '' # If empty, project dir is current dir
 slowmo_factor = 1       # 1 for normal speed. For a video recorded at 240 fps and exported to 30 fps, it would be 240/30 = 8
 
 # Pose detection parameters
-pose_model = 'body_with_feet' # Only body_with_feet is available for now
+pose_model = 'Body_with_feet' # Only Body_with_feet is available for now
 mode = 'balanced'       # 'lightweight', 'balanced', or 'performance'
 det_frequency = 1       # Run person detection only every N frames, and inbetween track previously detected bounding boxes (keypoint detection is still run on all frames). 
                         # Equal to or greater than 1, can be as high as you want in simple uncrowded cases. Much faster, but might be less accurate. 
 tracking_mode = 'sports2d' # 'rtmlib' or 'sports2d'. 'sports2d' is generally much more accurate and comparable in speed
+device = 'auto' # 'auto', 'CPU', 'CUDA', 'MPS', 'ROCM'
+backend = 'auto' # 'auto', 'openvino', 'onnxruntime', 'opencv'
+
 
 # Processing parameters
 keypoint_likelihood_threshold = 0.3 # Keypoints whose likelihood is lower will not be taken into account

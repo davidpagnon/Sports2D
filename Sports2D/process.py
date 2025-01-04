@@ -64,7 +64,7 @@ import pandas as pd
 import cv2
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from rtmlib import PoseTracker, BodyWithFeet
+from rtmlib import PoseTracker, BodyWithFeet, Wholebody, Body
 
 from Sports2D.Utilities import filter
 from Sports2D.Utilities.common import *
@@ -221,67 +221,78 @@ def setup_video(video_file_path, save_vid, vid_output_path):
     return cap, out_vid, cam_width, cam_height, fps
 
 
-def setup_backend_device():
+def setup_backend_device(backend='auto', device='auto'):
     '''
     Set up the backend and device for the pose tracker based on the availability of hardware acceleration.
     TensorRT is not supported by RTMLib yet: https://github.com/Tau-J/rtmlib/issues/12
 
-    Selects the best option in the following order of priority:
+    If device and backend are not specified, they are automatically set up in the following order of priority:
     1. GPU with CUDA and ONNXRuntime backend (if CUDAExecutionProvider is available)
     2. GPU with ROCm and ONNXRuntime backend (if ROCMExecutionProvider is available, for AMD GPUs)
     3. GPU with MPS or CoreML and ONNXRuntime backend (for macOS systems)
     4. CPU with OpenVINO backend (default fallback)
     '''
 
-    try:
-        import torch
-        import onnxruntime as ort
-        if torch.cuda.is_available() == True and 'CUDAExecutionProvider' in ort.get_available_providers():
-            device = 'cuda'
-            backend = 'onnxruntime'
-            logging.info(f"\nValid CUDA installation found: using ONNXRuntime backend with GPU.")
-        elif torch.cuda.is_available() == True and 'ROCMExecutionProvider' in ort.get_available_providers():
-            device = 'rocm'
-            backend = 'onnxruntime'
-            logging.info(f"\nValid ROCM installation found: using ONNXRuntime backend with GPU.")
-        else:
-            raise 
-    except:
+    if device!='auto' and backend!='auto':
+        device = device.lower()
+        backend = backend.lower()
+
+    if device=='auto' or backend=='auto':
+        if device=='auto' and backend!='auto' or device!='auto' and backend=='auto':
+            logging.warning(f"If you set device or backend to 'auto', you must set the other to 'auto' as well. Both device and backend will be determined automatically.")
+
         try:
+            import torch
             import onnxruntime as ort
-            if 'MPSExecutionProvider' in ort.get_available_providers() or 'CoreMLExecutionProvider' in ort.get_available_providers():
-                device = 'mps'
+            if torch.cuda.is_available() == True and 'CUDAExecutionProvider' in ort.get_available_providers():
+                device = 'cuda'
                 backend = 'onnxruntime'
-                logging.info(f"\nValid MPS installation found: using ONNXRuntime backend with GPU.")
+                logging.info(f"\nValid CUDA installation found: using ONNXRuntime backend with GPU.")
+            elif torch.cuda.is_available() == True and 'ROCMExecutionProvider' in ort.get_available_providers():
+                device = 'rocm'
+                backend = 'onnxruntime'
+                logging.info(f"\nValid ROCM installation found: using ONNXRuntime backend with GPU.")
             else:
-                raise
+                raise 
         except:
-            device = 'cpu'
-            backend = 'openvino'
-            logging.info(f"\nNo valid CUDA installation found: using OpenVINO backend with CPU.")
-    
+            try:
+                import onnxruntime as ort
+                if 'MPSExecutionProvider' in ort.get_available_providers() or 'CoreMLExecutionProvider' in ort.get_available_providers():
+                    device = 'mps'
+                    backend = 'onnxruntime'
+                    logging.info(f"\nValid MPS installation found: using ONNXRuntime backend with GPU.")
+                else:
+                    raise
+            except:
+                device = 'cpu'
+                backend = 'openvino'
+                logging.info(f"\nNo valid CUDA installation found: using OpenVINO backend with CPU.")
+        
     return backend, device
 
 
-def setup_pose_tracker(det_frequency, mode, tracking):
+def setup_pose_tracker(ModelClass, det_frequency, mode, tracking, backend, device):
     '''
     Set up the RTMLib pose tracker with the appropriate model and backend.
     If CUDA is available, use it with ONNXRuntime backend; else use CPU with openvino
 
     INPUTS:
+    - ModelClass: class. The RTMlib model class to use for pose detection (Body, BodyWithFeet, Wholebody)
     - det_frequency: int. The frequency of pose detection (every N frames)
     - mode: str. The mode of the pose tracker ('lightweight', 'balanced', 'performance')
     - tracking: bool. Whether to track persons across frames with RTMlib tracker
+    - backend: str. The backend to use for pose detection (onnxruntime, openvino, opencv)
+    - device: str. The device to use for pose detection (cpu, cuda, rocm, mps)
 
     OUTPUTS:
     - pose_tracker: PoseTracker. The initialized pose tracker object    
     '''
 
-    backend, device = setup_backend_device()
+    backend, device = setup_backend_device(backend=backend, device=device)
 
     # Initialize the pose tracker with Halpe26 model
     pose_tracker = PoseTracker(
-        BodyWithFeet,
+        ModelClass,
         det_frequency=det_frequency,
         mode=mode,
         backend=backend,
@@ -1375,6 +1386,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     mode = config_dict.get('pose').get('mode')
     det_frequency = config_dict.get('pose').get('det_frequency')
     tracking_mode = config_dict.get('pose').get('tracking_mode')
+    backend = config_dict.get('pose').get('backend')
+    device = config_dict.get('pose').get('device')
     
     # Pixel to meters conversion
     to_meters = config_dict.get('px_to_meters_conversion').get('to_meters')
@@ -1466,9 +1479,25 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         cv2.namedWindow(f'{video_file} Sports2D', cv2.WINDOW_NORMAL + cv2.WINDOW_KEEPRATIO)
         cv2.setWindowProperty(f'{video_file} Sports2D', cv2.WND_PROP_ASPECT_RATIO, cv2.WINDOW_FULLSCREEN)
 
-
+    # Select the appropriate model based on the model_type
+    if pose_model.upper() == 'HALPE_26' or 'BODY_WITH_FEET':
+        model_name = 'HALPE_26'
+        ModelClass = BodyWithFeet # 26 keypoints(halpe26)
+        logging.info(f"Using HALPE_26 model (body and feet) for pose estimation.")
+    elif pose_model.upper() == 'COCO_133' or 'WHOLE_BODY':
+        model_name = 'COCO_133'
+        ModelClass = Wholebody
+        logging.info(f"Using COCO_133 model (body, feet, hands, and face) for pose estimation.")
+    elif pose_model.upper() == 'COCO_17' or 'BODY':
+        model_name = 'COCO_17'
+        ModelClass = Body
+        logging.info(f"Using COCO_17 model (body) for pose estimation.")
+    else:
+        raise ValueError(f"Invalid model_type: {model_name}. Must be 'HALPE_26', 'COCO_133', or 'COCO_17'. Use another network (MMPose, DeepLabCut, OpenPose, AlphaPose, BlazePose...) and convert the output files if you need another model. See documentation.")
+    pose_model = eval(model_name)
+    logging.info(f'Mode: {mode}.\n')
+    
     # Skip pose estimation or set it up:
-    model = eval(pose_model)
     if load_trc:
         if not '_px' in str(load_trc): 
             logging.error(f'\n{load_trc} file needs to be in px, not in meters.')
@@ -1477,17 +1506,17 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         Q_coords, _, _, keypoints_names, _ = read_trc(load_trc)
         keypoints_ids = [i for i in range(len(keypoints_names))]
         keypoints_all, scores_all = load_pose_file(Q_coords)
-        for pre, _, node in RenderTree(model):
+        for pre, _, node in RenderTree(model_name):
             if node.name in keypoints_names:
                 node.id = keypoints_names.index(node.name)
     
     else:
         # Retrieve keypoint names from model
-        keypoints_ids = [node.id for _, _, node in RenderTree(model) if node.id!=None]
-        keypoints_names = [node.name for _, _, node in RenderTree(model) if node.id!=None]
+        keypoints_ids = [node.id for _, _, node in RenderTree(pose_model) if node.id!=None]
+        keypoints_names = [node.name for _, _, node in RenderTree(pose_model) if node.id!=None]
 
         tracking_rtmlib = True if (tracking_mode == 'rtmlib' and multiperson) else False
-        pose_tracker = setup_pose_tracker(det_frequency, mode, tracking_rtmlib)
+        pose_tracker = setup_pose_tracker(ModelClass, det_frequency, mode, tracking_rtmlib, backend, device)
         logging.info(f'\nPose tracking set up for BodyWithFeet model in {mode} mode.')
         logging.info(f'Persons are detected every {det_frequency} frames and tracked inbetween. Multi-person is {"" if multiperson else "not "}selected.')
         logging.info(f"Parameters: {keypoint_likelihood_threshold=}, {average_likelihood_threshold=}, {keypoint_number_threshold=}")
@@ -1597,7 +1626,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 img = frame.copy()
                 img = draw_bounding_box(img, valid_X, valid_Y, colors=colors, fontSize=fontSize, thickness=thickness)
                 img = draw_keypts(img, valid_X, valid_Y, scores, cmap_str='RdYlGn')
-                img = draw_skel(img, valid_X, valid_Y, model, colors=colors)
+                img = draw_skel(img, valid_X, valid_Y, pose_model, colors=colors)
                 if calculate_angles:
                     img = draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_ids, keypoints_names, angle_names, display_angle_values_on=display_angle_values_on, colors=colors, fontSize=fontSize, thickness=thickness)
 
