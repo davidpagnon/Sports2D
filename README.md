@@ -56,7 +56,8 @@ If you need 3D research-grade markerless joint kinematics, consider using severa
 2. [Go further](#go-further)
    1. [Too slow for you?](#too-slow-for-you)
    2. [What you need is what you get](#what-you-need-is-what-you-get)
-   3. [How it works](#how-it-works)
+   3. [All the parameters](#all-the-parameters)
+   4. [How it works](#how-it-works)
 3. [How to cite and how to contribute](#how-to-cite-and-how-to-contribute)
 
 <br>
@@ -314,6 +315,81 @@ sports2d --time_range 1.2 2.7 --ik true --person_orientation front none left
 -->
 
 <br>
+
+
+### All the parameters
+
+Have a look at the [Config_Demo.toml](https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Demo/Config_demo.toml) file or type for a full list of the available parameters:
+
+``` cmd
+sports2d --help
+```
+
+``` 
+['config': "C", "path to a toml configuration file"],
+
+'video_input': ["i", "webcam, or video_path.mp4, or video1_path.avi video2_path.mp4 ... Beware that images won't be saved if paths contain non ASCII characters"],
+'person_height': ["H", "height of the person in meters. 1.70 if not specified"],
+'load_trc': ["", "load trc file to avaid running pose estimation again. false if not specified"],
+'compare': ["", "visually compare motion with trc file. false if not specified"],
+'webcam_id': ["w", "webcam ID. 0 if not specified"],
+'time_range': ["t", "start_time end_time. In seconds. Whole video if not specified. start_time1 end_time1 start_time2 end_time2 ... if multiple videos with different time ranges"],
+'video_dir': ["d", "current directory if not specified"],
+'result_dir': ["r", "current directory if not specified"],
+'show_realtime_results': ["R", "show results in real-time. true if not specified"],
+'display_angle_values_on': ["a", '"body", "list", "body" "list", or "none". body list if not specified'],
+'show_graphs': ["G", "show plots of raw and processed results. true if not specified"],
+'joint_angles': ["j", '"Right ankle" "Left ankle" "Right knee" "Left knee" "Right hip" "Left hip" "Right shoulder" "Left shoulder" "Right elbow" "Left elbow" if not specified'],
+'segment_angles': ["s", '"Right foot" "Left foot" "Right shank" "Left shank" "Right thigh" "Left thigh" "Pelvis" "Trunk" "Shoulders" "Head" "Right arm" "Left arm" "Right forearm" "Left forearm" if not specified'],
+'save_vid': ["V", "save processed video. true if not specified"],
+'save_img': ["I", "save processed images. true if not specified"],
+'save_pose': ["P", "save pose as trc files. true if not specified"],
+'calculate_angles': ["c", "calculate joint and segment angles. true if not specified"],
+'save_angles': ["A", "save angles as mot files. true if not specified"],
+'slowmo_factor': ["", "slow-motion factor. For a video recorded at 240 fps and exported to 30 fps, it would be 240/30 = 8. 1 if not specified"],
+'pose_model': ["p", "only body_with_feet is available for now. body_with_feet if not specified"],
+'mode': ["m", "light, balanced, or performance. balanced if not specified"],
+'det_frequency': ["f", "run person detection only every N frames, and inbetween track previously detected bounding boxes. keypoint detection is still run on all frames.\n\
+                 Equal to or greater than 1, can be as high as you want in simple uncrowded cases. Much faster, but might be less accurate. 1 if not specified: detection runs on all frames"],
+'to_meters': ["M", "convert pixels to meters. true if not specified"],
+
+'backend': ["", "Backend for pose estimation can be 'auto', 'cpu', 'cuda', 'mps' (for MacOS), or 'rocm' (for AMD GPUs)"],
+'device': ["", "Device for pose estimatino can be 'auto', 'openvino', 'onnxruntime', 'opencv'"],
+'calib_on_person_id': ["", "person ID to calibrate on. 0 if not specified"],
+'floor_angle': ["", "angle of the floor. 'auto' if not specified"],
+'xy_origin': ["", "origin of the xy plane. 'auto' if not specified"],
+'calib_file': ["", "path to calibration file. '' if not specified, eg no calibration file"],
+'save_calib': ["", "save calibration file. true if not specified"],
+'do_ik': ["", "do inverse kinematics. false if not specified"],
+'osim_setup_path': ["", "path to OpenSim setup. '../OpenSim_setup' if not specified"],
+'person_orientation': ["", "front, back, left, right, auto, or none. 'front none left' if not specified. If 'auto', will be either left or right depending on the direction of the motion."],
+'close_to_zero_speed_m': ["","Sum for all keypoints: about 50 px/frame or 0.2 m/frame"], 
+'multiperson': ["", "multiperson involves tracking: will be faster if set to false. true if not specified"],                'tracking_mode': ["", "sports2d or rtmlib. sports2d is generally much more accurate and comparable in speed. sports2d if not specified"],
+'input_size': ["", "width, height. 1280, 720 if not specified. Lower resolution will be faster but less precise"],
+'keypoint_likelihood_threshold': ["", "detected keypoints are not retained if likelihood is below this threshold. 0.3 if not specified"],
+'average_likelihood_threshold': ["", "detected persons are not retained if average keypoint likelihood is below this threshold. 0.5 if not specified"],
+'keypoint_number_threshold': ["", "detected persons are not retained if number of detected keypoints is below this threshold. 0.3 if not specified, i.e., i.e., 30 percent"],
+'fastest_frames_to_remove_percent': ["", "Frames with high speed are considered as outliers. Defaults to 0.1"],
+'close_to_zero_speed_px': ["", "Sum for all keypoints: about 50 px/frame or 0.2 m/frame. Defaults to 50"],
+'large_hip_knee_angles': ["", "Hip and knee angles below this value are considered as imprecise. Defaults to 45"],
+'trimmed_extrema_percent': ["", "Proportion of the most extreme segment values to remove before calculating their mean. Defaults to 50"],
+'fontSize': ["", "font size for angle values. 0.3 if not specified"],
+'flip_left_right': ["", "true or false. true to get consistent angles with people facing both left and right sides. Set it to false if you want timeseries to be continuous even when the participent switches their stance. true if not specified"],
+'interpolate': ["", "interpolate missing data. true if not specified"],
+'interp_gap_smaller_than': ["", "interpolate sequences of missing data if they are less than N frames long. 10 if not specified"],
+'fill_large_gaps_with': ["", "last_value, nan, or zeros. last_value if not specified"],
+'filter': ["", "filter results. true if not specified"],
+'filter_type': ["", "butterworth, gaussian, median, or loess. butterworth if not specified"],
+'order': ["", "order of the Butterworth filter. 4 if not specified"],
+'cut_off_frequency': ["", "cut-off frequency of the Butterworth filter. 3 if not specified"],
+'sigma_kernel': ["", "sigma of the gaussian filter. 1 if not specified"],
+'nb_values_used': ["", "number of values used for the loess filter. 5 if not specified"],
+'kernel_size': ["", "kernel size of the median filter. 3 if not specified"],
+'use_custom_logging': ["", "use custom logging. false if not specified"]
+```
+
+<br>
+
 
 ### How it works
 
