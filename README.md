@@ -121,12 +121,13 @@ The Demo video is voluntarily challenging to demonstrate the robustness of the p
 - One person walking in the sagittal plane
 - One person doing jumping jacks in the frontal plane. This person then performs a flip while being backlit, both of which are challenging for the pose detection algorithm
 - One tiny person flickering in the background who needs to be ignored
+- The first person is starting high and ending low on the image, which messes up the automatic floor angle calculation. You can set it up manually with the parameter `--floor_angle 0`
 
 <br>
 
 ### Play with the parameters
 
-For a full list of the available parameters, check the [Config_Demo.toml](https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Demo/Config_demo.toml) file or type:
+For a full list of the available parameters, see [this section](#all-the-parameters) of the documentation, check the [Config_Demo.toml](https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Demo/Config_demo.toml) file, or type:
 ``` cmd
 sports2d --help
 ```
@@ -195,7 +196,16 @@ Note that it does not take distortions into account, and that it will be less ac
 
 **Quick fixes:**
 - Use ` --save_vid false --save_img false --show_realtime_results false`: Will not save images or videos, and will not display the results in real time. 
-- Use `--mode lightweight`: Will use a lighter version of RTMPose, which is faster but less accurate.
+- Use `--mode lightweight`: Will use a lighter version of RTMPose, which is faster but less accurate.\
+Note that any detection and pose models can be used (first [deploy them with MMPose](https://mmpose.readthedocs.io/en/latest/user_guides/how_to_deploy.html#onnx) if you do not have their .onnx or .zip files), with the following formalism:
+  ```
+  --mode """{'det_class':'YOLOX',
+          'det_model':'https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/onnx_sdk/yolox_nano_8xb8-300e_humanart-40f6f0d0.zip',
+          'det_input_size':[416,416],
+          'pose_class':'RTMPose',
+          'pose_model':'https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/onnx_sdk/rtmpose-t_simcc-body7_pt-body7_420e-256x192-026a1439_20230504.zip',
+          'pose_input_size':[192,256]}"""
+  ```
 - Use `--det_frequency 50`: Will detect poses only every 50 frames, and track keypoints in between, which is faster.
 - Use `--multiperson false`: Can be used if one single person is present in the video. Otherwise, persons' IDs may be mixed up.
 - Use `--load_trc <path_to_file_px.trc>`: Will use pose estimation results from a file. Useful if you want to use different parameters for pixel to meter conversion or angle calculation without running detection and pose estimation all over.
@@ -375,6 +385,7 @@ sports2d --help
 'trimmed_extrema_percent': ["", "Proportion of the most extreme segment values to remove before calculating their mean. Defaults to 50"],
 'fontSize': ["", "font size for angle values. 0.3 if not specified"],
 'flip_left_right': ["", "true or false. true to get consistent angles with people facing both left and right sides. Set it to false if you want timeseries to be continuous even when the participent switches their stance. true if not specified"],
+'fix_segment_angles_with_floor_angle': ["", "true or false. If the camera is tilted, corrects segment angles as regards to the floor angle. Set to false is the floor is tilted instead. True if not specified"],
 'interpolate': ["", "interpolate missing data. true if not specified"],
 'interp_gap_smaller_than': ["", "interpolate sequences of missing data if they are less than N frames long. 10 if not specified"],
 'fill_large_gaps_with': ["", "last_value, nan, or zeros. last_value if not specified"],
@@ -491,9 +502,10 @@ If you want to contribute to Sports2D, please follow [this guide](https://docs.g
 - [x] Option to only save one person (with the highest average score, or with the most frames and fastest speed)
 - [x] Run again without pose estimation with the option `--load_trc` for px .trc file.
 - [x] **Convert positions to meters** by providing the person height, a calibration file, or 3D points [to click on the image](https://stackoverflow.com/questions/74248955/how-to-display-the-coordinates-of-the-points-clicked-on-the-image-in-google-cola)
+- [x] Support any detection and/or pose estimation model.
 
 - [ ] Perform **Inverse kinematics and dynamics** with OpenSim (cf. [Pose2Sim](https://github.com/perfanalytics/pose2sim), but in 2D). Update [this model](https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Utilities/2D_gait.osim) (add arms, markers, remove muscles and contact spheres). Add pipeline example.
-- [ ] - [ ] Optionally let user select the person of interest in single_person mode:\
+- [ ]  Optionally let user select the person of interest in single_person mode:\
 `multiperson = true # true, or 'single_auto', or 'single_click'. 'single_auto' selects the person with highest average likelihood, and 'single_click' lets the user manually select the person of interest.`
 - [ ] Run with the option `--compare_to` to visually compare motion with a trc file. If run with a webcam input, the user can follow the motion of the trc file. Further calculation can then be done to compare specific variables.
 - [ ] **Colab version**: more user-friendly, usable on a smartphone.

@@ -54,6 +54,9 @@
 from pathlib import Path
 import sys
 import logging
+import json
+import ast
+from functools import partial
 from datetime import datetime
 import itertools as it
 from tqdm import tqdm
@@ -64,15 +67,11 @@ import pandas as pd
 import cv2
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from rtmlib import PoseTracker, BodyWithFeet, Wholebody, Body
+from rtmlib import PoseTracker, BodyWithFeet, Wholebody, Body, Custom
 
 from Sports2D.Utilities import filter
 from Sports2D.Utilities.common import *
 from Sports2D.Utilities.skeletons import *
-
-
-## CONSTANTS
-
 
 
 ## AUTHORSHIP INFORMATION
@@ -324,22 +323,17 @@ def compute_angle(ang_name, person_X_flipped, person_Y, angle_dict, keypoints_id
 
     ang_params = angle_dict.get(ang_name)
     if ang_params is not None:
-        if ang_name in ['pelvis', 'trunk', 'shoulders']:
-            angle_coords = [[np.abs(person_X_flipped[keypoints_ids[keypoints_names.index(kpt)]]), person_Y[keypoints_ids[keypoints_names.index(kpt)]]] for kpt in ang_params[0] if kpt in keypoints_names]
-        else:
-            angle_coords = [[person_X_flipped[keypoints_ids[keypoints_names.index(kpt)]], person_Y[keypoints_ids[keypoints_names.index(kpt)]]] for kpt in ang_params[0] if kpt in keypoints_names]
-        ang = points_to_angles(angle_coords)
-        ang += ang_params[2]
-        ang *= ang_params[3]
-        if ang_name in ['pelvis', 'shoulders']:
-            ang = ang-180 if ang>90 else ang
-            ang = ang+180 if ang<-90 else ang
-        else:
-            ang = ang-360 if ang>180 else ang
-            ang = ang+360 if ang<-180 else ang
+        try:
+            if ang_name in ['pelvis', 'trunk', 'shoulders']:
+                angle_coords = [[np.abs(person_X_flipped[keypoints_ids[keypoints_names.index(kpt)]]), person_Y[keypoints_ids[keypoints_names.index(kpt)]]] for kpt in ang_params[0]]
+            else:
+                angle_coords = [[person_X_flipped[keypoints_ids[keypoints_names.index(kpt)]], person_Y[keypoints_ids[keypoints_names.index(kpt)]]] for kpt in ang_params[0]]
+            ang = fixed_angles(angle_coords, ang_name)
+        except:
+            ang = np.nan    
     else:
         ang = np.nan
-
+    
     return ang
 
 
@@ -589,7 +583,7 @@ def draw_skel(img, X, Y, model, colors=[(255, 0, 0), (0, 255, 0), (0, 0, 255)]):
             [cv2.line(img,
                 (int(x[n[0]]), int(y[n[0]])), (int(x[n[1]]), int(y[n[1]])), c, thickness)
                 for n in node_pairs
-                if not (np.isnan(x[n[0]]) or np.isnan(y[n[0]]) or np.isnan(x[n[1]]) or np.isnan(y[n[1]]))]
+                if not None in n and not (np.isnan(x[n[0]]) or np.isnan(y[n[0]]) or np.isnan(x[n[1]]) or np.isnan(y[n[1]]))] # IF NOT NONE
 
     return img
 
@@ -663,31 +657,34 @@ def draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_
                     ang_name = angle_names[k]
                     ang_params = angle_dict.get(ang_name)
                     if ang_params is not None:
-                        ang_coords = np.array([[X[keypoints_ids[keypoints_names.index(kpt)]], Y[keypoints_ids[keypoints_names.index(kpt)]]] for kpt in ang_params[0] if kpt in keypoints_names])
-                        X_flipped_coords = [X_flipped[keypoints_ids[keypoints_names.index(kpt)]] for kpt in ang_params[0] if kpt in keypoints_names]
-                        flip = -1 if any(x_flipped < 0 for x_flipped in X_flipped_coords) else 1
-                        flip = 1 if ang_name in ['pelvis', 'trunk', 'shoulders'] else flip
-                        right_angle = True if ang_params[2]==90 else False
-                        
-                        # Draw angle
-                        if len(ang_coords) == 2: # segment angle
-                            app_point, vec = draw_segment_angle(img, ang_coords, flip)
-                        else: # joint angle
-                            app_point, vec1, vec2 = draw_joint_angle(img, ang_coords, flip, right_angle)
-    
-                        # Write angle on body
-                        if 'body' in display_angle_values_on:
+                        kpts = ang_params[0]
+                        if not any(item not in keypoints_names+['Neck', 'Hip'] for item in kpts):
+                            ang_coords = np.array([[X[keypoints_ids[keypoints_names.index(kpt)]], Y[keypoints_ids[keypoints_names.index(kpt)]]] for kpt in ang_params[0] if kpt in keypoints_names])
+                            X_flipped = np.append(X_flipped, X[len(X_flipped):])
+                            X_flipped_coords = [X_flipped[keypoints_ids[keypoints_names.index(kpt)]] for kpt in ang_params[0] if kpt in keypoints_names]
+                            flip = -1 if any(x_flipped < 0 for x_flipped in X_flipped_coords) else 1
+                            flip = 1 if ang_name in ['pelvis', 'trunk', 'shoulders'] else flip
+                            right_angle = True if ang_params[2]==90 else False
+                            
+                            # Draw angle
                             if len(ang_coords) == 2: # segment angle
-                                write_angle_on_body(img, ang, app_point, vec, np.array([1,0]), dist=20, color=(255,255,255), fontSize=fontSize, thickness=thickness)
+                                app_point, vec = draw_segment_angle(img, ang_coords, flip)
                             else: # joint angle
-                                write_angle_on_body(img, ang, app_point, vec1, vec2, dist=40, color=(0,255,0), fontSize=fontSize, thickness=thickness)
+                                app_point, vec1, vec2 = draw_joint_angle(img, ang_coords, flip, right_angle)
+        
+                            # Write angle on body
+                            if 'body' in display_angle_values_on:
+                                if len(ang_coords) == 2: # segment angle
+                                    write_angle_on_body(img, ang, app_point, vec, np.array([1,0]), dist=20, color=(255,255,255), fontSize=fontSize, thickness=thickness)
+                                else: # joint angle
+                                    write_angle_on_body(img, ang, app_point, vec1, vec2, dist=40, color=(0,255,0), fontSize=fontSize, thickness=thickness)
 
-                        # Write angle as a list on image with progress bar
-                        if 'list' in display_angle_values_on:
-                            if len(ang_coords) == 2: # segment angle
-                                ang_label_line = write_angle_as_list(img, ang, ang_name, person_label_position, ang_label_line, color = (255,255,255), fontSize=fontSize, thickness=thickness)
-                            else:
-                                ang_label_line = write_angle_as_list(img, ang, ang_name, person_label_position, ang_label_line, color = (0,255,0), fontSize=fontSize, thickness=thickness)
+                            # Write angle as a list on image with progress bar
+                            if 'list' in display_angle_values_on:
+                                if len(ang_coords) == 2: # segment angle
+                                    ang_label_line = write_angle_as_list(img, ang, ang_name, person_label_position, ang_label_line, color = (255,255,255), fontSize=fontSize, thickness=thickness)
+                                else:
+                                    ang_label_line = write_angle_as_list(img, ang, ang_name, person_label_position, ang_label_line, color = (0,255,0), fontSize=fontSize, thickness=thickness)
 
     return img
 
@@ -1020,6 +1017,7 @@ def angle_plots(angle_data_unfiltered, angle_data, person_id):
         ax = plt.subplot(111)
         plt.plot(angle_data_unfiltered.iloc[:,0], angle_data_unfiltered.iloc[:,id+1], label='unfiltered')
         plt.plot(angle_data.iloc[:,0], angle_data.iloc[:,id+1], label='filtered')
+
         ax.set_xlabel('Time (seconds)')
         ax.set_ylabel(angle+' (°)')
         plt.legend()
@@ -1221,6 +1219,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     fontSize = config_dict.get('angles').get('fontSize')
     thickness = 1 if fontSize < 0.8 else 2
     flip_left_right = config_dict.get('angles').get('flip_left_right')
+    correct_segment_angles_with_floor_angle = config_dict.get('angles').get('correct_segment_angles_with_floor_angle')
 
     # Post-processing settings
     interpolate = config_dict.get('post-processing').get('interpolate')    
@@ -1280,22 +1279,49 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         cv2.setWindowProperty(f'{video_file} Sports2D', cv2.WND_PROP_ASPECT_RATIO, cv2.WINDOW_FULLSCREEN)
 
     # Select the appropriate model based on the model_type
-    if pose_model.upper() == 'HALPE_26' or 'BODY_WITH_FEET':
+    if pose_model.upper() in ('HALPE_26', 'BODY_WITH_FEET'):
         model_name = 'HALPE_26'
         ModelClass = BodyWithFeet # 26 keypoints(halpe26)
         logging.info(f"Using HALPE_26 model (body and feet) for pose estimation.")
-    elif pose_model.upper() == 'COCO_133' or 'WHOLE_BODY':
+    elif pose_model.upper() in ('COCO_133', 'WHOLE_BODY', 'WHOLE_BODY_WRIST'):
         model_name = 'COCO_133'
         ModelClass = Wholebody
         logging.info(f"Using COCO_133 model (body, feet, hands, and face) for pose estimation.")
-    elif pose_model.upper() == 'COCO_17' or 'BODY':
+    elif pose_model.upper() in ('COCO_17', 'BODY'):
         model_name = 'COCO_17'
         ModelClass = Body
         logging.info(f"Using COCO_17 model (body) for pose estimation.")
     else:
         raise ValueError(f"Invalid model_type: {model_name}. Must be 'HALPE_26', 'COCO_133', or 'COCO_17'. Use another network (MMPose, DeepLabCut, OpenPose, AlphaPose, BlazePose...) and convert the output files if you need another model. See documentation.")
+    pose_model_name = pose_model
     pose_model = eval(model_name)
-    logging.info(f'Mode: {mode}.\n')
+
+    # Manually select the models if mode is a dictionary rather than 'lightweight', 'balanced', or 'performance'
+    if not mode in ['lightweight', 'balanced', 'performance']:
+        try:
+            try:
+                mode = ast.literal_eval(mode)
+            except: # if within single quotes instead of double quotes when run with sports2d --mode """{dictionary}"""
+                mode = mode.strip("'").replace('\n', '').replace(" ", "").replace(",", '", "').replace(":", '":"').replace("{", '{"').replace("}", '"}').replace('":"/',':/').replace('":"\\',':\\')
+                mode = re.sub(r'"\[([^"]+)",\s?"([^"]+)\]"', r'[\1,\2]', mode) # changes "[640", "640]" to [640,640]
+                mode = json.loads(mode)
+            det_class = mode.get('det_class')
+            det = mode.get('det_model')
+            det_input_size = mode.get('det_input_size')
+            pose_class = mode.get('pose_class')
+            pose = mode.get('pose_model')
+            pose_input_size = mode.get('pose_input_size')
+
+            ModelClass = partial(Custom,
+                        det_class=det_class, det=det, det_input_size=det_input_size,
+                        pose_class=pose_class, pose=pose, pose_input_size=pose_input_size,
+                        backend=backend, device=device)
+            
+        except (json.JSONDecodeError, TypeError):
+            logging.warning("\nInvalid mode. Must be 'lightweight', 'balanced', 'performance', or '''{dictionary}''' of parameters within triple quotes. Make sure input_sizes are within square brackets.")
+            logging.warning('Using the default "balanced" mode.')
+            mode = 'balanced'
+
     
     # Skip pose estimation or set it up:
     if load_trc:
@@ -1317,15 +1343,28 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
 
         tracking_rtmlib = True if (tracking_mode == 'rtmlib' and multiperson) else False
         pose_tracker = setup_pose_tracker(ModelClass, det_frequency, mode, tracking_rtmlib, backend, device)
-        logging.info(f'\nPose tracking set up for BodyWithFeet model in {mode} mode.')
+        logging.info(f'\nPose tracking set up for "{pose_model_name}" model.')
+        logging.info(f'Mode: {mode}.\n')
         logging.info(f'Persons are detected every {det_frequency} frames and tracked inbetween. Multi-person is {"" if multiperson else "not "}selected.')
         logging.info(f"Parameters: {keypoint_likelihood_threshold=}, {average_likelihood_threshold=}, {keypoint_number_threshold=}")
 
-    Ltoe_idx = keypoints_ids[keypoints_names.index('LBigToe')]
-    LHeel_idx = keypoints_ids[keypoints_names.index('LHeel')]
-    Rtoe_idx = keypoints_ids[keypoints_names.index('RBigToe')]
-    RHeel_idx = keypoints_ids[keypoints_names.index('RHeel')]
-    L_R_direction_idx = [Ltoe_idx, LHeel_idx, Rtoe_idx, RHeel_idx]
+    if flip_left_right:
+        try:
+            Ltoe_idx = keypoints_ids[keypoints_names.index('LBigToe')]
+            LHeel_idx = keypoints_ids[keypoints_names.index('LHeel')]
+            Rtoe_idx = keypoints_ids[keypoints_names.index('RBigToe')]
+            RHeel_idx = keypoints_ids[keypoints_names.index('RHeel')]
+            L_R_direction_idx = [Ltoe_idx, LHeel_idx, Rtoe_idx, RHeel_idx]
+        except ValueError:
+            logging.warning(f"Missing 'LBigToe', 'LHeel', 'RBigToe', 'RHeel' keypoints. flip_left_right will be set to False")
+            flip_left_right = False
+
+    if calculate_angles:
+        for ang_name in angle_names:
+            ang_params = angle_dict.get(ang_name)
+            kpts = ang_params[0]
+            if any(item not in keypoints_names+['Neck', 'Hip'] for item in kpts):
+                logging.warning(f"Skipping {ang_name} angle computation because at least one of the following keypoints is not provided by the model: {ang_params[0]}.")
 
 
     # Process video or webcam feed
@@ -1399,9 +1438,6 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                         person_X = np.full_like(person_X, np.nan)
                         person_Y = np.full_like(person_Y, np.nan)
                         person_scores = np.full_like(person_scores, np.nan)
-                valid_X.append(person_X)
-                valid_Y.append(person_Y)
-                valid_scores.append(person_scores)
 
 
                 # Compute angles
@@ -1411,24 +1447,40 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                         person_X_flipped = flip_left_right_direction(person_X, L_R_direction_idx, keypoints_names, keypoints_ids)
                     else:
                         person_X_flipped = person_X.copy()
-                    valid_X_flipped.append(person_X_flipped)
                         
                     # Compute angles
                     person_angles = []
+                    # Add Neck and Hip if not provided
+                    new_keypoints_names, new_keypoints_ids = keypoints_names.copy(), keypoints_ids.copy()
+                    for kpt in ['Neck', 'Hip']:
+                        if kpt not in new_keypoints_names:
+                            person_X_flipped, person_Y, person_scores = add_neck_hip_coords(kpt, person_X_flipped, person_Y, person_scores, new_keypoints_ids, new_keypoints_names)
+                            person_X, _, _ = add_neck_hip_coords(kpt, person_X, person_Y, person_scores, new_keypoints_ids, new_keypoints_names)
+                            new_keypoints_names.append(kpt)
+                            new_keypoints_ids.append(len(person_X_flipped)-1)
+
                     for ang_name in angle_names:
-                        ang = compute_angle(ang_name, person_X_flipped, person_Y, angle_dict, keypoints_ids, keypoints_names)
+                        ang_params = angle_dict.get(ang_name)
+                        kpts = ang_params[0]
+                        if not any(item not in new_keypoints_names for item in kpts):
+                            ang = compute_angle(ang_name, person_X_flipped, person_Y, angle_dict, new_keypoints_ids, new_keypoints_names)
+                        else:
+                            ang = np.nan
                         person_angles.append(ang)
                     valid_angles.append(person_angles)
-
+                    valid_X_flipped.append(person_X_flipped)
+                valid_X.append(person_X)
+                valid_Y.append(person_Y)
+                valid_scores.append(person_scores)
 
             # Draw keypoints and skeleton
             if show_realtime_results or save_vid or save_img:
                 img = frame.copy()
                 img = draw_bounding_box(img, valid_X, valid_Y, colors=colors, fontSize=fontSize, thickness=thickness)
-                img = draw_keypts(img, valid_X, valid_Y, scores, cmap_str='RdYlGn')
+                img = draw_keypts(img, valid_X, valid_Y, valid_scores, cmap_str='RdYlGn')
                 img = draw_skel(img, valid_X, valid_Y, pose_model, colors=colors)
                 if calculate_angles:
-                    img = draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_ids, keypoints_names, angle_names, display_angle_values_on=display_angle_values_on, colors=colors, fontSize=fontSize, thickness=thickness)
+                    img = draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, new_keypoints_ids, new_keypoints_names, angle_names, display_angle_values_on=display_angle_values_on, colors=colors, fontSize=fontSize, thickness=thickness)
 
                 if show_realtime_results:
                     cv2.imshow(f'{video_file} Sports2D', img)
@@ -1449,6 +1501,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 elapsed_time = (datetime.now() - start_time).total_seconds()
                 frame_processing_times.append(elapsed_time)
 
+
+        # End of the video is reached
         cap.release()
         logging.info(f"Video processing completed.")
         if save_vid:
@@ -1561,9 +1615,13 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 if show_plots and not to_meters:
                     pose_plots(trc_data_unfiltered_i, trc_data_i, i)
             
+
         # Convert px to meters
         if to_meters:
             logging.info('\nConverting pose to meters:')
+            if calib_on_person_id>=len(trc_data):
+                logging.warning(f'Person #{calib_on_person_id} not detected in the video. Calibrating on person #0 instead.')
+                calib_on_person_id = 0
             if calib_file:
                 logging.info(f'Using calibration file to convert coordinates in meters: {calib_file}.')
                 calib_params_dict = retrieve_calib_params(calib_file)
@@ -1579,10 +1637,20 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
 
                 if floor_angle == 'auto' or xy_origin == 'auto':
                     # estimated from the line formed by the toes when they are on the ground (where speed = 0)
-                    toe_speed_below = 1 # m/s (below which the foot is considered to be stationary)
-                    px_per_m = height_px/person_height_m
-                    toe_speed_below_px_frame = toe_speed_below * px_per_m / fps
-                    floor_angle_estim, xy_origin_estim = compute_floor_line(trc_data[calib_on_person_id], keypoint_names=['LBigToe', 'RBigToe'], toe_speed_below=toe_speed_below_px_frame)
+                    try:
+                        toe_speed_below = 1 # m/s (below which the foot is considered to be stationary)
+                        px_per_m = height_px/person_height_m
+                        toe_speed_below_px_frame = toe_speed_below * px_per_m / fps
+                        try:
+                            floor_angle_estim, xy_origin_estim = compute_floor_line(trc_data[calib_on_person_id], keypoint_names=['LBigToe', 'RBigToe'], toe_speed_below=toe_speed_below_px_frame)
+                        except: # no feet points
+                            floor_angle_estim, xy_origin_estim = compute_floor_line(trc_data[calib_on_person_id], keypoint_names=['LAnkle', 'RAnkle'], toe_speed_below=toe_speed_below_px_frame)
+                            xy_origin_estim[0] = xy_origin_estim[0]-0.13
+                            logging.warning(f'The RBigToe and LBigToe are missing from your model. Using ankles - 13 cm to compute the floor line.')
+                    except:
+                        floor_angle_estim = 0
+                        xy_origin_estim = cam_width/2, cam_height/2
+                        logging.warning(f'Could not estimate the floor angle and xy_origin. Make sure that the full body is visible. Using floor angle = 0° and xy_origin = [{cam_width/2}, {cam_height/2}].')
                 if not floor_angle == 'auto':
                     floor_angle_estim = floor_angle
                 if xy_origin == 'auto':
@@ -1717,6 +1785,17 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                         args = f'Median filter, kernel of {filter_options[7]}.'
                     logging.info(f'Filtering with {args}')
                     all_frames_angles_person_filt = all_frames_angles_person_interp.apply(filter.filter1d, axis=0, args=filter_options)
+
+                # Remove columns with all nan values
+                all_frames_angles_person_filt.dropna(axis=1, how='all', inplace=True)
+                all_frames_angles_person = all_frames_angles_person[all_frames_angles_person_filt.columns]
+
+                # Add floor_angle_estim to segment angles
+                if correct_segment_angles_with_floor_angle and to_meters: 
+                    logging.info(f'Correcting segment angles by removing the {round(np.degrees(floor_angle_estim),2)}° floor angle.')
+                    for ang_name in all_frames_angles_person_filt.columns:
+                        if 'horizontal' in angle_dict[ang_name][1]:
+                            all_frames_angles_person_filt[ang_name] -= np.degrees(floor_angle_estim)
 
                 # Build mot file
                 angle_data = make_mot_with_angles(all_frames_angles_person_filt, all_frames_time, str(angles_path_person))

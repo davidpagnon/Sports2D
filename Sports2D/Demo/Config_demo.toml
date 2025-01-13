@@ -13,7 +13,7 @@
 
 [project]
 video_input = 'demo.mp4' # 'webcam' or '<video_path.ext>', or ['video1_path.mp4', 'video2_path.avi>', ...]
-                        # Time ranges can be different for each video. All other processing arguments will be identical.
+                        # On Windows, replace '\' with '/'
                         # Beware that images won't be saved if paths contain non ASCII characters.
 person_height = 1.70    # Height of the person in meters (for pixels -> meters conversion)
 load_trc = ''           # If you do not want to recalculate pose, load it from a trc file (in px, not in m)
@@ -21,6 +21,7 @@ compare = false         # Not implemented yet
 
 # Video parameters
 time_range = []   # [] for the whole video, or [start_time, end_time] (in seconds), or [[start_time1, end_time1], [start_time2, end_time2], ...]
+                  # Time ranges can be different for each video. 
 video_dir = ''    # If empty, video dir is current dir
 
 # Webcam parameters
@@ -48,13 +49,29 @@ result_dir = '' # If empty, project dir is current dir
 slowmo_factor = 1       # 1 for normal speed. For a video recorded at 240 fps and exported to 30 fps, it would be 240/30 = 8
 
 # Pose detection parameters
-pose_model = 'Body_with_feet' # Only Body_with_feet is available for now
-mode = 'balanced'       # 'lightweight', 'balanced', or 'performance'
+pose_model = 'Body_with_feet'  #With RTMLib: Body_with_feet (default HALPE_26 model), Whole_body (COCO_133: body + feet + hands), Body (COCO_17), CUSTOM (see example at the end of the file), or any from skeletons.py
+mode = 'balanced' # 'lightweight', 'balanced', 'performance', or """{dictionary}""" (see below)
+
+# A dictionary (WITHIN THREE DOUBLE QUOTES) allows you to manually select the person detection (if top_down approach) and/or pose estimation models (see https://github.com/Tau-J/rtmlib). 
+# Make sure the input_sizes are within triple quotes, and that they are in the opposite order from the one in the model path (for example, it would be [192,256] for rtmpose-m_simcc-body7_pt-body7-halpe26_700e-256x192-4d3e73dd_20230605.zip). 
+# If your pose_model is not provided in skeletons.py, you may have to create your own one (see example at the end of the file).
+# Example, equivalent to mode='balanced':
+# mode = """{'det_class':'YOLOX',
+#          'det_model':'https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/onnx_sdk/yolox_m_8xb8-300e_humanart-c2c7a14a.zip',
+#          'det_input_size':[640, 640],
+#          'pose_class':'RTMPose',
+#          'pose_model':'https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/onnx_sdk/rtmpose-m_simcc-body7_pt-body7-halpe26_700e-256x192-4d3e73dd_20230605.zip',
+#          'pose_input_size':[192,256]}"""
+# Example with one-stage RTMO model (Requires pose_model = 'Body'):
+# mode = """{'pose_class':'RTMO', 
+#          'pose_model':'https://download.openmmlab.com/mmpose/v1/projects/rtmo/onnx_sdk/rtmo-m_16xb16-600e_body7-640x640-39e78cc4_20231211.zip', 
+#          'pose_input_size':[640, 640]}"""
+
 det_frequency = 1       # Run person detection only every N frames, and inbetween track previously detected bounding boxes (keypoint detection is still run on all frames). 
                         # Equal to or greater than 1, can be as high as you want in simple uncrowded cases. Much faster, but might be less accurate. 
-tracking_mode = 'sports2d' # 'rtmlib' or 'sports2d'. 'sports2d' is generally much more accurate and comparable in speed
 device = 'auto' # 'auto', 'CPU', 'CUDA', 'MPS', 'ROCM'
 backend = 'auto' # 'auto', 'openvino', 'onnxruntime', 'opencv'
+tracking_mode = 'sports2d' # 'rtmlib' or 'sports2d'. 'sports2d' is generally much more accurate and comparable in speed
 
 
 # Processing parameters
@@ -86,13 +103,14 @@ fontSize = 0.3
 
 # Select joint angles among
 # ['Right ankle', 'Left ankle', 'Right knee', 'Left knee', 'Right hip', 'Left hip', 'Right shoulder', 'Left shoulder', 'Right elbow', 'Left elbow', 'Right wrist', 'Left wrist']
-joint_angles = ['Right ankle', 'Left ankle', 'Right knee', 'Left knee', 'Right hip', 'Left hip', 'Right shoulder', 'Left shoulder', 'Right elbow', 'Left elbow']
+joint_angles = ['Right ankle', 'Left ankle', 'Right knee', 'Left knee', 'Right hip', 'Left hip', 'Right shoulder', 'Left shoulder', 'Right elbow', 'Left elbow', 'Right wrist', 'Left wrist']
 # Select segment angles among
 # ['Right foot', 'Left foot', 'Right shank', 'Left shank', 'Right thigh', 'Left thigh', 'Pelvis', 'Trunk', 'Shoulders', 'Head', 'Right arm', 'Left arm', 'Right forearm', 'Left forearm']
 segment_angles = ['Right foot', 'Left foot', 'Right shank', 'Left shank', 'Right thigh', 'Left thigh', 'Pelvis', 'Trunk', 'Shoulders', 'Head', 'Right arm', 'Left arm', 'Right forearm', 'Left forearm']
 
 # Processing parameters
 flip_left_right = true  # Same angles whether the participant faces left/right. Set it to false if you want timeseries to be continuous even when the participent switches their stance.
+correct_segment_angles_with_floor_angle = true # If the camera is tilted, corrects segment angles as regards to the floor angle. Set to false is the floor is tilted instead
 
 
 [post-processing]
@@ -124,5 +142,88 @@ person_orientation = ['front', 'none', 'left'] # Choose among 'auto', 'none', 'f
 osim_setup_path = '../OpenSim_setup' # Path to the OpenSim setup folder
 close_to_zero_speed_m = 0.2 # Sum for all keypoints: about 50 px/frame or 0.2 m/frame 
 
+
 [logging]
 use_custom_logging = false # if integrated in an API that already has logging
+
+
+
+# CUSTOM skeleton
+# If you use a model with different keypoints and/or different ordering
+# Useful if you trained your own model, from DeepLabCut or MMPose for example. 
+# Make sure the ids are set in the right order and start from zero.
+# 
+# If you want to perform inverse kinematics, you will also need to create an OpenSim model
+# and add to its markerset the location where you expect the triangulated keypoints to be detected.
+# 
+# In this example, CUSTOM reproduces the HALPE_26 skeleton (default skeletons are stored in skeletons.py).
+# You can create as many custom skeletons as you want, just add them further down and rename them.
+# 
+# Check your model hierarchy with:  for pre, _, node in RenderTree(model): 
+#                                      print(f'{pre}{node.name} id={node.id}')
+[pose.CUSTOM]
+name = "Hip"
+id = 19
+  [[pose.CUSTOM.children]]
+  name = "RHip"
+  id = 12
+     [[pose.CUSTOM.children.children]]
+     name = "RKnee"
+     id = 14
+        [[pose.CUSTOM.children.children.children]]
+        name = "RAnkle"
+        id = 16
+           [[pose.CUSTOM.children.children.children.children]]
+           name = "RBigToe"
+           id = 21
+              [[pose.CUSTOM.children.children.children.children.children]]
+              name = "RSmallToe"
+              id = 23
+           [[pose.CUSTOM.children.children.children.children]]
+           name = "RHeel"
+           id = 25
+  [[pose.CUSTOM.children]]
+  name = "LHip"
+  id = 11
+     [[pose.CUSTOM.children.children]]
+     name = "LKnee"
+     id = 13
+        [[pose.CUSTOM.children.children.children]]
+        name = "LAnkle"
+        id = 15
+           [[pose.CUSTOM.children.children.children.children]]
+           name = "LBigToe"
+           id = 20
+              [[pose.CUSTOM.children.children.children.children.children]]
+              name = "LSmallToe"
+              id = 22
+           [[pose.CUSTOM.children.children.children.children]]
+           name = "LHeel"
+           id = 24
+  [[pose.CUSTOM.children]]
+  name = "Neck"
+  id = 18
+     [[pose.CUSTOM.children.children]]
+     name = "Head"
+     id = 17
+        [[pose.CUSTOM.children.children.children]]
+        name = "Nose"
+        id = 0
+     [[pose.CUSTOM.children.children]]
+     name = "RShoulder"
+     id = 6
+        [[pose.CUSTOM.children.children.children]]
+        name = "RElbow"
+        id = 8
+           [[pose.CUSTOM.children.children.children.children]]
+           name = "RWrist"
+           id = 10
+     [[pose.CUSTOM.children.children]]
+     name = "LShoulder"
+     id = 5
+        [[pose.CUSTOM.children.children.children]]
+        name = "LElbow"
+        id = 7
+           [[pose.CUSTOM.children.children.children.children]]
+           name = "LWrist"
+           id = 9

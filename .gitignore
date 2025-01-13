@@ -1,7 +1,9 @@
 **/__pycache__/
 **/build/
 *.pyc
+logs.txt*
+**/*.log
 *.egg-info/
 dist/
-logs.txt
 demo_Sports2D/**
+**/Demo/*.jpg

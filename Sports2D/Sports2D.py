@@ -173,7 +173,9 @@ DEFAULT_CONFIG =   {'project': {'video_input': ['demo.mp4'],
                                                     'Right shoulder',
                                                     'Left shoulder',
                                                     'Right elbow',
-                                                    'Left elbow'],
+                                                    'Left elbow',
+                                                    'Right wrist',
+                                                    'Left wrist'],
                                 'segment_angles': [ 'Right foot',
                                                     'Left foot',
                                                     'Right shank',
@@ -188,7 +190,8 @@ DEFAULT_CONFIG =   {'project': {'video_input': ['demo.mp4'],
                                                     'Left arm',
                                                     'Right forearm',
                                                     'Left forearm'],
-                                'flip_left_right': True
+                                'flip_left_right': True,
+                                'fix_segment_angles_with_floor_angle': True
                                 },
                     'post-processing': {'interpolate': True,
                                         'interp_gap_smaller_than': 10,
@@ -230,7 +233,7 @@ CONFIG_HELP =   {'config': ["C", "path to a toml configuration file"],
                 'save_angles': ["A", "save angles as mot files. true if not specified"],
                 'slowmo_factor': ["", "slow-motion factor. For a video recorded at 240 fps and exported to 30 fps, it would be 240/30 = 8. 1 if not specified"],
                 'pose_model': ["p", "only body_with_feet is available for now. body_with_feet if not specified"],
-                'mode': ["m", "light, balanced, or performance. balanced if not specified"],
+                'mode': ["m", 'light, balanced, performance, or a """{dictionary within triple quote}""". balanced if not specified. Use a dictionary to specify your own detection and/or pose estimation models (more about in the documentation).'],
                 'det_frequency': ["f", "run person detection only every N frames, and inbetween track previously detected bounding boxes. keypoint detection is still run on all frames.\n\
                                  Equal to or greater than 1, can be as high as you want in simple uncrowded cases. Much faster, but might be less accurate. 1 if not specified: detection runs on all frames"],
                 'backend': ["", "Backend for pose estimation can be 'auto', 'cpu', 'cuda', 'mps' (for MacOS), or 'rocm' (for AMD GPUs)"],
@@ -256,6 +259,7 @@ CONFIG_HELP =   {'config': ["C", "path to a toml configuration file"],
                 'trimmed_extrema_percent': ["", "Proportion of the most extreme segment values to remove before calculating their mean. Defaults to 50"],
                 'fontSize': ["", "font size for angle values. 0.3 if not specified"],
                 'flip_left_right': ["", "true or false. true to get consistent angles with people facing both left and right sides. Set it to false if you want timeseries to be continuous even when the participent switches their stance. true if not specified"],
+                'fix_segment_angles_with_floor_angle': ["", "true or false. If the camera is tilted, corrects segment angles as regards to the floor angle. Set to false is the floor is tilted instead. True if not specified"],
                 'interpolate': ["", "interpolate missing data. true if not specified"],
                 'interp_gap_smaller_than': ["", "interpolate sequences of missing data if they are less than N frames long. 10 if not specified"],
                 'fill_large_gaps_with': ["", "last_value, nan, or zeros. last_value if not specified"],
@@ -505,10 +509,11 @@ def main():
     # Override dictionary with command-line arguments if provided
     leaf_keys = get_leaf_keys(new_config)
     for leaf_key, default_value in leaf_keys.items():
-        leaf_name = leaf_key.split('.')[-1]
-        cli_value = getattr(args, leaf_name)
-        if cli_value is not None:
-            set_nested_value(new_config, leaf_key, cli_value)
+        if not 'CUSTOM' in leaf_key:
+            leaf_name = leaf_key.split('.')[-1]
+            cli_value = getattr(args, leaf_name)
+            if cli_value is not None:
+                set_nested_value(new_config, leaf_key, cli_value)
 
     # Run process with the new configuration dictionary
     Sports2D.process(new_config)
