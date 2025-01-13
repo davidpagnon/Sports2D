@@ -170,7 +170,7 @@ Note that it does not take distortions into account, and that it will be less ac
   sports2d --show_graphs False --time_range 1.2 2.7 --result_dir path_to_result_dir --slowmo_factor 4
   ```
   ``` cmd
-  sports2d --multiperson false --mode lightweight --det_frequency 50 
+  sports2d --multiperson false --pose_model Body --mode lightweight --det_frequency 50 
   ```
 <br>
 
@@ -385,7 +385,7 @@ sports2d --help
 'trimmed_extrema_percent': ["", "Proportion of the most extreme segment values to remove before calculating their mean. Defaults to 50"],
 'fontSize': ["", "font size for angle values. 0.3 if not specified"],
 'flip_left_right': ["", "true or false. true to get consistent angles with people facing both left and right sides. Set it to false if you want timeseries to be continuous even when the participent switches their stance. true if not specified"],
-'fix_segment_angles_with_floor_angle': ["", "true or false. If the camera is tilted, corrects segment angles as regards to the floor angle. Set to false is the floor is tilted instead. True if not specified"],
+'correct_segment_angles_with_floor_angle': ["", "true or false. If the camera is tilted, corrects segment angles as regards to the floor angle. Set to false is the floor is tilted instead. True if not specified"],
 'interpolate': ["", "interpolate missing data. true if not specified"],
 'interp_gap_smaller_than': ["", "interpolate sequences of missing data if they are less than N frames long. 10 if not specified"],
 'fill_large_gaps_with': ["", "last_value, nan, or zeros. last_value if not specified"],
