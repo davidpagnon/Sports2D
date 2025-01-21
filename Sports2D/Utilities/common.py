@@ -547,7 +547,7 @@ def compute_height(trc_data, keypoints_names, fastest_frames_to_remove_percent=0
     try:
         rfoot, lfoot = [euclidean_distance(trc_data_low_speeds_low_angles[pair[0]],trc_data_low_speeds_low_angles[pair[1]]) for pair in feet_pairs]
     except:
-        rfoot, lfoot = 10, 10
+        rfoot, lfoot = 0.10, 0.10
         logging.warning('The Heel marker is missing from your model. Considering Foot to Heel size as 10 cm.')
 
     ankle_to_shoulder_pairs =  [['RAnkle', 'RKnee'], ['RKnee', 'RHip'], ['RHip', 'RShoulder'],
