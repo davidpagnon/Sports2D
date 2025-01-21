@@ -466,7 +466,7 @@ def add_neck_hip_coords(kpt_name, p_X, p_Y, p_scores, kpt_ids, kpt_names):
     return p_X, p_Y, p_scores
 
 
-def best_coords_for_measurements(trc_data, keypoints_names, fastest_frames_to_remove_percent=0.2, close_to_zero_speed=0.2, large_hip_knee_angles=45):
+def best_coords_for_measurements(Q_coords, keypoints_names, fastest_frames_to_remove_percent=0.2, close_to_zero_speed=0.2, large_hip_knee_angles=45):
     '''
     Compute the best coordinates for measurements, after removing:
     - 20% fastest frames (may be outliers)
@@ -474,7 +474,7 @@ def best_coords_for_measurements(trc_data, keypoints_names, fastest_frames_to_re
     - frames when hip and knee angle below 45° (imprecise coordinates when person is crouching)
     
     INPUTS:
-    - trc_data: pd.DataFrame. The XYZ coordinates of each marker
+    - Q_coords: pd.DataFrame. The XYZ coordinates of each marker
     - keypoints_names: list. The list of marker names
     - fastest_frames_to_remove_percent: float
     - close_to_zero_speed: float (sum for all keypoints: about 50 px/frame or 0.2 m/frame)
@@ -482,44 +482,46 @@ def best_coords_for_measurements(trc_data, keypoints_names, fastest_frames_to_re
     - trimmed_extrema_percent
 
     OUTPUT:
-    - trc_data_low_speeds_low_angles: pd.DataFrame. The best coordinates for measurements
+    - Q_coords_low_speeds_low_angles: pd.DataFrame. The best coordinates for measurements
     '''
 
     # Add MidShoulder column
-    df_MidShoulder = pd.DataFrame((trc_data['RShoulder'].values + trc_data['LShoulder'].values) /2)
+    df_MidShoulder = pd.DataFrame((Q_coords['RShoulder'].values + Q_coords['LShoulder'].values) /2)
     df_MidShoulder.columns = ['MidShoulder']*3
-    trc_data = pd.concat((trc_data.reset_index(drop=True), df_MidShoulder), axis=1)
+    Q_coords = pd.concat((Q_coords.reset_index(drop=True), df_MidShoulder), axis=1)
 
     # Add Hip column if not present
     n_markers_init = len(keypoints_names)
     if 'Hip' not in keypoints_names:
-        df_Hip = pd.DataFrame((trc_data['RHip'].values + trc_data['LHip'].values) /2)
+        df_Hip = pd.DataFrame((Q_coords['RHip'].values + Q_coords['LHip'].values) /2)
         df_Hip.columns = ['Hip']*3
-        trc_data = pd.concat((trc_data.reset_index(drop=True), df_Hip), axis=1)
+        Q_coords = pd.concat((Q_coords.reset_index(drop=True), df_Hip), axis=1)
     n_markers = len(keypoints_names)
 
     # Using 80% slowest frames
-    sum_speeds = pd.Series(np.nansum([np.linalg.norm(trc_data.iloc[:,kpt:kpt+3].diff(), axis=1) for kpt in range(n_markers)], axis=0))
+    sum_speeds = pd.Series(np.nansum([np.linalg.norm(Q_coords.iloc[:,kpt:kpt+3].diff(), axis=1) for kpt in range(n_markers)], axis=0))
     sum_speeds = sum_speeds[sum_speeds>close_to_zero_speed] # Removing when speeds close to zero (out of frame)
     if len(sum_speeds)==0:
-        raise ValueError('All frames have speed close to zero. Make sure the person is moving and correctly detected, or change close_to_zero_speed to a lower value.')
-    min_speed_indices = sum_speeds.abs().nsmallest(int(len(sum_speeds) * (1-fastest_frames_to_remove_percent))).index
-    trc_data_low_speeds = trc_data.iloc[min_speed_indices].reset_index(drop=True)
+        logging.warning('All frames have speed close to zero. Make sure the person is moving and correctly detected, or change close_to_zero_speed to a lower value. Not restricting the speeds to be above any threshold.')
+        Q_coords_low_speeds = Q_coords
+    else:
+        min_speed_indices = sum_speeds.abs().nsmallest(int(len(sum_speeds) * (1-fastest_frames_to_remove_percent))).index
+        Q_coords_low_speeds = Q_coords.iloc[min_speed_indices].reset_index(drop=True)
     
     # Only keep frames with hip and knee flexion angles below 45% 
     # (if more than 50 of them, else take 50 smallest values)
     try:
-        ang_mean = mean_angles(trc_data_low_speeds, ang_to_consider = ['right knee', 'left knee', 'right hip', 'left hip'])
-        trc_data_low_speeds_low_angles = trc_data_low_speeds[ang_mean < large_hip_knee_angles]
-        if len(trc_data_low_speeds_low_angles) < 50:
-            trc_data_low_speeds_low_angles = trc_data_low_speeds.iloc[pd.Series(ang_mean).nsmallest(50).index]
+        ang_mean = mean_angles(Q_coords_low_speeds, ang_to_consider = ['right knee', 'left knee', 'right hip', 'left hip'])
+        Q_coords_low_speeds_low_angles = Q_coords_low_speeds[ang_mean < large_hip_knee_angles]
+        if len(Q_coords_low_speeds_low_angles) < 50:
+            Q_coords_low_speeds_low_angles = Q_coords_low_speeds.iloc[pd.Series(ang_mean).nsmallest(50).index]
     except:
-        logging.warning(f"At least one among the RAnkle, RKnee, RHip, RShoulder, LAnkle, LKnee, LHip, LShoulder markers is missing for computing the knee and hip angles. Not restricting these agles to be below {large_hip_knee_angles}°.")
+        logging.warning(f"At least one among the RAnkle, RKnee, RHip, RShoulder, LAnkle, LKnee, LHip, LShoulder markers is missing for computing the knee and hip angles. Not restricting these angles to be below {large_hip_knee_angles}°.")
 
     if n_markers_init < n_markers:
-        trc_data_low_speeds_low_angles = trc_data_low_speeds_low_angles.iloc[:,:-3]
+        Q_coords_low_speeds_low_angles = Q_coords_low_speeds_low_angles.iloc[:,:-3]
 
-    return trc_data_low_speeds_low_angles
+    return Q_coords_low_speeds_low_angles
 
 
 def compute_height(trc_data, keypoints_names, fastest_frames_to_remove_percent=0.1, close_to_zero_speed=50, large_hip_knee_angles=45, trimmed_extrema_percent=0.5):
