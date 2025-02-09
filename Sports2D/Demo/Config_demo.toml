@@ -54,7 +54,7 @@ mode = 'balanced' # 'lightweight', 'balanced', 'performance', or """{dictionary}
 
 # A dictionary (WITHIN THREE DOUBLE QUOTES) allows you to manually select the person detection (if top_down approach) and/or pose estimation models (see https://github.com/Tau-J/rtmlib). 
 # Models can be local paths or URLs.
-# Make sure the input_sizes are within triple quotes, and that they are in the opposite order from the one in the model path (for example, it would be [192,256] for rtmpose-m_simcc-body7_pt-body7-halpe26_700e-256x192-4d3e73dd_20230605.zip). 
+# Make sure the input_sizes are within square brackets, and that they are in the opposite order from the one in the model path (for example, it would be [192,256] for rtmpose-m_simcc-body7_pt-body7-halpe26_700e-256x192-4d3e73dd_20230605.zip). 
 # If your pose_model is not provided in skeletons.py, you may have to create your own one (see example at the end of the file).
 # Example, equivalent to mode='balanced':
 # mode = """{'det_class':'YOLOX',
@@ -68,17 +68,20 @@ mode = 'balanced' # 'lightweight', 'balanced', 'performance', or """{dictionary}
 #          'pose_model':'https://download.openmmlab.com/mmpose/v1/projects/rtmo/onnx_sdk/rtmo-m_16xb16-600e_body7-640x640-39e78cc4_20231211.zip', 
 #          'pose_input_size':[640, 640]}"""
 
-det_frequency = 1       # Run person detection only every N frames, and inbetween track previously detected bounding boxes (keypoint detection is still run on all frames). 
+det_frequency = 4       # Run person detection only every N frames, and inbetween track previously detected bounding boxes (keypoint detection is still run on all frames). 
                         # Equal to or greater than 1, can be as high as you want in simple uncrowded cases. Much faster, but might be less accurate. 
 device = 'auto' # 'auto', 'CPU', 'CUDA', 'MPS', 'ROCM'
 backend = 'auto' # 'auto', 'openvino', 'onnxruntime', 'opencv'
-tracking_mode = 'sports2d' # 'rtmlib' or 'sports2d'. 'sports2d' is generally much more accurate and comparable in speed
+tracking_mode = 'sports2d' # 'sports2d' or 'deepsort'. 'deepsort' is slower but more robust in difficult configurations
+deepsort_params = """{'max_age':30, 'n_init':3, 'nms_max_overlap':0.8, 'max_cosine_distance':0.3, 'nn_budget':200, 'max_iou_distance':0.8, 'embedder_gpu': True}""" # """{dictionary between 3 double quotes}"""
+                  # More robust in crowded scenes but Can be tricky to parametrize. More information there: https://github.com/levan92/deep_sort_realtime/blob/master/deep_sort_realtime/deepsort_tracker.py#L51
+                  # Note: For even more robust tracking, use 'embedder':'torchreid', which runs osnet_ain_x1_0 by default. Install additional dependencies with: `pip install torchreid gdown tensorboard`
 
 
 # Processing parameters
 keypoint_likelihood_threshold = 0.3 # Keypoints whose likelihood is lower will not be taken into account
 average_likelihood_threshold = 0.5  # Person will be ignored if average likelihood of good keypoints is lower than this value
-keypoint_number_threshold = 0.3     # Person will be ignored if the number of good keypoints is less than this fraction
+keypoint_number_threshold = 0.3     # Person will be ignored if the number of good keypoints (above keypoint_likelihood_threshold) is less than this fraction
 
 
 [px_to_meters_conversion]

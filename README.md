@@ -172,6 +172,9 @@ Note that it does not take distortions into account, and that it will be less ac
   ``` cmd
   sports2d --multiperson false --pose_model Body --mode lightweight --det_frequency 50 
   ```
+  ``` cmd
+  sports2d --tracking_mode deepsort --deepsort_params """{'max_age':30, 'n_init':3, 'nms_max_overlap':0.8, 'max_cosine_distance':0.3, 'nn_budget':200, 'max_iou_distance':0.8, 'embedder_gpu': True}"""
+  ```
 <br>
 
 #### Run with a toml configuration file: 
@@ -209,6 +212,7 @@ Note that any detection and pose models can be used (first [deploy them with MMP
 - Use `--det_frequency 50`: Will detect poses only every 50 frames, and track keypoints in between, which is faster.
 - Use `--multiperson false`: Can be used if one single person is present in the video. Otherwise, persons' IDs may be mixed up.
 - Use `--load_trc <path_to_file_px.trc>`: Will use pose estimation results from a file. Useful if you want to use different parameters for pixel to meter conversion or angle calculation without running detection and pose estimation all over.
+- Use `--tracking_mode sports2d`: Will use the default Sports2D tracker. Unlike DeepSort, it is faster, does not require any parametrization, and is as good in non-crowded scenes. 
 
 <br> 
 
@@ -329,7 +333,7 @@ sports2d --time_range 1.2 2.7 --ik true --person_orientation front none left
 
 ### All the parameters
 
-Have a look at the [Config_Demo.toml](https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Demo/Config_demo.toml) file or type for a full list of the available parameters:
+For a full list of the available parameters, have a look at the [Config_Demo.toml](https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Demo/Config_demo.toml) file or type:
 
 ``` cmd
 sports2d --help
@@ -374,7 +378,10 @@ sports2d --help
 'osim_setup_path': ["", "path to OpenSim setup. '../OpenSim_setup' if not specified"],
 'person_orientation': ["", "front, back, left, right, auto, or none. 'front none left' if not specified. If 'auto', will be either left or right depending on the direction of the motion."],
 'close_to_zero_speed_m': ["","Sum for all keypoints: about 50 px/frame or 0.2 m/frame"], 
-'multiperson': ["", "multiperson involves tracking: will be faster if set to false. true if not specified"],                'tracking_mode': ["", "sports2d or rtmlib. sports2d is generally much more accurate and comparable in speed. sports2d if not specified"],
+'multiperson': ["", "multiperson involves tracking: will be faster if set to false. true if not specified"],
+'tracking_mode': ["", "sports2d or rtmlib. sports2d is generally much more accurate and comparable in speed. sports2d if not specified"],
+'deepsort_params': ["", 'Deepsort tracking parameters: """{dictionary between 3 double quotes}""". \n\
+                    More information there: https://github.com/levan92/deep_sort_realtime/blob/master/deep_sort_realtime/deepsort_tracker.py#L51'],     
 'input_size': ["", "width, height. 1280, 720 if not specified. Lower resolution will be faster but less precise"],
 'keypoint_likelihood_threshold': ["", "detected keypoints are not retained if likelihood is below this threshold. 0.3 if not specified"],
 'average_likelihood_threshold': ["", "detected persons are not retained if average keypoint likelihood is below this threshold. 0.5 if not specified"],
@@ -419,7 +426,7 @@ Sports2D:
 
 2. **Sets up pose estimation with RTMLib.** It can be run in lightweight, balanced, or performance mode, and for faster inference, keypoints can be tracked instead of detected for a certain number of frames. Any RTMPose model can be used. 
 
-3. **Tracks people** so that their IDs are consistent across frames. A person is associated to another in the next frame when they are at a small distance. IDs remain consistent even if the person disappears from a few frames. This carefully crafted `sports2d` tracker runs at a comparable speed as the RTMlib one but is much more robust. The user can still choose the RTMLib method if they need it by specifying it in the Config.toml file.
+3. **Tracks people** so that their IDs are consistent across frames. A person is associated to another in the next frame when they are at a small distance. IDs remain consistent even if the person disappears from a few frames. We crafted a 'sports2D' tracker which gives good results and runs in real time, but it is also possible to use `deepsort` in particularly challenging situations. 
 
 4. **Chooses the right persons to keep.** In single-person mode, only keeps the person with the highest average scores over the sequence. In multi-person mode, only retrieves the keypoints with high enough confidence, and only keeps the persons with high enough average confidence over each frame.
 

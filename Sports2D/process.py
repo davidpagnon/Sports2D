@@ -68,6 +68,7 @@ import cv2
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from rtmlib import PoseTracker, BodyWithFeet, Wholebody, Body, Custom
+from deep_sort_realtime.deepsort_tracker import DeepSort
 
 from Sports2D.Utilities import filter
 from Sports2D.Utilities.common import *
@@ -402,94 +403,6 @@ def pad_shape(arr, target_len, fill_value=np.nan):
         return np.concatenate((arr, padding))
     
     return arr
-
-
-def sort_people_sports2d(keyptpre, keypt, scores=None):
-    '''
-    Associate persons across frames (Sports2D method)
-    Persons' indices are sometimes swapped when changing frame
-    A person is associated to another in the next frame when they are at a small distance
-    
-    N.B.: Requires min_with_single_indices and euclidian_distance function (see common.py)
-
-    INPUTS:
-    - keyptpre: (K, L, M) array of 2D coordinates for K persons in the previous frame, L keypoints, M 2D coordinates
-    - keypt: idem keyptpre, for current frame
-    - score: (K, L) array of confidence scores for K persons, L keypoints (optional) 
-    
-    OUTPUTS:
-    - sorted_prev_keypoints: array with reordered persons with values of previous frame if current is empty
-    - sorted_keypoints: array with reordered persons --> if scores is not None
-    - sorted_scores: array with reordered scores     --> if scores is not None
-    - associated_tuples: list of tuples with correspondences between persons across frames --> if scores is None (for Pose2Sim.triangulation())
-    '''
-    
-    # Generate possible person correspondences across frames
-    max_len = max(len(keyptpre), len(keypt))
-    keyptpre = pad_shape(keyptpre, max_len, fill_value=np.nan)
-    keypt = pad_shape(keypt, max_len, fill_value=np.nan)
-    if scores is not None:
-        scores = pad_shape(scores, max_len, fill_value=np.nan)
-    
-    # Compute distance between persons from one frame to another
-    personsIDs_comb = sorted(list(it.product(range(len(keyptpre)), range(len(keypt)))))
-    frame_by_frame_dist = [euclidean_distance(keyptpre[comb[0]],keypt[comb[1]]) for comb in personsIDs_comb]
-    frame_by_frame_dist = np.mean(frame_by_frame_dist, axis=1)
-    
-    # Sort correspondences by distance
-    _, _, associated_tuples = min_with_single_indices(frame_by_frame_dist, personsIDs_comb)
-    
-    # Associate points to same index across frames, nan if no correspondence
-    sorted_keypoints = []
-    for i in range(len(keyptpre)):
-        id_in_old =  associated_tuples[:,1][associated_tuples[:,0] == i].tolist()
-        if len(id_in_old) > 0:      sorted_keypoints += [keypt[id_in_old[0]]]
-        else:                       sorted_keypoints += [keypt[i]]
-    sorted_keypoints = np.array(sorted_keypoints)
-
-    if scores is not None:
-        sorted_scores = []
-        for i in range(len(keyptpre)):
-            id_in_old =  associated_tuples[:,1][associated_tuples[:,0] == i].tolist()
-            if len(id_in_old) > 0:  sorted_scores += [scores[id_in_old[0]]]
-            else:                   sorted_scores += [scores[i]]
-        sorted_scores = np.array(sorted_scores)
-
-    # Keep track of previous values even when missing for more than one frame
-    sorted_prev_keypoints = np.where(np.isnan(sorted_keypoints) & ~np.isnan(keyptpre), keyptpre, sorted_keypoints)
-    
-    if scores is not None:
-        return sorted_prev_keypoints, sorted_keypoints, sorted_scores
-    else: # For Pose2Sim.triangulation()
-        return sorted_keypoints, associated_tuples
-
-
-def sort_people_rtmlib(pose_tracker, keypoints, scores):
-    '''
-    Associate persons across frames (RTMLib method)
-
-    INPUTS:
-    - pose_tracker: PoseTracker. The initialized RTMLib pose tracker object
-    - keypoints: array of shape K, L, M with K the number of detected persons,
-    L the number of detected keypoints, M their 2D coordinates
-    - scores: array of shape K, L with K the number of detected persons,
-    L the confidence of detected keypoints
-
-    OUTPUT:
-    - sorted_keypoints: array with reordered persons
-    - sorted_scores: array with reordered scores
-    '''
-    
-    try:
-        desired_size = max(pose_tracker.track_ids_last_frame)+1
-        sorted_keypoints = np.full((desired_size, keypoints.shape[1], 2), np.nan)
-        sorted_keypoints[pose_tracker.track_ids_last_frame] = keypoints[:len(pose_tracker.track_ids_last_frame), :, :]
-        sorted_scores = np.full((desired_size, scores.shape[1]), np.nan)
-        sorted_scores[pose_tracker.track_ids_last_frame] = scores[:len(pose_tracker.track_ids_last_frame), :]
-    except:
-        sorted_keypoints, sorted_scores = keypoints, scores
-
-    return sorted_keypoints, sorted_scores
 
 
 def draw_dotted_line(img, start, direction, length, color=(0, 255, 0), gap=7, dot_length=3, thickness=thickness):
@@ -1081,6 +994,16 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     mode = config_dict.get('pose').get('mode')
     det_frequency = config_dict.get('pose').get('det_frequency')
     tracking_mode = config_dict.get('pose').get('tracking_mode')
+    if tracking_mode == 'deepsort':
+        deepsort_params = config_dict.get('pose').get('deepsort_params')
+        try:
+            deepsort_params = ast.literal_eval(deepsort_params)
+        except: # if within single quotes instead of double quotes when run with sports2d --mode """{dictionary}"""
+            deepsort_params = deepsort_params.strip("'").replace('\n', '').replace(" ", "").replace(",", '", "').replace(":", '":"').replace("{", '{"').replace("}", '"}').replace('":"/',':/').replace('":"\\',':\\')
+            deepsort_params = re.sub(r'"\[([^"]+)",\s?"([^"]+)\]"', r'[\1,\2]', deepsort_params) # changes "[640", "640]" to [640,640]
+            deepsort_params = json.loads(deepsort_params)
+        deepsort_tracker = DeepSort(**deepsort_params)
+        deepsort_tracker.tracker.tracks.clear()
     backend = config_dict.get('pose').get('backend')
     device = config_dict.get('pose').get('device')
     
@@ -1218,8 +1141,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             logging.warning("\nInvalid mode. Must be 'lightweight', 'balanced', 'performance', or '''{dictionary}''' of parameters within triple quotes. Make sure input_sizes are within square brackets.")
             logging.warning('Using the default "balanced" mode.')
             mode = 'balanced'
-
     
+
     # Skip pose estimation or set it up:
     if load_trc:
         if not '_px' in str(load_trc): 
@@ -1238,12 +1161,21 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         keypoints_ids = [node.id for _, _, node in RenderTree(pose_model) if node.id!=None]
         keypoints_names = [node.name for _, _, node in RenderTree(pose_model) if node.id!=None]
 
-        tracking_rtmlib = True if (tracking_mode == 'rtmlib' and multiperson) else False
-        pose_tracker = setup_pose_tracker(ModelClass, det_frequency, mode, tracking_rtmlib, backend, device)
+        # Set up pose tracker
+        try:
+            pose_tracker = setup_pose_tracker(ModelClass, det_frequency, mode, False, backend, device)
+        except:
+            logging.error('Error: Pose estimation failed. Check in Config.toml that pose_model and mode are valid.')
+            raise ValueError('Error: Pose estimation failed. Check in Config.toml that pose_model and mode are valid.')
+        
+        if tracking_mode not in ['deepsort', 'sports2d']:
+            logging.warning(f"Tracking mode {tracking_mode} not recognized. Using sports2d method.")
+            tracking_mode = 'sports2d'
         logging.info(f'\nPose tracking set up for "{pose_model_name}" model.')
         logging.info(f'Mode: {mode}.\n')
-        logging.info(f'Persons are detected every {det_frequency} frames and tracked inbetween. Multi-person is {"" if multiperson else "not "}selected.')
-        logging.info(f"Parameters: {keypoint_likelihood_threshold=}, {average_likelihood_threshold=}, {keypoint_number_threshold=}")
+        logging.info(f'Persons are detected every {det_frequency} frames and tracked inbetween. Multi-person is {"" if multiperson else "not "}selected. Tracking is done with {tracking_mode}.')
+        if tracking_mode == 'deepsort': logging.info(f'Deepsort parameters: {deepsort_params}.')
+        logging.info(f"{keypoint_likelihood_threshold=}, {average_likelihood_threshold=}, {keypoint_number_threshold=}")
 
     if flip_left_right:
         try:
@@ -1280,22 +1212,22 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         for frame_nb in frame_iterator:
             start_time = datetime.now()
             success, frame = cap.read()
+            frame_count += 1
 
             # If frame not grabbed
             if not success:
-                logging.warning(f"Failed to grab frame {frame_count}.")
+                logging.warning(f"Failed to grab frame {frame_count-1}.")
                 if save_pose:
                     all_frames_X.append([])
                     all_frames_Y.append([])
                     all_frames_scores.append([])
                 if save_angles:
                     all_frames_angles.append([])
-                frame_count += 1
                 continue
             else:
                 cv2.putText(frame, f"Press 'q' to quit", (cam_width-int(400*fontSize), cam_height-20), cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (255,255,255), thickness+1, cv2.LINE_AA)
                 cv2.putText(frame, f"Press 'q' to quit", (cam_width-int(400*fontSize), cam_height-20), cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (0,0,255), thickness, cv2.LINE_AA)
-                frame_count += 1
+
 
             # Retrieve pose or Estimate pose and track people
             if load_trc: 
@@ -1306,13 +1238,14 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             else: 
                 # Detect poses
                 keypoints, scores = pose_tracker(frame)
-                # Track persons
-                if tracking_rtmlib:
-                    keypoints, scores = sort_people_rtmlib(pose_tracker, keypoints, scores)
-                else:
+
+                # Track poses across frames
+                if tracking_mode == 'deepsort':
+                    keypoints, scores = sort_people_deepsort(keypoints, scores, deepsort_tracker, frame, frame_count)
+                if tracking_mode == 'sports2d': 
                     if 'prev_keypoints' not in locals(): prev_keypoints = keypoints
                     prev_keypoints, keypoints, scores = sort_people_sports2d(prev_keypoints, keypoints, scores=scores)
-                
+                        
             
             # Process coordinates and compute angles
             valid_X, valid_Y, valid_scores = [], [], []
@@ -1375,7 +1308,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 img = frame.copy()
                 img = draw_bounding_box(img, valid_X, valid_Y, colors=colors, fontSize=fontSize, thickness=thickness)
                 img = draw_keypts(img, valid_X, valid_Y, valid_scores, cmap_str='RdYlGn')
-                img = draw_skel(img, valid_X, valid_Y, pose_model, colors=colors)
+                img = draw_skel(img, valid_X, valid_Y, pose_model)
                 if calculate_angles:
                     img = draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, new_keypoints_ids, new_keypoints_names, angle_names, display_angle_values_on=display_angle_values_on, colors=colors, fontSize=fontSize, thickness=thickness)
 
