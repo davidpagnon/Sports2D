@@ -75,7 +75,7 @@ If you need 3D research-grade markerless joint kinematics, consider using severa
 -->
 
 - OPTION 1: **Quick install** \
-    Open a terminal. Type `python -V` to make sure python >=3.8 <=3.11 is installed. If not, install it [from there](https://www.python.org/downloads/). Run:
+    Open a terminal. Type `python -V` to make sure python >=3.10 <=3.11 is installed. If not, install it [from there](https://www.python.org/downloads/). Run:
     ``` cmd
     pip install sports2d
     ```
@@ -84,7 +84,7 @@ If you need 3D research-grade markerless joint kinematics, consider using severa
     Install [Miniconda](https://docs.conda.io/en/latest/miniconda.html):\
     Open an Anaconda prompt and create a virtual environment by typing:
     ``` cmd
-    conda create -n Sports2D python=3.9 -y
+    conda create -n Sports2D python=3.10 -y
     conda activate Sports2D
     pip install sports2d
     ```
@@ -295,7 +295,7 @@ You will need to install OpenSim via conda, which makes installation slightly mo
 
    Once installed, open an Anaconda prompt and create a virtual environment:
    ```
-   conda create -n Sports2D python=3.9 -y 
+   conda create -n Sports2D python=3.10 -y 
    conda activate Sports2D
    ```
 
