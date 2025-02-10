@@ -83,4 +83,4 @@ jobs:
           KMP_DUPLICATE_LIB_OK: TRUE
         run: |
           cd Sports2D/Utilities
-          pytest -v -s tests.py --capture=sys
+          conda run -n sports2d pytest -v tests.py --capture=sys
