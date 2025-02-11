@@ -67,15 +67,19 @@ mode = 'balanced' # 'lightweight', 'balanced', 'performance', or """{dictionary}
 # mode = """{'pose_class':'RTMO', 
 #          'pose_model':'https://download.openmmlab.com/mmpose/v1/projects/rtmo/onnx_sdk/rtmo-m_16xb16-600e_body7-640x640-39e78cc4_20231211.zip', 
 #          'pose_input_size':[640, 640]}"""
+# Example with animal pose estimation:
+# mode = """{'pose_class':'RTMPose',
+#          'pose_model':'https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/onnx_sdk/rtmpose-m_simcc-ap10k_pt-aic-coco_210e-256x256-7a041aa1_20230206.zip',
+#          'pose_input_size':[256,256]}"""
 
 det_frequency = 4       # Run person detection only every N frames, and inbetween track previously detected bounding boxes (keypoint detection is still run on all frames). 
                         # Equal to or greater than 1, can be as high as you want in simple uncrowded cases. Much faster, but might be less accurate. 
 device = 'auto' # 'auto', 'CPU', 'CUDA', 'MPS', 'ROCM'
 backend = 'auto' # 'auto', 'openvino', 'onnxruntime', 'opencv'
 tracking_mode = 'sports2d' # 'sports2d' or 'deepsort'. 'deepsort' is slower but more robust in difficult configurations
-deepsort_params = """{'max_age':30, 'n_init':3, 'nms_max_overlap':0.8, 'max_cosine_distance':0.3, 'nn_budget':200, 'max_iou_distance':0.8, 'embedder_gpu': True}""" # """{dictionary between 3 double quotes}"""
-                  # More robust in crowded scenes but Can be tricky to parametrize. More information there: https://github.com/levan92/deep_sort_realtime/blob/master/deep_sort_realtime/deepsort_tracker.py#L51
-                  # Note: For faster and more robust tracking, use {'embedder_gpu': True, embedder':'torchreid'}, which uses the GPU and runs osnet_ain_x1_0 by default. requires `pip install torch torchvision torchreid gdown tensorboard`
+deepsort_params = """{'max_age':30, 'n_init':3, 'max_cosine_distance':0.3, 'max_iou_distance':0.8, 'embedder_gpu': True, embedder':'torchreid'}""" # """{dictionary between 3 double quotes}"""
+                  # More robust in crowded scenes but tricky to parametrize. More information there: https://github.com/levan92/deep_sort_realtime/blob/master/deep_sort_realtime/deepsort_tracker.py#L51
+                  # Requires `pip install torch torchvision torchreid gdown tensorboard`
 
 
 # Processing parameters
@@ -138,11 +142,9 @@ filter_type = 'butterworth'   # butterworth, gaussian, LOESS, median
 
 [inverse-kinematics]
 do_ik = false # Do scaling and inverse kinematics?
-person_orientation = ['front', 'none', 'left'] # Choose among 'auto', 'none', 'front', 'back', 'left', 'right'
-                     # if 'none', no IK will be performed on the corresponding person
-                     # if 'auto', will be either 'left' or 'right' depending on the direction of the motion
-                     # Example with one person on one video: ['front']
-                     # Or ['front', 'none', 'left'] with 3 persons on one video
+person_side = ['front', 'left'] # Choose visible side among ['right', 'left', 'away', 'camera', 'none']. String or list of strings.
+               # if 'none', no IK will be performed on the corresponding person
+               # if 'auto', will be either 'left' or 'right' depending on the direction of the motion
 osim_setup_path = '../OpenSim_setup' # Path to the OpenSim setup folder
 close_to_zero_speed_m = 0.2 # Sum for all keypoints: about 50 px/frame or 0.2 m/frame 
 

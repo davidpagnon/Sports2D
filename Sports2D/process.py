@@ -1491,80 +1491,84 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
 
     # Post-processing angles
     if save_angles and calculate_angles:
-        logging.info('\nPost-processing angles:')
-        all_frames_angles = make_homogeneous(all_frames_angles)
-        
-        # unwrap angles
-        # all_frames_angles = np.unwrap(all_frames_angles, axis=0, period=180) # This give all nan values -> need to mask nans
-        for i in range(all_frames_angles.shape[1]):  # for each person
-            for j in range(all_frames_angles.shape[2]):  # for each angle
-                valid_mask = ~np.isnan(all_frames_angles[:, i, j])
-                all_frames_angles[valid_mask, i, j] = np.unwrap(all_frames_angles[valid_mask, i, j], period=180)
-
-        # Process angles for each person
-        for i in detected_persons:
-            angles_path_person = angles_output_path.parent / (angles_output_path.stem + f'_person{i:02d}.mot')
-            all_frames_angles_person = pd.DataFrame(all_frames_angles[:,i,:], columns=angle_names)
+        if not do_ik:
+            logging.info('\nPost-processing angles (without inverse kinematics):')
+            all_frames_angles = make_homogeneous(all_frames_angles)
             
-            # Delete person if less than 4 valid frames
-            angle_nan_count = len(np.where(all_frames_angles_person.sum(axis=1)==0)[0])
-            if frame_count - angle_nan_count <= 4:
-                logging.info(f'- Person {i}: Less than 4 valid frames. Deleting person.')
+            # unwrap angles
+            # all_frames_angles = np.unwrap(all_frames_angles, axis=0, period=180) # This give all nan values -> need to mask nans
+            for i in range(all_frames_angles.shape[1]):  # for each person
+                for j in range(all_frames_angles.shape[2]):  # for each angle
+                    valid_mask = ~np.isnan(all_frames_angles[:, i, j])
+                    all_frames_angles[valid_mask, i, j] = np.unwrap(all_frames_angles[valid_mask, i, j], period=180)
 
-            else:
-                # Interpolate
-                if not interpolate:
-                    logging.info(f'- Person {i}: No interpolation.')
-                    all_frames_angles_person_interp = all_frames_angles_person
-                else:
-                    logging.info(f'- Person {i}: Interpolating missing sequences if they are smaller than {interp_gap_smaller_than} frames. Large gaps filled with {fill_large_gaps_with}.')
-                    all_frames_angles_person_interp = all_frames_angles_person.apply(interpolate_zeros_nans, axis=0, args = [interp_gap_smaller_than, 'linear'])
-                    if fill_large_gaps_with == 'last_value':
-                        all_frames_angles_person_interp = all_frames_angles_person_interp.ffill(axis=0).bfill(axis=0)
-                    elif fill_large_gaps_with == 'zeros':
-                        all_frames_angles_person_interp.replace(np.nan, 0, inplace=True)
+            # Process angles for each person
+            for i in detected_persons:
+                angles_path_person = angles_output_path.parent / (angles_output_path.stem + f'_person{i:02d}.mot')
+                all_frames_angles_person = pd.DataFrame(all_frames_angles[:,i,:], columns=angle_names)
                 
-                # Filter
-                if not filter_options[0]:
-                    logging.info(f'No filtering.')
-                    all_frames_angles_person_filt = all_frames_angles_person_interp
+                # Delete person if less than 4 valid frames
+                angle_nan_count = len(np.where(all_frames_angles_person.sum(axis=1)==0)[0])
+                if frame_count - angle_nan_count <= 4:
+                    logging.info(f'- Person {i}: Less than 4 valid frames. Deleting person.')
+
                 else:
-                    filter_type = filter_options[1]
-                    if filter_type == 'butterworth':
-                        cutoff = filter_options[3]
-                        if video_file == 'webcam':
-                            if cutoff / (fps / 2) >= 1:
-                                cutoff_old = cutoff
-                                cutoff = fps/(2+0.001)
-                                args = f'\n{cutoff_old:.1f} Hz cut-off framerate too large for a real-time framerate of {fps:.1f} Hz. Using a cut-off framerate of {cutoff:.1f} Hz instead.'
-                                filter_options[3] = cutoff
-                        args = f'Butterworth filter, {filter_options[2]}th order, {filter_options[3]} Hz.'
-                        filter_options[4] = fps
-                    if filter_type == 'gaussian':
-                        args = f'Gaussian filter, Sigma kernel {filter_options[5]}.'
-                    if filter_type == 'loess':
-                        args = f'LOESS filter, window size of {filter_options[6]} frames.'
-                    if filter_type == 'median':
-                        args = f'Median filter, kernel of {filter_options[7]}.'
-                    logging.info(f'Filtering with {args}')
-                    all_frames_angles_person_filt = all_frames_angles_person_interp.apply(filter.filter1d, axis=0, args=filter_options)
+                    # Interpolate
+                    if not interpolate:
+                        logging.info(f'- Person {i}: No interpolation.')
+                        all_frames_angles_person_interp = all_frames_angles_person
+                    else:
+                        logging.info(f'- Person {i}: Interpolating missing sequences if they are smaller than {interp_gap_smaller_than} frames. Large gaps filled with {fill_large_gaps_with}.')
+                        all_frames_angles_person_interp = all_frames_angles_person.apply(interpolate_zeros_nans, axis=0, args = [interp_gap_smaller_than, 'linear'])
+                        if fill_large_gaps_with == 'last_value':
+                            all_frames_angles_person_interp = all_frames_angles_person_interp.ffill(axis=0).bfill(axis=0)
+                        elif fill_large_gaps_with == 'zeros':
+                            all_frames_angles_person_interp.replace(np.nan, 0, inplace=True)
+                    
+                    # Filter
+                    if not filter_options[0]:
+                        logging.info(f'No filtering.')
+                        all_frames_angles_person_filt = all_frames_angles_person_interp
+                    else:
+                        filter_type = filter_options[1]
+                        if filter_type == 'butterworth':
+                            cutoff = filter_options[3]
+                            if video_file == 'webcam':
+                                if cutoff / (fps / 2) >= 1:
+                                    cutoff_old = cutoff
+                                    cutoff = fps/(2+0.001)
+                                    args = f'\n{cutoff_old:.1f} Hz cut-off framerate too large for a real-time framerate of {fps:.1f} Hz. Using a cut-off framerate of {cutoff:.1f} Hz instead.'
+                                    filter_options[3] = cutoff
+                            args = f'Butterworth filter, {filter_options[2]}th order, {filter_options[3]} Hz.'
+                            filter_options[4] = fps
+                        if filter_type == 'gaussian':
+                            args = f'Gaussian filter, Sigma kernel {filter_options[5]}.'
+                        if filter_type == 'loess':
+                            args = f'LOESS filter, window size of {filter_options[6]} frames.'
+                        if filter_type == 'median':
+                            args = f'Median filter, kernel of {filter_options[7]}.'
+                        logging.info(f'Filtering with {args}')
+                        all_frames_angles_person_filt = all_frames_angles_person_interp.apply(filter.filter1d, axis=0, args=filter_options)
 
-                # Remove columns with all nan values
-                all_frames_angles_person_filt.dropna(axis=1, how='all', inplace=True)
-                all_frames_angles_person = all_frames_angles_person[all_frames_angles_person_filt.columns]
+                    # Remove columns with all nan values
+                    all_frames_angles_person_filt.dropna(axis=1, how='all', inplace=True)
+                    all_frames_angles_person = all_frames_angles_person[all_frames_angles_person_filt.columns]
 
-                # Add floor_angle_estim to segment angles
-                if correct_segment_angles_with_floor_angle and to_meters: 
-                    logging.info(f'Correcting segment angles by removing the {round(np.degrees(floor_angle_estim),2)}° floor angle.')
-                    for ang_name in all_frames_angles_person_filt.columns:
-                        if 'horizontal' in angle_dict[ang_name][1]:
-                            all_frames_angles_person_filt[ang_name] -= np.degrees(floor_angle_estim)
+                    # Add floor_angle_estim to segment angles
+                    if correct_segment_angles_with_floor_angle and to_meters: 
+                        logging.info(f'Correcting segment angles by removing the {round(np.degrees(floor_angle_estim),2)}° floor angle.')
+                        for ang_name in all_frames_angles_person_filt.columns:
+                            if 'horizontal' in angle_dict[ang_name][1]:
+                                all_frames_angles_person_filt[ang_name] -= np.degrees(floor_angle_estim)
 
-                # Build mot file
-                angle_data = make_mot_with_angles(all_frames_angles_person_filt, all_frames_time, str(angles_path_person))
-                logging.info(f'Angles saved to {angles_path_person.resolve()}.')
+                    # Build mot file
+                    angle_data = make_mot_with_angles(all_frames_angles_person_filt, all_frames_time, str(angles_path_person))
+                    logging.info(f'Angles saved to {angles_path_person.resolve()}.')
 
-                # Plotting angles before and after interpolation and filtering
-                if show_plots:
-                    all_frames_angles_person.insert(0, 't', all_frames_time)
-                    angle_plots(all_frames_angles_person, angle_data, i) # i = current person
+                    # Plotting angles before and after interpolation and filtering
+                    if show_plots:
+                        all_frames_angles_person.insert(0, 't', all_frames_time)
+                        angle_plots(all_frames_angles_person, angle_data, i) # i = current person
+
+        else:
+            logging.info('\nPost-processing angles (with inverse kinematics):')

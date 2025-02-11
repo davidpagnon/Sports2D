@@ -51,12 +51,24 @@ If you need 3D research-grade markerless joint kinematics, consider using severa
 ## Contents
 1. [Installation and Demonstration](#installation-and-demonstration)
    1. [Installation](#installation)
+      1. [Quick install](#quick-install)
+      2. [Full install](#full-install)
    2. [Demonstration](#demonstration)
+      1. [Run the demo](#run-the-demo)
+      2. [Import in Blender](#import-in-blender)
    3. [Play with the parameters](#play-with-the-parameters)
+      1. [Run on a custom video or on a webcam](#run-on-a-custom-video-or-on-a-webcam)
+      2. [Run for a specific time range](#run-for-a-specific-time-range)
+      3. [Get coordinates in meters](#get-coordinates-in-meters)
+      4. [Run on several videos at once](#run-on-several-videos-at-once)
+      5. [Use the configuration file or run within Python](#use-the-configuration-file-or-run-within-python)
+      6. [Get the angles the way you want](#get-the-angles-the-way-you-want)
+      7. [Customize your output](#customize-your-output)
+      8. [Use a custom pose estimation model](#use-a-custom-pose-estimation-model)
+      9. [All the parameters](#all-the-parameters)
 2. [Go further](#go-further)
    1. [Too slow for you?](#too-slow-for-you)
-   2. [What you need is what you get](#what-you-need-is-what-you-get)
-   3. [All the parameters](#all-the-parameters)
+   3. [Run inverse kinematics](#run-inverse-kinematics)
    4. [How it works](#how-it-works)
 3. [How to cite and how to contribute](#how-to-cite-and-how-to-contribute)
 
@@ -74,28 +86,47 @@ If you need 3D research-grade markerless joint kinematics, consider using severa
   
 -->
 
-- OPTION 1: **Quick install** \
-    Open a terminal. Type `python -V` to make sure python >=3.10 <=3.11 is installed. If not, install it [from there](https://www.python.org/downloads/). Run:
-    ``` cmd
-    pip install sports2d
-    ```
+#### Quick install
 
-- OPTION 2: **Safer install with Anaconda**\
-    Install [Miniconda](https://docs.conda.io/en/latest/miniconda.html):\
-    Open an Anaconda prompt and create a virtual environment by typing:
-    ``` cmd
-    conda create -n Sports2D python=3.10 -y
-    conda activate Sports2D
-    pip install sports2d
-    ```
+> N.B.: Full install is required for OpenSim inverse kinematics.
 
-- OPTION 3: **Build from source and test the last changes**\
-     Open a terminal in the directory of your choice and clone the Sports2D repository.
-     ``` cmd
-     git clone https://github.com/davidpagnon/sports2d.git
-     cd sports2d
-     pip install .
-     ```
+Open a terminal. Type `python -V` to make sure python >=3.10 <=3.11 is installed. If not, install it [from there](https://www.python.org/downloads/). 
+
+Run:
+``` cmd
+pip install sports2d
+```
+
+Alternatively, build from source to test the last changes:
+``` cmd
+git clone https://github.com/davidpagnon/sports2d.git
+cd sports2d
+pip install .
+```
+
+<br>
+
+#### Full install
+
+> Only needed if you want to run inverse kinematics (`--do_ik True`).
+
+- Install Anaconda or [Miniconda](https://docs.conda.io/en/latest/miniconda.html):\
+  Open an Anaconda prompt and create a virtual environment:
+  ``` cmd
+  conda create -n Sports2D python=3.10 -y
+  conda activate Sports2D
+  ```
+- **Install OpenSim**:\
+  Install the OpenSim Python API (if you do not want to install via conda, refer [to this page](https://opensimconfluence.atlassian.net/wiki/spaces/OpenSim/pages/53085346/Scripting+in+Python#ScriptinginPython-SettingupyourPythonscriptingenvironment(ifnotusingconda))):
+    ```
+    conda install -c opensim-org opensim -y
+    ```
+   
+- **Install Sports2D**:
+  ``` cmd
+  pip install sports2d
+  ```
+
 
 <br>
 
@@ -127,211 +158,142 @@ The Demo video is voluntarily challenging to demonstrate the robustness of the p
 
 ### Play with the parameters
 
-For a full list of the available parameters, see [this section](#all-the-parameters) of the documentation, check the [Config_Demo.toml](https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Demo/Config_demo.toml) file, or type:
+For a full list of the available parameters, see [this section](#all-the-parameters) of the documentation, check the [Config_Demo.toml](https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Demo/Config_demo.toml) file, or type `sports2d --help`. All non specified are set to default values.
+
+<br>
+
+
+#### Run on a custom video or on a webcam:
 ``` cmd
-sports2d --help
+sports2d --video_input path_to_video.mp4
 ```
+
+``` cmd
+sports2d --video_input webcam
+```
+
 <br>
 
-#### Run on custom video with default parameters:
-  ``` cmd
-  sports2d --video_input path_to_video.mp4
-  ```
 
-#### Run on webcam with default parameters: 
-  ``` cmd
-  sports2d --video_input webcam
-  ```
+#### Run for a specific time range:
+```cmd
+sports2d --time_range 1.2 2.7
+```
+ 
 <br>
 
-#### Get coordinates in meters rather than in pixels: 
+
+#### Get coordinates in meters: 
 
 <!-- You either need to provide a calibration file, or simply the height of a person (Note that the latter will not take distortions into account, and that it will be less accurate for motion in the frontal plane).\-->
-Just provide the height of the analyzed person (and their ID in case of multiple person detection).\
+You may need to convert pixel coordinates to meters.\
+Just provide the height of the reference person (and their ID in case of multiple person detection).\
 The floor angle and the origin of the xy axis are computed automatically from gait. If you analyze another type of motion, you can manually specify them.\
 Note that it does not take distortions into account, and that it will be less accurate for motions in the frontal plane.
 
-  ``` cmd
-  sports2d --to_meters True --calib_file calib_demo.toml
-  ```
-  ``` cmd
-  sports2d --to_meters True --person_height 1.65 --calib_on_person_id 2
-  ```
-  ``` cmd
-  sports2d --to_meters True --person_height 1.65 --calib_on_person_id 2 --floor_angle 0 --xy_origin 0 940
-  ```
+``` cmd
+sports2d --to_meters True --calib_file calib_demo.toml
+```
+``` cmd
+sports2d --to_meters True --person_height 1.65 --calib_on_person_id 2
+```
+``` cmd
+sports2d --to_meters True --person_height 1.65 --calib_on_person_id 2 --floor_angle 0 --xy_origin 0 940
+```
+
 <br>
 
-#### Run with custom parameters (all non specified are set to default): 
-  ``` cmd
-  sports2d --video_input demo.mp4 other_video.mp4
-  ```
-  ``` cmd
-  sports2d --show_graphs False --time_range 1.2 2.7 --result_dir path_to_result_dir --slowmo_factor 4
-  ```
-  ``` cmd
-  sports2d --multiperson false --pose_model Body --mode lightweight --det_frequency 50 
-  ```
-  ``` cmd
-  sports2d --tracking_mode deepsort --deepsort_params """{'max_age':30, 'n_init':3, 'nms_max_overlap':0.8, 'max_cosine_distance':0.3, 'nn_budget':200, 'max_iou_distance':0.8, 'embedder_gpu': True}"""
-  ```
+
+#### Run on several videos at once:
+``` cmd
+sports2d --video_input demo.mp4 other_video.mp4
+```
+All videos analyzed with the same time range.
+```cmd
+sports2d --video_input demo.mp4 other_video.mp4 --time_range 1.2 2.7
+```
+Different time ranges for each video.
+```cmd
+sports2d --video_input demo.mp4 other_video.mp4 --time_range 1.2 2.7 0 3.5
+```
+
 <br>
 
-#### Run with a toml configuration file: 
+
+#### Use the configuration file or run within Python:
+
+- Run with a configuration file:
   ``` cmd
   sports2d --config Config_demo.toml
   ```
-<br>
-
-#### Run within a Python script: 
+- Run within Python: 
   ``` python
   from Sports2D import Sports2D; Sports2D.process('Config_demo.toml')
   ```
+- Run within Python with a dictionary (for example, `config_dict = toml.load('Config_demo.toml')`):
   ``` python
   from Sports2D import Sports2D; Sports2D.process(config_dict)
   ```
 
 <br>
 
-## Go further
 
-### Too slow for you?
+#### Get the angles the way you want:
 
-**Quick fixes:**
-- Use ` --save_vid false --save_img false --show_realtime_results false`: Will not save images or videos, and will not display the results in real time. 
-- Use `--mode lightweight`: Will use a lighter version of RTMPose, which is faster but less accurate.\
-Note that any detection and pose models can be used (first [deploy them with MMPose](https://mmpose.readthedocs.io/en/latest/user_guides/how_to_deploy.html#onnx) if you do not have their .onnx or .zip files), with the following formalism:
-  ```
-  --mode """{'det_class':'YOLOX',
-          'det_model':'https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/onnx_sdk/yolox_nano_8xb8-300e_humanart-40f6f0d0.zip',
-          'det_input_size':[416,416],
-          'pose_class':'RTMPose',
-          'pose_model':'https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/onnx_sdk/rtmpose-t_simcc-body7_pt-body7_420e-256x192-026a1439_20230504.zip',
-          'pose_input_size':[192,256]}"""
-  ```
-- Use `--det_frequency 50`: Will detect poses only every 50 frames, and track keypoints in between, which is faster.
-- Use `--multiperson false`: Can be used if one single person is present in the video. Otherwise, persons' IDs may be mixed up.
-- Use `--load_trc <path_to_file_px.trc>`: Will use pose estimation results from a file. Useful if you want to use different parameters for pixel to meter conversion or angle calculation without running detection and pose estimation all over.
-- Use `--tracking_mode sports2d`: Will use the default Sports2D tracker. Unlike DeepSort, it is faster, does not require any parametrization, and is as good in non-crowded scenes. 
-
-<br> 
-
-**Use your GPU**:\
-Will be much faster, with no impact on accuracy. However, the installation takes about 6 GB of additional storage space.
-
-1. Run `nvidia-smi` in a terminal. If this results in an error, your GPU is probably not compatible with CUDA. If not, note the "CUDA version": it is the latest version your driver is compatible with (more information [on this post](https://stackoverflow.com/questions/60987997/why-torch-cuda-is-available-returns-false-even-after-installing-pytorch-with)).
-
-   Then go to the [ONNXruntime requirement page](https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html#requirements), note the latest compatible CUDA and cuDNN requirements. Next, go to the [pyTorch website](https://pytorch.org/get-started/previous-versions/) and install the latest version that satisfies these requirements (beware that torch 2.4 ships with cuDNN 9, while torch 2.3 installs cuDNN 8). For example:
-   ``` cmd
-   pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
-   ```
-
-<!-- > ***Note:*** Issues were reported with the default command. However, this has been tested and works:
-`pip install torch==2.3.1 torchvision==0.18.1 torchaudio==2.3.1 --index-url https://download.pytorch.org/whl/cu118` -->
-
-2. Finally, install ONNX Runtime with GPU support:
-   ```
-   pip install onnxruntime-gpu
-   ```
-
-3. Check that everything went well within Python with these commands:
-   ``` bash
-   python -c 'import torch; print(torch.cuda.is_available())'
-   python -c 'import onnxruntime as ort; print(ort.get_available_providers())'
-   # Should print "True ['CUDAExecutionProvider', ...]"
-   ```
-   <!-- print(f'torch version: {torch.__version__}, cuda version: {torch.version.cuda}, cudnn version: {torch.backends.cudnn.version()}, onnxruntime version: {ort.__version__}') -->
-
-<br>
-
-### What you need is what you get
-
-#### Analyze a fraction of your video:
-  ```cmd
-  sports2d --time_range 1.2 2.7
-  ```
-<br>
-
-#### Customize your output:
-- Choose whether you want video, images, trc pose file, angle mot file, real-time display, and plots:
-  ```cmd
-  sports2d --save_vid false --save_img true --save_pose false --save_angles true --show_realtime_results false --show_graphs false
-  ```
 - Choose which angles you need:
   ```cmd
   sports2d --joint_angles 'right knee' 'left knee' --segment_angles None
   ```
 - Choose where to display the angles: either as a list on the upper-left of the image, or near the joint/segment, or both:
   ```cmd
-  sports2d --display_angle_values_on body
+  sports2d --display_angle_values_on body # OR none, or list
   ```
 - You can also decide not to calculate and display angles at all:
   ```cmd
   sports2d --calculate_angles false
   ```
+- To run **inverse kinematics with OpenSim**, check [this section](#run-inverse-kinematics)
+
 <br>
 
-#### Run on several videos at once:
-You can individualize (or not) the parameters.
-  ```cmd
-  sports2d --video_input demo.mp4 other_video.mp4 --time_range 1.2 2.7
+
+#### Customize your output:
+- Only analyze the most prominent person:
+  ``` cmd
+  sports2d --multiperson false
   ```
+- Choose whether you want video, images, trc pose file, angle mot file, real-time display, and plots:
   ```cmd
-  sports2d --video_input demo.mp4 other_video.mp4 --time_range 1.2 2.7 0 3.5
+  sports2d --save_vid false --save_img true --save_pose false --save_angles true --show_realtime_results false --show_graphs false
+  ```
+- Save results to a custom directory, specify the slow-motion factor:
+  ``` cmd
+  sports2d --result_dir path_to_result_dir
   ```
 
-<!--
 <br>
 
-### Constrain results to a biomechanical model
 
-> Why + image\
-> Add explanation in "how it works" section
-
-#### Installation
-You will need to install OpenSim via conda, which makes installation slightly more complicated.
-
-1. **Install Anaconda or [Miniconda](https://docs.conda.io/en/latest/miniconda.html).**
-
-   Once installed, open an Anaconda prompt and create a virtual environment:
-   ```
-   conda create -n Sports2D python=3.10 -y 
-   conda activate Sports2D
-   ```
-
-2. **Install OpenSim**:\
-Install the OpenSim Python API (if you do not want to install via conda, refer [to this page](https://opensimconfluence.atlassian.net/wiki/spaces/OpenSim/pages/53085346/Scripting+in+Python#ScriptinginPython-SettingupyourPythonscriptingenvironment(ifnotusingconda))):
-   ```
-   conda install -c opensim-org opensim -y
-   ```
-   
-3. **Install Sports2D**:\
-Open a terminal. 
-    ``` cmd
-    pip install sports2d
-    ```
-<br>
-
-#### Usage
-
-Need person doing a 2D motion. If not, trim the video with `--time_range` option.
-
-```cmd
-sports2d --time_range 1.2 2.7 --ik true --person_orientation front none left
-```
-
-<br>
-
-#### Visualize the results
-- The simplest option is to use OpenSim GUI
-- If you want to see the skeleton overlay on the video, you can install the Pose2Sim Blender plugin.
-
--->
+#### Use a custom pose estimation model:
+- Retrieve hand motion:
+  ``` cmd
+  sports2d --pose_model WholeBody 
+  ```
+- Use any custom (deployed) MMPose model
+  ``` cmd
+  sports2d --pose_model BodyWithFeet :
+           --mode """{'det_class':'YOLOX',
+                  'det_model':'https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/onnx_sdk/yolox_m_8xb8-300e_humanart-c2c7a14a.zip',
+                  'det_input_size':[640, 640],
+                  'pose_class':'RTMPose',
+                  'pose_model':'https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/onnx_sdk/rtmpose-m_simcc-body7_pt-body7-halpe26_700e-256x192-4d3e73dd_20230605.zip',
+                  'pose_input_size':[192,256]}"""
+  ```
 
 <br>
 
 
-### All the parameters
+#### All the parameters
 
 For a full list of the available parameters, have a look at the [Config_Demo.toml](https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Demo/Config_demo.toml) file or type:
 
@@ -380,8 +342,9 @@ sports2d --help
 'close_to_zero_speed_m': ["","Sum for all keypoints: about 50 px/frame or 0.2 m/frame"], 
 'multiperson': ["", "multiperson involves tracking: will be faster if set to false. true if not specified"],
 'tracking_mode': ["", "sports2d or rtmlib. sports2d is generally much more accurate and comparable in speed. sports2d if not specified"],
-'deepsort_params': ["", 'Deepsort tracking parameters: """{dictionary between 3 double quotes}""". \n\
-                    More information there: https://github.com/levan92/deep_sort_realtime/blob/master/deep_sort_realtime/deepsort_tracker.py#L51'],     
+'deepsort_params': ["", 'Deepsort tracking parameters: """{dictionary between 3 double quotes}""". \
+                    Default: max_age:30, n_init:3, nms_max_overlap:0.8, max_cosine_distance:0.3, nn_budget:200, max_iou_distance:0.8, embedder_gpu: True\
+                    More information there: https://github.com/levan92/deep_sort_realtime/blob/master/deep_sort_realtime/deepsort_tracker.py#L51'],
 'input_size': ["", "width, height. 1280, 720 if not specified. Lower resolution will be faster but less precise"],
 'keypoint_likelihood_threshold': ["", "detected keypoints are not retained if likelihood is below this threshold. 0.3 if not specified"],
 'average_likelihood_threshold': ["", "detected persons are not retained if average keypoint likelihood is below this threshold. 0.5 if not specified"],
@@ -407,6 +370,123 @@ sports2d --help
 ```
 
 <br>
+
+
+## Go further
+
+### Too slow for you?
+
+**Quick fixes:**
+- Use ` --save_vid false --save_img false --show_realtime_results false`: Will not save images or videos, and will not display the results in real time. 
+- Use `--mode lightweight`: Will use a lighter version of RTMPose, which is faster but less accurate.\
+Note that any detection and pose models can be used (first [deploy them with MMPose](https://mmpose.readthedocs.io/en/latest/user_guides/how_to_deploy.html#onnx) if you do not have their .onnx or .zip files), with the following formalism:
+  ```
+  --mode """{'det_class':'YOLOX',
+          'det_model':'https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/onnx_sdk/yolox_nano_8xb8-300e_humanart-40f6f0d0.zip',
+          'det_input_size':[416,416],
+          'pose_class':'RTMPose',
+          'pose_model':'https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/onnx_sdk/rtmpose-t_simcc-body7_pt-body7_420e-256x192-026a1439_20230504.zip',
+          'pose_input_size':[192,256]}"""
+  ```
+- Use `--det_frequency 50`: Will detect poses only every 50 frames, and track keypoints in between, which is faster.
+- Use `--multiperson false`: Can be used if one single person is present in the video. Otherwise, persons' IDs may be mixed up.
+- Use `--load_trc <path_to_file_px.trc>`: Will use pose estimation results from a file. Useful if you want to use different parameters for pixel to meter conversion or angle calculation without running detection and pose estimation all over.
+- Make sure you use `--tracking_mode sports2d`: Will use the default Sports2D tracker. Unlike DeepSort, it is faster, does not require any parametrization, and is as good in non-crowded scenes. 
+
+<br> 
+
+**Use your GPU**:\
+Will be much faster, with no impact on accuracy. However, the installation takes about 6 GB of additional storage space.
+
+1. Run `nvidia-smi` in a terminal. If this results in an error, your GPU is probably not compatible with CUDA. If not, note the "CUDA version": it is the latest version your driver is compatible with (more information [on this post](https://stackoverflow.com/questions/60987997/why-torch-cuda-is-available-returns-false-even-after-installing-pytorch-with)).
+
+   Then go to the [ONNXruntime requirement page](https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html#requirements), note the latest compatible CUDA and cuDNN requirements. Next, go to the [pyTorch website](https://pytorch.org/get-started/previous-versions/) and install the latest version that satisfies these requirements (beware that torch 2.4 ships with cuDNN 9, while torch 2.3 installs cuDNN 8). For example:
+   ``` cmd
+   pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+   ```
+
+<!-- > ***Note:*** Issues were reported with the default command. However, this has been tested and works:
+`pip install torch==2.3.1 torchvision==0.18.1 torchaudio==2.3.1 --index-url https://download.pytorch.org/whl/cu118` -->
+
+2. Finally, install ONNX Runtime with GPU support:
+   ```
+   pip install onnxruntime-gpu
+   ```
+
+3. Check that everything went well within Python with these commands:
+   ``` bash
+   python -c 'import torch; print(torch.cuda.is_available())'
+   python -c 'import onnxruntime as ort; print(ort.get_available_providers())'
+   # Should print "True ['CUDAExecutionProvider', ...]"
+   ```
+   <!-- print(f'torch version: {torch.__version__}, cuda version: {torch.version.cuda}, cudnn version: {torch.backends.cudnn.version()}, onnxruntime version: {ort.__version__}') -->
+
+<br>
+
+### Run inverse kinematics
+
+> COMING SOON
+
+<!-- > Why + image\
+> Add explanation in "how it works" section -->
+
+#### Installation
+You will need to install OpenSim via conda, which makes installation slightly more complicated.
+
+1. **Install Anaconda or [Miniconda](https://docs.conda.io/en/latest/miniconda.html).**
+
+   Once installed, open an Anaconda prompt and create a virtual environment:
+   ```
+   conda create -n Sports2D python=3.10 -y 
+   conda activate Sports2D
+   ```
+
+2. **Install OpenSim**:\
+Install the OpenSim Python API (if you do not want to install via conda, refer [to this page](https://opensimconfluence.atlassian.net/wiki/spaces/OpenSim/pages/53085346/Scripting+in+Python#ScriptinginPython-SettingupyourPythonscriptingenvironment(ifnotusingconda))):
+   ```
+   conda install -c opensim-org opensim -y
+   ```
+   
+3. **Install Sports2D**:\
+Open a terminal. 
+    ``` cmd
+    pip install sports2d
+    ```
+<br>
+
+#### Usage
+
+<!-- Need person doing a 2D motion. If not, trim the video with `--time_range` option. -->
+
+```cmd
+sports2d --time_range 1.2 2.7 --ik true --person_orientation front none left
+```
+
+<br>
+
+#### Visualize the results
+- The simplest option is to use OpenSim GUI
+- If you want to rig see the skeleton overlay on the video, you can install the Pose2Sim Blender plugin.
+
+
+
+
+
+
+
+
+
+<!--
+
+VIDEO THERE
+
+-->
+
+
+<br>
+
+
+
 
 
 ### How it works
