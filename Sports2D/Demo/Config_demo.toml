@@ -12,12 +12,16 @@
 
 
 [project]
-video_input = 'demo.mp4' # 'webcam' or '<video_path.ext>', or ['video1_path.mp4', 'video2_path.avi>', ...]
-                        # On Windows, replace '\' with '/'
-                        # Beware that images won't be saved if paths contain non ASCII characters.
-person_height = 1.70    # Height of the person in meters (for pixels -> meters conversion)
-load_trc = ''           # If you do not want to recalculate pose, load it from a trc file (in px, not in m)
-compare = false         # Not implemented yet
+video_input = 'demo.mp4'   # 'webcam' or '<video_path.ext>', or ['video1_path.mp4', 'video2_path.avi>', ...]
+                           # On Windows, replace '\' with '/'
+                           # Beware that images won't be saved if paths contain non ASCII characters.
+px_to_m_from_person_id = 2    # Person to use for pixels to meters conversion (not used if a calibration file is provided)
+px_to_m_person_height = 1.65  # Height of the reference person in meters (for pixels -> meters conversion). 
+visible_side = ['front', 'none', 'auto']  # Choose visible side among ['right', 'left', 'front', 'back', 'auto', 'none']. String or list of strings.
+               # if 'auto', will be either 'left', 'right', or 'front' depending on the direction of the motion
+               # if 'none', no processing will be performed on the corresponding person
+load_trc_px_px = ''  # If you do not want to recalculate pose, load it from a trc file (in px, not in m)
+compare = false      # Not implemented yet
 
 # Video parameters
 time_range = []   # [] for the whole video, or [start_time, end_time] (in seconds), or [[start_time1, end_time1], [start_time2, end_time2], ...]
@@ -91,13 +95,15 @@ keypoint_number_threshold = 0.3     # Person will be ignored if the number of go
 [px_to_meters_conversion]
 # Pixel to meters conversion
 to_meters = true
-# If conversion from a calibration file
-calib_file = ''         # Calibration in the Pose2Sim format. 'calib_demo.toml', or '' if not available
-# If conversion from person_height
-calib_on_person_id = 0  # Person to use for calibration
+make_c3d = true
+save_calib = true # Coming soon!
+
+# If conversion from px_to_m_person_height
 floor_angle = 'auto'    # 'auto' or a value in degrees, eg 2.3. If 'auto', estimated from the line formed by the toes when they are on the ground (where speed = 0)
 xy_origin = ['auto']    # ['auto'] or [px_x,px_y]. N.B.: px_y points downwards. If ['auto'], direction estimated from the start to the end of the line formed by the toes when they are on the ground
-save_calib = true
+
+# If conversion from a calibration file
+calib_file = ''         # Calibration in the Pose2Sim format. 'calib_demo.toml', or '' if not available
 
 fastest_frames_to_remove_percent = 0.1 # Frames with high speed are considered as outliers
 close_to_zero_speed_px = 50 # Sum for all keypoints: about 50 px/frame or 0.2 m/frame
@@ -140,13 +146,20 @@ filter_type = 'butterworth'   # butterworth, gaussian, LOESS, median
    kernel_size = 3
 
 
-[inverse-kinematics]
+[kinematics]
 do_ik = false # Do scaling and inverse kinematics?
-person_side = ['front', 'left'] # Choose visible side among ['right', 'left', 'away', 'camera', 'none']. String or list of strings.
-               # if 'none', no IK will be performed on the corresponding person
-               # if 'auto', will be either 'left' or 'right' depending on the direction of the motion
+use_augmentation = true  # true or false (lowercase) # Set to true if you want to use the model with augmented markers
+use_contacts_muscles = true # true or false (lowercase) # If true, contact spheres and muscles are added to the model
+
 osim_setup_path = '../OpenSim_setup' # Path to the OpenSim setup folder
-close_to_zero_speed_m = 0.2 # Sum for all keypoints: about 50 px/frame or 0.2 m/frame 
+right_left_symmetry = true # true or false (lowercase) # Set to false only if you have good reasons to think the participant is not symmetrical (e.g. prosthetic limb)
+# default_height = 1.7 # meters # If automatic height calculation did not work, this value is used to scale the model
+remove_individual_scaling_setup = true # true or false (lowercase) # If true, the individual scaling setup files are removed to avoid cluttering
+remove_individual_ik_setup = true # true or false (lowercase) # If true, the individual IK setup files are removed to avoid cluttering
+fastest_frames_to_remove_percent = 0.1 # Frames with high speed are considered as outliers
+close_to_zero_speed_m = 0.2 # Sum for all keypoints: about 50 px/frame or 0.2 m/frame
+large_hip_knee_angles = 45 # Hip and knee angles below this value are considered as imprecise
+trimmed_extrema_percent = 0.5 # Proportion of the most extreme segment values to remove before calculating their mean)
 
 
 [logging]

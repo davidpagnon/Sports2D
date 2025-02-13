@@ -29,6 +29,7 @@ import pandas as pd
 from scipy import interpolate
 import imageio_ffmpeg as ffmpeg
 import cv2
+import c3d
 
 import matplotlib.pyplot as plt
 from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget, QTabWidget, QVBoxLayout
@@ -83,6 +84,32 @@ angle_dict = { # lowercase!
     'right hand': [['RIndex', 'RWrist'], 'horizontal', 0, -1],
     'left hand': [['LIndex', 'LWrist'], 'horizontal', 0, -1]
     }
+
+marker_Z_positions = {'right':
+                        {"RHip": 0.105, "RKnee": 0.0886, "RAnkle": 0.0972, "RBigToe":0.0766, "RHeel":0.0883, "RSmallToe": 0.1200, 
+                        "RShoulder": 0.2016, "RElbow": 0.1613, "RWrist": 0.120, "RThumb": 0.1625, "RIndex": 0.1735, "RPinky": 0.1740, "REye": 0.0311, 
+                        "LHip": -0.105, "LKnee": -0.0886, "LAnkle": -0.0972, "LBigToe": -0.0766, "LHeel": -0.0883, "LSmallToe": -0.1200, 
+                        "LShoulder": -0.2016, "LElbow": -0.1613, "LWrist": -0.120, "LThumb": -0.1625, "LIndex": -0.1735, "LPinky": -0.1740, "LEye": -0.0311, 
+                        "Hip": 0.0, "Neck": 0.0, "Head":0.0, "Nose": 0.0},
+                    'left':
+                        {"RHip": -0.105, "RKnee": -0.0886, "RAnkle": -0.0972, "RBigToe": -0.0766, "RHeel": -0.0883, "RSmallToe": -0.1200, 
+                        "RShoulder": -0.2016, "RElbow": -0.1613, "RWrist": -0.120, "RThumb": -0.1625, "RIndex": -0.1735, "RPinky": -0.1740, "REye": -0.0311, 
+                        "LHip": 0.105, "LKnee": 0.0886, "LAnkle": 0.0972, "LBigToe":0.0766, "LHeel":0.0883, "LSmallToe": 0.1200, 
+                        "LShoulder": 0.2016, "LElbow": 0.1613, "LWrist": 0.120, "LThumb": 0.1625, "LIndex": 0.1735, "LPinky": 0.1740, "LEye": 0.0311, 
+                        "Hip": 0.0, "Neck": 0.0, "Head":0.0, "Nose": 0.0},
+                    'front':
+                        {"RHip": 0.0301, "RKnee": 0.0179, "RAnkle": 0.0230, "RBigToe": -0.2179, "RHeel": 0.0119, "RSmallToe": -0.1804, 
+                        "RShoulder": -0.01275, "RElbow": 0.0119, "RWrist": 0.0002, "RThumb": 0.0106, "RIndex": -0.0004, "RPinky": -0.0009, "REye": 0.0702, 
+                        "LHip": -0.0301, "LKnee": -0.0179, "LAnkle": -0.0230, "LBigToe": -0.2179, "LHeel": 0.0119, "LSmallToe": -0.1804, 
+                        "LShoulder": 0.01275, "LElbow": -0.0119, "LWrist": -0.0002, "LThumb": -0.0106, "LIndex": 0.0004, "LPinky": 0.0009, "LEye": -0.0702, 
+                        "Hip": 0.0301, "Neck": -0.0008, "Head": 0.0655, "Nose": 0.1076},
+                    'back':
+                        {"RHip": -0.0301, "RKnee": -0.0179, "RAnkle": -0.0230, "RBigToe": 0.2179, "RHeel": -0.0119, "RSmallToe": 0.1804, 
+                        "RShoulder": 0.01275, "RElbow": -0.0119, "RWrist": -0.0002, "RThumb": -0.0106, "RIndex": 0.0004, "RPinky": 0.0009, "REye": -0.0702, 
+                        "LHip": 0.0301, "LKnee": 0.0179, "LAnkle": 0.0230, "LBigToe": 0.2179, "LHeel": -0.0119, "LSmallToe": 0.1804, 
+                        "LShoulder": -0.01275, "LElbow": 0.0119, "LWrist": 0.0002, "LThumb": 0.0106, "LIndex": -0.0004, "LPinky": -0.0009, "LEye": 0.0702, 
+                        "Hip": 0.0301, "Neck": -0.0008, "Head": -0.0655, "Nose": 0.1076},
+            }
 
 colors = [(255, 0, 0), (0, 0, 255), (255, 255, 0), (255, 0, 255), (0, 255, 255), (0, 0, 0), (255, 255, 255),
             (125, 0, 0), (0, 125, 0), (0, 0, 125), (125, 125, 0), (125, 0, 125), (0, 125, 125), 
@@ -170,6 +197,85 @@ def read_trc(trc_path):
     
     except Exception as e:
         raise ValueError(f"Error reading TRC file at {trc_path}: {e}")
+
+
+def extract_trc_data(trc_path):
+    '''
+    Extract marker names and coordinates from a trc file.
+
+    INPUTS:
+    - trc_path: Path to the trc file
+
+    OUTPUTS:
+    - marker_names: List of marker names
+    - marker_coords: Array of marker coordinates (n_frames, t+3*n_markers)
+    '''
+
+    # marker names
+    with open(trc_path, 'r') as file:
+        lines = file.readlines()
+        marker_names_line = lines[3]
+        marker_names = marker_names_line.strip().split('\t')[2::3]
+
+    # time and marker coordinates
+    trc_data_np = np.genfromtxt(trc_path, skip_header=5, delimiter = '\t')[:,1:] 
+
+    return marker_names, trc_data_np
+
+
+def create_c3d_file(c3d_path, marker_names, trc_data_np):
+    '''
+    Create a c3d file from the data extracted from a trc file.
+
+    INPUTS:
+    - c3d_path: Path to the c3d file
+    - marker_names: List of marker names
+    - trc_data_np: Array of marker coordinates (n_frames, t+3*n_markers)
+
+    OUTPUTS:
+    - c3d file
+    '''
+
+    # retrieve frame rate
+    times = trc_data_np[:,0]
+    frame_rate = round((len(times)-1) / (times[-1] - times[0]))
+
+    # write c3d file
+    writer = c3d.Writer(point_rate=frame_rate, analog_rate=0, point_scale=1.0, point_units='mm', gen_scale=-1.0)
+    writer.set_point_labels(marker_names)
+    writer.set_screen_axis(X='+Z', Y='+Y')
+    
+    for frame in trc_data_np:
+        residuals = np.full((len(marker_names), 1), 0.0)
+        cameras = np.zeros((len(marker_names), 1))
+        coords = frame[1:].reshape(-1,3)*1000
+        points = np.hstack((coords, residuals, cameras))
+        writer.add_frames([(points, np.array([]))])
+
+    writer.set_start_frame(0)
+    writer._set_last_frame(len(trc_data_np)-1)
+
+    with open(c3d_path, 'wb') as handle:
+        writer.write(handle)
+
+
+def convert_to_c3d(trc_path):
+    '''
+    Make Visual3D compatible c3d files from a trc path
+
+    INPUT:
+    - trc_path: string, trc file to convert
+
+    OUTPUT:
+    - c3d file
+    '''
+
+    trc_path = str(trc_path)
+    c3d_path = trc_path.replace('.trc', '.c3d')
+    marker_names, trc_data_np = extract_trc_data(trc_path)
+    create_c3d_file(c3d_path, marker_names, trc_data_np)
+
+    return c3d_path
 
 
 def interpolate_zeros_nans(col, *args):
