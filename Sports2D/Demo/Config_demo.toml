@@ -20,7 +20,7 @@ px_to_m_person_height = 1.65  # Height of the reference person in meters (for pi
 visible_side = ['front', 'none', 'auto']  # Choose visible side among ['right', 'left', 'front', 'back', 'auto', 'none']. String or list of strings.
                # if 'auto', will be either 'left', 'right', or 'front' depending on the direction of the motion
                # if 'none', no processing will be performed on the corresponding person
-load_trc_px_px = ''  # If you do not want to recalculate pose, load it from a trc file (in px, not in m)
+load_trc_px = ''  # If you do not want to recalculate pose, load it from a trc file (in px, not in m)
 compare = false      # Not implemented yet
 
 # Video parameters

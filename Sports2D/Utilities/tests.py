@@ -56,11 +56,11 @@ def test_workflow():
 
     # Default
     demo_cmd = ["sports2d", "--show_realtime_results", "False", "--show_graphs", "False"]
-    subprocess.run(demo_cmd, check=True, capture_output=True, text=True)
+    subprocess.run(demo_cmd, check=True, capture_output=True, text=True, encoding='utf-8')
 
     # With no pixels to meters conversion, no multiperson, lightweight mode, detection frequency, time range and slowmo factor
     demo_cmd2 = ["sports2d", "--to_meters", "False", "--multiperson", "False", "--mode", "lightweight", "--det_frequency", "50", "--time_range", "1.2", "2.7",  "--slowmo_factor", "4", "--show_realtime_results", "False", "--show_graphs", "False"]
-    subprocess.run(demo_cmd2, check=True, capture_output=True, text=True)
+    subprocess.run(demo_cmd2, check=True, capture_output=True, text=True, encoding='utf-8')
     
     # With inverse kinematics, body pose_model and custom RTMO mode
     # demo_cmd3 = ["sports2d", "--do_ik", "--person_orientation", "front none left", "--pose_model", "body", "--mode", "{'pose_class':'RTMO', 'pose_model':'https://download.openmmlab.com/mmpose/v1/projects/rtmo/onnx_sdk/rtmo-m_16xb16-600e_body7-640x640-39e78cc4_20231211.zip', 'pose_input_size':[640, 640]}", "--show_realtime_results", "False", "--show_graphs", "False"]
@@ -74,4 +74,4 @@ def test_workflow():
     with open(cli_config_path, 'w') as f: toml.dump(config_dict, f)
 
     demo_cmd4 = ["sports2d", "--config", str(cli_config_path), "--show_realtime_results", "False", "--show_graphs", "False"]
-    subprocess.run(demo_cmd4, check=True, capture_output=True, text=True)
+    subprocess.run(demo_cmd4, check=True, capture_output=True, text=True, encoding='utf-8')

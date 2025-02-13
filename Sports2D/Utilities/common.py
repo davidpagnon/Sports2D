@@ -98,15 +98,15 @@ marker_Z_positions = {'right':
                         "LShoulder": 0.2016, "LElbow": 0.1613, "LWrist": 0.120, "LThumb": 0.1625, "LIndex": 0.1735, "LPinky": 0.1740, "LEye": 0.0311, 
                         "Hip": 0.0, "Neck": 0.0, "Head":0.0, "Nose": 0.0},
                     'front':
-                        {"RHip": 0.0301, "RKnee": 0.0179, "RAnkle": 0.0230, "RBigToe": -0.2179, "RHeel": 0.0119, "RSmallToe": -0.1804, 
+                        {"RHip": 0.0301, "RKnee": 0.0179, "RAnkle": 0.0230, "RBigToe": 0.2179, "RHeel": -0.0119, "RSmallToe": 0.1804, 
                         "RShoulder": -0.01275, "RElbow": 0.0119, "RWrist": 0.0002, "RThumb": 0.0106, "RIndex": -0.0004, "RPinky": -0.0009, "REye": 0.0702, 
-                        "LHip": -0.0301, "LKnee": -0.0179, "LAnkle": -0.0230, "LBigToe": -0.2179, "LHeel": 0.0119, "LSmallToe": -0.1804, 
+                        "LHip": -0.0301, "LKnee": -0.0179, "LAnkle": 0.0230, "LBigToe": 0.2179, "LHeel": -0.0119, "LSmallToe": 0.1804, 
                         "LShoulder": 0.01275, "LElbow": -0.0119, "LWrist": -0.0002, "LThumb": -0.0106, "LIndex": 0.0004, "LPinky": 0.0009, "LEye": -0.0702, 
                         "Hip": 0.0301, "Neck": -0.0008, "Head": 0.0655, "Nose": 0.1076},
                     'back':
-                        {"RHip": -0.0301, "RKnee": -0.0179, "RAnkle": -0.0230, "RBigToe": 0.2179, "RHeel": -0.0119, "RSmallToe": 0.1804, 
+                        {"RHip": -0.0301, "RKnee": -0.0179, "RAnkle": -0.0230, "RBigToe": -0.2179, "RHeel": 0.0119, "RSmallToe": -0.1804, 
                         "RShoulder": 0.01275, "RElbow": -0.0119, "RWrist": -0.0002, "RThumb": -0.0106, "RIndex": 0.0004, "RPinky": 0.0009, "REye": -0.0702, 
-                        "LHip": 0.0301, "LKnee": 0.0179, "LAnkle": 0.0230, "LBigToe": 0.2179, "LHeel": -0.0119, "LSmallToe": 0.1804, 
+                        "LHip": 0.0301, "LKnee": 0.0179, "LAnkle": -0.0230, "LBigToe": -0.2179, "LHeel": 0.0119, "LSmallToe": -0.1804, 
                         "LShoulder": -0.01275, "LElbow": 0.0119, "LWrist": 0.0002, "LThumb": 0.0106, "LIndex": -0.0004, "LPinky": -0.0009, "LEye": 0.0702, 
                         "Hip": 0.0301, "Neck": -0.0008, "Head": -0.0655, "Nose": 0.1076},
             }
