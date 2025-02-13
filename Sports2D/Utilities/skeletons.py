@@ -85,10 +85,10 @@ HALPE_26 = Node("Hip", id=19, children=[
 ])
 
 
-'''COCO_133_wrist (full-body with hands and face, from AlphaPose, MMPose, etc.)
+'''COCO_133_WRIST (full-body with hands and face, from AlphaPose, MMPose, etc.)
 https://github.com/MVIG-SJTU/AlphaPose/blob/master/docs/MODEL_ZOO.md
 https://github.com/open-mmlab/mmpose/tree/main/projects/rtmpose'''
-COCO_133_wrist = Node("CHip", id=None, children=[
+COCO_133_WRIST = Node("Hip", id=None, children=[
     Node("RHip", id=12, children=[
         Node("RKnee", id=14, children=[
             Node("RAnkle", id=16, children=[
@@ -139,7 +139,7 @@ COCO_133_wrist = Node("CHip", id=None, children=[
 '''COCO_133 (full-body with hands and face, from AlphaPose, MMPose, etc.)
 https://github.com/MVIG-SJTU/AlphaPose/blob/master/docs/MODEL_ZOO.md
 https://github.com/open-mmlab/mmpose/tree/main/projects/rtmpose'''
-COCO_133 = Node("CHip", id=None, children=[
+COCO_133 = Node("Hip", id=None, children=[
     Node("RHip", id=12, children=[
         Node("RKnee", id=14, children=[
             Node("RAnkle", id=16, children=[
@@ -359,9 +359,7 @@ COCO_133 = Node("CHip", id=None, children=[
                                                                         Node("Mouth17", id=87, children=[
                                                                             Node("Mouth18", id=88, children=[
                                                                                 Node("Mouth19", id=89, children=[
-                                                                                    Node("Mouth20", id=90, children=[
-                                                                                        Node("Mouth21", id=91)
-                                                                                    ]),
+                                                                                    Node("Mouth20", id=90)
                                                                                 ]),
                                                                             ]),
                                                                         ]),
@@ -387,7 +385,7 @@ COCO_133 = Node("CHip", id=None, children=[
 
 '''COCO_17 (full-body without hands and feet, from OpenPose, AlphaPose, OpenPifPaf, YOLO-pose, MMPose, etc.)
 https://github.com/open-mmlab/mmpose/tree/main/projects/rtmpose'''
-COCO_17 = Node("CHip", id=None, children=[
+COCO_17 = Node("Hip", id=None, children=[
     Node("RHip", id=12, children=[
         Node("RKnee", id=14, children=[
             Node("RAnkle", id=16),
@@ -645,9 +643,10 @@ FACE_106 = Node("root", id=None, children=[
     ]),
 ])
 
+
 '''ANIMAL2D_17 (full-body animal)
 https://github.com/AlexTheBad/AP-10K/'''
-ANIMAL2D_17 = Node("CHip", id=4, children=[
+ANIMAL2D_17 = Node("Hip", id=4, children=[
     Node("RHip", id=14, children=[
         Node("RKnee", id=15, children=[
             Node("RAnkle", id=16),

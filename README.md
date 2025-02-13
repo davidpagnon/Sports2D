@@ -30,6 +30,8 @@
 > - Batch process multiple videos at once
 > 
 > Note: Colab version broken for now. I'll fix it in the next few weeks.
+
+***N.B.:*** As always, I am more than happy to welcome contributions (see [How to contribute](#how-to-contribute-and-to-do-list))!
 <!--User-friendly Colab version released! (and latest issues fixed, too)\
 Works on any smartphone!**\
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://bit.ly/Sports2D_Colab)-->
@@ -51,12 +53,26 @@ If you need 3D research-grade markerless joint kinematics, consider using severa
 ## Contents
 1. [Installation and Demonstration](#installation-and-demonstration)
    1. [Installation](#installation)
+      1. [Quick install](#quick-install)
+      2. [Full install](#full-install)
    2. [Demonstration](#demonstration)
+      1. [Run the demo](#run-the-demo)
+      2. [Visualize in OpenSim](#visualize-in-opensim)
+      3. [Visualize in Blender](#visualize-in-blender)
    3. [Play with the parameters](#play-with-the-parameters)
+      1. [Run on a custom video or on a webcam](#run-on-a-custom-video-or-on-a-webcam)
+      2. [Run for a specific time range](#run-for-a-specific-time-range)
+      3. [Get coordinates in meters](#get-coordinates-in-meters)
+      4. [Run inverse kinematics](#run-inverse-kinematics)
+      5. [Run on several videos at once](#run-on-several-videos-at-once)
+      6. [Use the configuration file or run within Python](#use-the-configuration-file-or-run-within-python)
+      7. [Get the angles the way you want](#get-the-angles-the-way-you-want)
+      8. [Customize your output](#customize-your-output)
+      9. [Use a custom pose estimation model](#use-a-custom-pose-estimation-model)
+      10. [All the parameters](#all-the-parameters)
 2. [Go further](#go-further)
    1. [Too slow for you?](#too-slow-for-you)
-   2. [What you need is what you get](#what-you-need-is-what-you-get)
-   3. [All the parameters](#all-the-parameters)
+   3. [Run inverse kinematics](#run-inverse-kinematics)
    4. [How it works](#how-it-works)
 3. [How to cite and how to contribute](#how-to-cite-and-how-to-contribute)
 
@@ -74,32 +90,53 @@ If you need 3D research-grade markerless joint kinematics, consider using severa
   
 -->
 
-- OPTION 1: **Quick install** \
-    Open a terminal. Type `python -V` to make sure python >=3.10 <=3.11 is installed. If not, install it [from there](https://www.python.org/downloads/). Run:
-    ``` cmd
-    pip install sports2d
-    ```
+#### Quick install
 
-- OPTION 2: **Safer install with Anaconda**\
-    Install [Miniconda](https://docs.conda.io/en/latest/miniconda.html):\
-    Open an Anaconda prompt and create a virtual environment by typing:
-    ``` cmd
-    conda create -n Sports2D python=3.10 -y
-    conda activate Sports2D
-    pip install sports2d
-    ```
+> N.B.: Full install is required for OpenSim inverse kinematics.
 
-- OPTION 3: **Build from source and test the last changes**\
-     Open a terminal in the directory of your choice and clone the Sports2D repository.
-     ``` cmd
-     git clone https://github.com/davidpagnon/sports2d.git
-     cd sports2d
-     pip install .
-     ```
+Open a terminal. Type `python -V` to make sure python >=3.10 <=3.11 is installed. If not, install it [from there](https://www.python.org/downloads/). 
+
+Run:
+``` cmd
+pip install sports2d
+```
+
+Alternatively, build from source to test the last changes:
+``` cmd
+git clone https://github.com/davidpagnon/sports2d.git
+cd sports2d
+pip install .
+```
+
+<br>
+
+#### Full install
+
+> Only needed if you want to run inverse kinematics (`--do_ik True`).
+
+- Install Anaconda or [Miniconda](https://docs.conda.io/en/latest/miniconda.html):\
+  Open an Anaconda prompt and create a virtual environment:
+  ``` cmd
+  conda create -n Sports2D python=3.10 -y
+  conda activate Sports2D
+  ```
+- **Install OpenSim**:\
+  Install the OpenSim Python API (if you do not want to install via conda, refer [to this page](https://opensimconfluence.atlassian.net/wiki/spaces/OpenSim/pages/53085346/Scripting+in+Python#ScriptinginPython-SettingupyourPythonscriptingenvironment(ifnotusingconda))):
+    ```
+    conda install -c opensim-org opensim -y
+    ```
+   
+- **Install Sports2D with Pose2Sim**:
+  ``` cmd
+  pip install sports2d pose2sim
+  ```
+
 
 <br>
 
 ### Demonstration
+
+#### Run the demo:
 
 Just open a command line and run:
 ``` cmd
@@ -125,73 +162,297 @@ The Demo video is voluntarily challenging to demonstrate the robustness of the p
 
 <br>
 
+
+#### Visualize in Blender
+
+1. **Install the Pose2Sim_Blender add-on.**\
+   Follow instructions on the [Pose2Sim_Blender](https://github.com/davidpagnon/Pose2Sim_Blender) add-on page.
+2. **Open your point coordinates.**\
+   **Add Markers**: open your trc file(e.g., `coords_m.trc`) from your `result_dir` folder.
+   
+   This will optionally create **an animated rig** based on the motion of the captured person.
+3. **Open your animated skeleton:**\
+   Make sure you first set `--do_ik True` ([full install](#full-install) required). See [inverse kinematics](#run-inverse-kinematics) section for more details.
+   - **Add Model**: Open your scaled model (e.g., `Model_Pose2Sim_LSTM.osim`). 
+   - **Add Motion**: Open your motion file (e.g., `angles.mot`). Make sure the skeleton is selected in the outliner.
+
+   The OpenSim skeleton is not rigged yet. **[Feel free to contribute!](https://github.com/perfanalytics/pose2sim/issues/40)**
+
+<!-- IMAGE ICI
+-->
+
+ 
+
+<br>
+
+
+#### Visualize in OpenSim
+
+1. Install **[OpenSim GUI](https://simtk.org/frs/index.php?group_id=91)**.
+2. **Visualize point coordinates:**\
+   **File -> Preview experimental data:** Open your trc file (e.g., `coords_m.trc`) from your `result_dir` folder.
+3. **Visualize angles:**\
+   To open an animated model and run further biomechanical analysis, make sure you first set `--do_ik True` ([full install](#full-install) required). See [inverse kinematics](#run-inverse-kinematics) section for more details. 
+   - **File -> Open Model:** Open your scaled model (e.g., `Model_Pose2Sim_LSTM.osim`).
+   - **File -> Load Motion:** Open your motion file (e.g., `angles.mot`).
+
+<br>
+
+<!-- IMAGE ICI
+-->
+
+
+
 ### Play with the parameters
 
-For a full list of the available parameters, see [this section](#all-the-parameters) of the documentation, check the [Config_Demo.toml](https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Demo/Config_demo.toml) file, or type:
+For a full list of the available parameters, see [this section](#all-the-parameters) of the documentation, check the [Config_Demo.toml](https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Demo/Config_demo.toml) file, or type `sports2d --help`. All non specified are set to default values.
+
+<br>
+
+
+#### Run on a custom video or on a webcam:
 ``` cmd
-sports2d --help
+sports2d --video_input path_to_video.mp4
 ```
+
+``` cmd
+sports2d --video_input webcam
+```
+
 <br>
 
-#### Run on custom video with default parameters:
-  ``` cmd
-  sports2d --video_input path_to_video.mp4
-  ```
 
-#### Run on webcam with default parameters: 
-  ``` cmd
-  sports2d --video_input webcam
-  ```
+#### Run for a specific time range:
+```cmd
+sports2d --time_range 1.2 2.7
+```
+ 
 <br>
 
-#### Get coordinates in meters rather than in pixels: 
+
+#### Get coordinates in meters: 
 
 <!-- You either need to provide a calibration file, or simply the height of a person (Note that the latter will not take distortions into account, and that it will be less accurate for motion in the frontal plane).\-->
-Just provide the height of the analyzed person (and their ID in case of multiple person detection).\
+You may need to convert pixel coordinates to meters.\
+Just provide the height of the reference person (and their ID in case of multiple person detection).\
 The floor angle and the origin of the xy axis are computed automatically from gait. If you analyze another type of motion, you can manually specify them.\
 Note that it does not take distortions into account, and that it will be less accurate for motions in the frontal plane.
 
-  ``` cmd
-  sports2d --to_meters True --calib_file calib_demo.toml
-  ```
-  ``` cmd
-  sports2d --to_meters True --person_height 1.65 --calib_on_person_id 2
-  ```
-  ``` cmd
-  sports2d --to_meters True --person_height 1.65 --calib_on_person_id 2 --floor_angle 0 --xy_origin 0 940
-  ```
+``` cmd
+sports2d --to_meters True --calib_file calib_demo.toml
+```
+``` cmd
+sports2d --to_meters True --px_to_m_person_height 1.65 --px_to_m_from_person_id 2
+```
+``` cmd
+sports2d --to_meters True --px_to_m_person_height 1.65 --px_to_m_from_person_id 2 --floor_angle 0 --xy_origin 0 940
+```
+
 <br>
 
-#### Run with custom parameters (all non specified are set to default): 
-  ``` cmd
-  sports2d --video_input demo.mp4 other_video.mp4
-  ```
-  ``` cmd
-  sports2d --show_graphs False --time_range 1.2 2.7 --result_dir path_to_result_dir --slowmo_factor 4
-  ```
-  ``` cmd
-  sports2d --multiperson false --pose_model Body --mode lightweight --det_frequency 50 
-  ```
-  ``` cmd
-  sports2d --tracking_mode deepsort --deepsort_params """{'max_age':30, 'n_init':3, 'nms_max_overlap':0.8, 'max_cosine_distance':0.3, 'nn_budget':200, 'max_iou_distance':0.8, 'embedder_gpu': True}"""
-  ```
+
+#### Run inverse kinematics:
+> N.B.: [Full install](#full-install) required.
+
+> N.B.: The person needs to be moving on a single plane for the whole selected time range. 
+
+Analyzed persons can be showing their left, right, front, or back side. If you want to ignore a certain person, set `--visible_side none`. 
+
+
+
+
+              Why IK?
+              Add section in how it works
+
+
+
+```cmd
+sports2d --time_range 1.2 2.7 --do_ik true --visible_side front left
+```
+
+```cmd
+sports2d --time_range 1.2 2.7 --do_ik true --visible_side front left --use_augmentation True
+```
+
 <br>
 
-#### Run with a toml configuration file: 
+
+#### Run on several videos at once:
+``` cmd
+sports2d --video_input demo.mp4 other_video.mp4
+```
+All videos analyzed with the same time range.
+```cmd
+sports2d --video_input demo.mp4 other_video.mp4 --time_range 1.2 2.7
+```
+Different time ranges for each video.
+```cmd
+sports2d --video_input demo.mp4 other_video.mp4 --time_range 1.2 2.7 0 3.5
+```
+
+<br>
+
+
+#### Use the configuration file or run within Python:
+
+- Run with a configuration file:
   ``` cmd
   sports2d --config Config_demo.toml
   ```
-<br>
-
-#### Run within a Python script: 
+- Run within Python: 
   ``` python
   from Sports2D import Sports2D; Sports2D.process('Config_demo.toml')
   ```
+- Run within Python with a dictionary (for example, `config_dict = toml.load('Config_demo.toml')`):
   ``` python
   from Sports2D import Sports2D; Sports2D.process(config_dict)
   ```
 
 <br>
+
+
+#### Get the angles the way you want:
+
+- Choose which angles you need:
+  ```cmd
+  sports2d --joint_angles 'right knee' 'left knee' --segment_angles None
+  ```
+- Choose where to display the angles: either as a list on the upper-left of the image, or near the joint/segment, or both:
+  ```cmd
+  sports2d --display_angle_values_on body # OR none, or list
+  ```
+- You can also decide not to calculate and display angles at all:
+  ```cmd
+  sports2d --calculate_angles false
+  ```
+- To run **inverse kinematics with OpenSim**, check [this section](#run-inverse-kinematics)
+
+<br>
+
+
+#### Customize your output:
+- Only analyze the most prominent person:
+  ``` cmd
+  sports2d --multiperson false
+  ```
+- Choose whether you want video, images, trc pose file, angle mot file, real-time display, and plots:
+  ```cmd
+  sports2d --save_vid false --save_img true --save_pose false --save_angles true --show_realtime_results false --show_graphs false
+  ```
+- Save results to a custom directory, specify the slow-motion factor:
+  ``` cmd
+  sports2d --result_dir path_to_result_dir
+  ```
+
+<br>
+
+
+#### Use a custom pose estimation model:
+- Retrieve hand motion:
+  ``` cmd
+  sports2d --pose_model WholeBody 
+  ```
+- Use any custom (deployed) MMPose model
+  ``` cmd
+  sports2d --pose_model BodyWithFeet :
+           --mode """{'det_class':'YOLOX',
+                  'det_model':'https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/onnx_sdk/yolox_m_8xb8-300e_humanart-c2c7a14a.zip',
+                  'det_input_size':[640, 640],
+                  'pose_class':'RTMPose',
+                  'pose_model':'https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/onnx_sdk/rtmpose-m_simcc-body7_pt-body7-halpe26_700e-256x192-4d3e73dd_20230605.zip',
+                  'pose_input_size':[192,256]}"""
+  ```
+
+<br>
+
+
+#### All the parameters
+
+For a full list of the available parameters, have a look at the [Config_Demo.toml](https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Demo/Config_demo.toml) file or type:
+
+``` cmd
+sports2d --help
+```
+
+``` 
+'config': ["C", "path to a toml configuration file"],
+'video_input': ["i", "webcam, or video_path.mp4, or video1_path.avi video2_path.mp4 ... Beware that images won't be saved if paths contain non ASCII characters"],
+'px_to_m_person_height': ["H", "height of the person in meters. 1.70 if not specified"],
+'visible_side': ["", "front, back, left, right, auto, or none. 'front auto' if not specified. If 'auto', will be either left or right depending on the direction of the motion. If 'none', no IK for this person"],
+'load_trc_px': ["", "load trc file to avaid running pose estimation again. false if not specified"],
+'compare': ["", "visually compare motion with trc file. false if not specified"],
+'webcam_id': ["w", "webcam ID. 0 if not specified"],
+'time_range': ["t", "start_time end_time. In seconds. Whole video if not specified. start_time1 end_time1 start_time2 end_time2 ... if multiple videos with different time ranges"],
+'video_dir': ["d", "current directory if not specified"],
+'result_dir': ["r", "current directory if not specified"],
+'show_realtime_results': ["R", "show results in real-time. true if not specified"],
+'display_angle_values_on': ["a", '"body", "list", "body" "list", or "none". body list if not specified'],
+'show_graphs': ["G", "show plots of raw and processed results. true if not specified"],
+'joint_angles': ["j", '"Right ankle" "Left ankle" "Right knee" "Left knee" "Right hip" "Left hip" "Right shoulder" "Left shoulder" "Right elbow" "Left elbow" if not specified'],
+'segment_angles': ["s", '"Right foot" "Left foot" "Right shank" "Left shank" "Right thigh" "Left thigh" "Pelvis" "Trunk" "Shoulders" "Head" "Right arm" "Left arm" "Right forearm" "Left forearm" if not specified'],
+'save_vid': ["V", "save processed video. true if not specified"],
+'save_img': ["I", "save processed images. true if not specified"],
+'save_pose': ["P", "save pose as trc files. true if not specified"],
+'calculate_angles': ["c", "calculate joint and segment angles. true if not specified"],
+'save_angles': ["A", "save angles as mot files. true if not specified"],
+'slowmo_factor': ["", "slow-motion factor. For a video recorded at 240 fps and exported to 30 fps, it would be 240/30 = 8. 1 if not specified"],
+'pose_model': ["p", "only body_with_feet is available for now. body_with_feet if not specified"],
+'mode': ["m", 'light, balanced, performance, or a """{dictionary within triple quote}""". balanced if not specified. Use a dictionary to specify your own detection and/or pose estimation models (more about in the documentation).'],
+'det_frequency': ["f", "run person detection only every N frames, and inbetween track previously detected bounding boxes. keypoint detection is still run on all frames.\n\
+                  Equal to or greater than 1, can be as high as you want in simple uncrowded cases. Much faster, but might be less accurate. 1 if not specified: detection runs on all frames"],
+'backend': ["", "Backend for pose estimation can be 'auto', 'cpu', 'cuda', 'mps' (for MacOS), or 'rocm' (for AMD GPUs)"],
+'device': ["", "Device for pose estimatino can be 'auto', 'openvino', 'onnxruntime', 'opencv'"],
+'to_meters': ["M", "convert pixels to meters. true if not specified"],
+'make_c3d': ["", "Convert trc to c3d file. true if not specified"],
+'px_to_m_from_person_id': ["", "person ID to calibrate on. 0 if not specified"],
+'floor_angle': ["", "angle of the floor. 'auto' if not specified"],
+'xy_origin': ["", "origin of the xy plane. 'auto' if not specified"],
+'calib_file': ["", "path to calibration file. '' if not specified, eg no calibration file"],
+'save_calib': ["", "save calibration file. true if not specified"],
+'do_ik': ["", "do inverse kinematics. false if not specified"],
+'use_augmentation': ["", "Use LSTM marker augmentation. false if not specified"],
+'use_contacts_muscles': ["", "Use model with contact spheres and muscles. false if not specified"],
+'close_to_zero_speed_m': ["","Sum for all keypoints: about 50 px/frame or 0.2 m/frame"], 
+'multiperson': ["", "multiperson involves tracking: will be faster if set to false. true if not specified"],
+'tracking_mode': ["", "sports2d or rtmlib. sports2d is generally much more accurate and comparable in speed. sports2d if not specified"],
+'deepsort_params': ["", 'Deepsort tracking parameters: """{dictionary between 3 double quotes}""". \n\
+                    Default: max_age:30, n_init:3, nms_max_overlap:0.8, max_cosine_distance:0.3, nn_budget:200, max_iou_distance:0.8, embedder_gpu: True\n\
+                    More information there: https://github.com/levan92/deep_sort_realtime/blob/master/deep_sort_realtime/deepsort_tracker.py#L51'],
+'input_size': ["", "width, height. 1280, 720 if not specified. Lower resolution will be faster but less precise"],
+'keypoint_likelihood_threshold': ["", "detected keypoints are not retained if likelihood is below this threshold. 0.3 if not specified"],
+'average_likelihood_threshold': ["", "detected persons are not retained if average keypoint likelihood is below this threshold. 0.5 if not specified"],
+'keypoint_number_threshold': ["", "detected persons are not retained if number of detected keypoints is below this threshold. 0.3 if not specified, i.e., i.e., 30 percent"],
+'fastest_frames_to_remove_percent': ["", "Frames with high speed are considered as outliers. Defaults to 0.1"],
+'close_to_zero_speed_px': ["", "Sum for all keypoints: about 50 px/frame or 0.2 m/frame. Defaults to 50"],
+'large_hip_knee_angles': ["", "Hip and knee angles below this value are considered as imprecise. Defaults to 45"],
+'trimmed_extrema_percent': ["", "Proportion of the most extreme segment values to remove before calculating their mean. Defaults to 50"],
+'fontSize': ["", "font size for angle values. 0.3 if not specified"],
+'flip_left_right': ["", "true or false. true to get consistent angles with people facing both left and right sides. Set it to false if you want timeseries to be continuous even when the participent switches their stance. true if not specified"],
+'correct_segment_angles_with_floor_angle': ["", "true or false. If the camera is tilted, corrects segment angles as regards to the floor angle. Set to false is the floor is tilted instead. True if not specified"],
+'interpolate': ["", "interpolate missing data. true if not specified"],
+'interp_gap_smaller_than': ["", "interpolate sequences of missing data if they are less than N frames long. 10 if not specified"],
+'fill_large_gaps_with': ["", "last_value, nan, or zeros. last_value if not specified"],
+'filter': ["", "filter results. true if not specified"],
+'filter_type': ["", "butterworth, gaussian, median, or loess. butterworth if not specified"],
+'order': ["", "order of the Butterworth filter. 4 if not specified"],
+'cut_off_frequency': ["", "cut-off frequency of the Butterworth filter. 3 if not specified"],
+'sigma_kernel': ["", "sigma of the gaussian filter. 1 if not specified"],
+'nb_values_used': ["", "number of values used for the loess filter. 5 if not specified"],
+'kernel_size': ["", "kernel size of the median filter. 3 if not specified"],
+'osim_setup_path': ["", "path to OpenSim setup. '../OpenSim_setup' if not specified"],
+'right_left_symmetry': ["", "right left symmetry. true if not specified"],
+'default_height': ["", "default height for scaling. 1.70 if not specified"],
+'remove_individual_scaling_setup': ["", "remove individual scaling setup files generated during scaling. true if not specified"],
+'remove_individual_ik_setup': ["", "remove individual IK setup files generated during IK. true if not specified"],
+'fastest_frames_to_remove_percent': ["", "Frames with high speed are considered as outliers. Defaults to 0.1"],
+'close_to_zero_speed_m': ["","Sum for all keypoints: about 50 px/frame or 0.2 m/frame"],
+'large_hip_knee_angles': ["", "Hip and knee angles below this value are considered as imprecise and ignored. Defaults to 45"],
+'trimmed_extrema_percent': ["", "Proportion of the most extreme segment values to remove before calculating their mean. Defaults to 50"],
+'use_custom_logging': ["", "use custom logging. false if not specified"]
+```
+
+<br>
+
 
 ## Go further
 
@@ -211,8 +472,8 @@ Note that any detection and pose models can be used (first [deploy them with MMP
   ```
 - Use `--det_frequency 50`: Will detect poses only every 50 frames, and track keypoints in between, which is faster.
 - Use `--multiperson false`: Can be used if one single person is present in the video. Otherwise, persons' IDs may be mixed up.
-- Use `--load_trc <path_to_file_px.trc>`: Will use pose estimation results from a file. Useful if you want to use different parameters for pixel to meter conversion or angle calculation without running detection and pose estimation all over.
-- Use `--tracking_mode sports2d`: Will use the default Sports2D tracker. Unlike DeepSort, it is faster, does not require any parametrization, and is as good in non-crowded scenes. 
+- Use `--load_trc_px <path_to_file_px.trc>`: Will use pose estimation results from a file. Useful if you want to use different parameters for pixel to meter conversion or angle calculation without running detection and pose estimation all over.
+- Make sure you use `--tracking_mode sports2d`: Will use the default Sports2D tracker. Unlike DeepSort, it is faster, does not require any parametrization, and is as good in non-crowded scenes. 
 
 <br> 
 
@@ -244,169 +505,22 @@ Will be much faster, with no impact on accuracy. However, the installation takes
 
 <br>
 
-### What you need is what you get
 
-#### Analyze a fraction of your video:
-  ```cmd
-  sports2d --time_range 1.2 2.7
-  ```
-<br>
 
-#### Customize your output:
-- Choose whether you want video, images, trc pose file, angle mot file, real-time display, and plots:
-  ```cmd
-  sports2d --save_vid false --save_img true --save_pose false --save_angles true --show_realtime_results false --show_graphs false
-  ```
-- Choose which angles you need:
-  ```cmd
-  sports2d --joint_angles 'right knee' 'left knee' --segment_angles None
-  ```
-- Choose where to display the angles: either as a list on the upper-left of the image, or near the joint/segment, or both:
-  ```cmd
-  sports2d --display_angle_values_on body
-  ```
-- You can also decide not to calculate and display angles at all:
-  ```cmd
-  sports2d --calculate_angles false
-  ```
-<br>
 
-#### Run on several videos at once:
-You can individualize (or not) the parameters.
-  ```cmd
-  sports2d --video_input demo.mp4 other_video.mp4 --time_range 1.2 2.7
-  ```
-  ```cmd
-  sports2d --video_input demo.mp4 other_video.mp4 --time_range 1.2 2.7 0 3.5
-  ```
+
 
 <!--
-<br>
 
-### Constrain results to a biomechanical model
-
-> Why + image\
-> Add explanation in "how it works" section
-
-#### Installation
-You will need to install OpenSim via conda, which makes installation slightly more complicated.
-
-1. **Install Anaconda or [Miniconda](https://docs.conda.io/en/latest/miniconda.html).**
-
-   Once installed, open an Anaconda prompt and create a virtual environment:
-   ```
-   conda create -n Sports2D python=3.10 -y 
-   conda activate Sports2D
-   ```
-
-2. **Install OpenSim**:\
-Install the OpenSim Python API (if you do not want to install via conda, refer [to this page](https://opensimconfluence.atlassian.net/wiki/spaces/OpenSim/pages/53085346/Scripting+in+Python#ScriptinginPython-SettingupyourPythonscriptingenvironment(ifnotusingconda))):
-   ```
-   conda install -c opensim-org opensim -y
-   ```
-   
-3. **Install Sports2D**:\
-Open a terminal. 
-    ``` cmd
-    pip install sports2d
-    ```
-<br>
-
-#### Usage
-
-Need person doing a 2D motion. If not, trim the video with `--time_range` option.
-
-```cmd
-sports2d --time_range 1.2 2.7 --ik true --person_orientation front none left
-```
-
-<br>
-
-#### Visualize the results
-- The simplest option is to use OpenSim GUI
-- If you want to see the skeleton overlay on the video, you can install the Pose2Sim Blender plugin.
+VIDEO THERE
 
 -->
 
-<br>
-
-
-### All the parameters
-
-For a full list of the available parameters, have a look at the [Config_Demo.toml](https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Demo/Config_demo.toml) file or type:
-
-``` cmd
-sports2d --help
-```
-
-``` 
-['config': "C", "path to a toml configuration file"],
-
-'video_input': ["i", "webcam, or video_path.mp4, or video1_path.avi video2_path.mp4 ... Beware that images won't be saved if paths contain non ASCII characters"],
-'person_height': ["H", "height of the person in meters. 1.70 if not specified"],
-'load_trc': ["", "load trc file to avaid running pose estimation again. false if not specified"],
-'compare': ["", "visually compare motion with trc file. false if not specified"],
-'webcam_id': ["w", "webcam ID. 0 if not specified"],
-'time_range': ["t", "start_time end_time. In seconds. Whole video if not specified. start_time1 end_time1 start_time2 end_time2 ... if multiple videos with different time ranges"],
-'video_dir': ["d", "current directory if not specified"],
-'result_dir': ["r", "current directory if not specified"],
-'show_realtime_results': ["R", "show results in real-time. true if not specified"],
-'display_angle_values_on': ["a", '"body", "list", "body" "list", or "none". body list if not specified'],
-'show_graphs': ["G", "show plots of raw and processed results. true if not specified"],
-'joint_angles': ["j", '"Right ankle" "Left ankle" "Right knee" "Left knee" "Right hip" "Left hip" "Right shoulder" "Left shoulder" "Right elbow" "Left elbow" if not specified'],
-'segment_angles': ["s", '"Right foot" "Left foot" "Right shank" "Left shank" "Right thigh" "Left thigh" "Pelvis" "Trunk" "Shoulders" "Head" "Right arm" "Left arm" "Right forearm" "Left forearm" if not specified'],
-'save_vid': ["V", "save processed video. true if not specified"],
-'save_img': ["I", "save processed images. true if not specified"],
-'save_pose': ["P", "save pose as trc files. true if not specified"],
-'calculate_angles': ["c", "calculate joint and segment angles. true if not specified"],
-'save_angles': ["A", "save angles as mot files. true if not specified"],
-'slowmo_factor': ["", "slow-motion factor. For a video recorded at 240 fps and exported to 30 fps, it would be 240/30 = 8. 1 if not specified"],
-'pose_model': ["p", "only body_with_feet is available for now. body_with_feet if not specified"],
-'mode': ["m", "light, balanced, or performance. balanced if not specified"],
-'det_frequency': ["f", "run person detection only every N frames, and inbetween track previously detected bounding boxes. keypoint detection is still run on all frames.\n\
-                 Equal to or greater than 1, can be as high as you want in simple uncrowded cases. Much faster, but might be less accurate. 1 if not specified: detection runs on all frames"],
-'to_meters': ["M", "convert pixels to meters. true if not specified"],
-
-'backend': ["", "Backend for pose estimation can be 'auto', 'cpu', 'cuda', 'mps' (for MacOS), or 'rocm' (for AMD GPUs)"],
-'device': ["", "Device for pose estimatino can be 'auto', 'openvino', 'onnxruntime', 'opencv'"],
-'calib_on_person_id': ["", "person ID to calibrate on. 0 if not specified"],
-'floor_angle': ["", "angle of the floor. 'auto' if not specified"],
-'xy_origin': ["", "origin of the xy plane. 'auto' if not specified"],
-'calib_file': ["", "path to calibration file. '' if not specified, eg no calibration file"],
-'save_calib': ["", "save calibration file. true if not specified"],
-'do_ik': ["", "do inverse kinematics. false if not specified"],
-'osim_setup_path': ["", "path to OpenSim setup. '../OpenSim_setup' if not specified"],
-'person_orientation': ["", "front, back, left, right, auto, or none. 'front none left' if not specified. If 'auto', will be either left or right depending on the direction of the motion."],
-'close_to_zero_speed_m': ["","Sum for all keypoints: about 50 px/frame or 0.2 m/frame"], 
-'multiperson': ["", "multiperson involves tracking: will be faster if set to false. true if not specified"],
-'tracking_mode': ["", "sports2d or rtmlib. sports2d is generally much more accurate and comparable in speed. sports2d if not specified"],
-'deepsort_params': ["", 'Deepsort tracking parameters: """{dictionary between 3 double quotes}""". \n\
-                    More information there: https://github.com/levan92/deep_sort_realtime/blob/master/deep_sort_realtime/deepsort_tracker.py#L51'],     
-'input_size': ["", "width, height. 1280, 720 if not specified. Lower resolution will be faster but less precise"],
-'keypoint_likelihood_threshold': ["", "detected keypoints are not retained if likelihood is below this threshold. 0.3 if not specified"],
-'average_likelihood_threshold': ["", "detected persons are not retained if average keypoint likelihood is below this threshold. 0.5 if not specified"],
-'keypoint_number_threshold': ["", "detected persons are not retained if number of detected keypoints is below this threshold. 0.3 if not specified, i.e., i.e., 30 percent"],
-'fastest_frames_to_remove_percent': ["", "Frames with high speed are considered as outliers. Defaults to 0.1"],
-'close_to_zero_speed_px': ["", "Sum for all keypoints: about 50 px/frame or 0.2 m/frame. Defaults to 50"],
-'large_hip_knee_angles': ["", "Hip and knee angles below this value are considered as imprecise. Defaults to 45"],
-'trimmed_extrema_percent': ["", "Proportion of the most extreme segment values to remove before calculating their mean. Defaults to 50"],
-'fontSize': ["", "font size for angle values. 0.3 if not specified"],
-'flip_left_right': ["", "true or false. true to get consistent angles with people facing both left and right sides. Set it to false if you want timeseries to be continuous even when the participent switches their stance. true if not specified"],
-'correct_segment_angles_with_floor_angle': ["", "true or false. If the camera is tilted, corrects segment angles as regards to the floor angle. Set to false is the floor is tilted instead. True if not specified"],
-'interpolate': ["", "interpolate missing data. true if not specified"],
-'interp_gap_smaller_than': ["", "interpolate sequences of missing data if they are less than N frames long. 10 if not specified"],
-'fill_large_gaps_with': ["", "last_value, nan, or zeros. last_value if not specified"],
-'filter': ["", "filter results. true if not specified"],
-'filter_type': ["", "butterworth, gaussian, median, or loess. butterworth if not specified"],
-'order': ["", "order of the Butterworth filter. 4 if not specified"],
-'cut_off_frequency': ["", "cut-off frequency of the Butterworth filter. 3 if not specified"],
-'sigma_kernel': ["", "sigma of the gaussian filter. 1 if not specified"],
-'nb_values_used': ["", "number of values used for the loess filter. 5 if not specified"],
-'kernel_size': ["", "kernel size of the median filter. 3 if not specified"],
-'use_custom_logging': ["", "use custom logging. false if not specified"]
-```
 
 <br>
+
+
+
 
 
 ### How it works
@@ -497,7 +611,8 @@ If you use Sports2D, please cite [Pagnon, 2024](https://joss.theoj.org/papers/10
 
 ### How to contribute
 I would happily welcome any proposal for new features, code improvement, and more!\
-If you want to contribute to Sports2D, please follow [this guide](https://docs.github.com/en/get-started/quickstart/contributing-to-projects) on how to fork, modify and push code, and submit a pull request. I would appreciate it if you provided as much useful information as possible about how you modified the code, and a rationale for why you're making this pull request. Please also specify on which operating system and on which python version you have tested the code.
+If you want to contribute to Sports2D or Pose2Sim, please see [this issue](https://github.com/perfanalytics/pose2sim/issues/40).\
+You will be proposed a to-do list, but please feel absolutely free to propose your own ideas and improvements.
 
 *Here is a to-do list: feel free to complete it:*
 - [x] Compute **segment angles**.
@@ -507,7 +622,7 @@ If you want to contribute to Sports2D, please follow [this guide](https://docs.g
 - [x] Handle sudden **changes of direction**.
 - [x] **Batch processing** for the analysis of multiple videos at once.
 - [x] Option to only save one person (with the highest average score, or with the most frames and fastest speed)
-- [x] Run again without pose estimation with the option `--load_trc` for px .trc file.
+- [x] Run again without pose estimation with the option `--load_trc_px` for px .trc file.
 - [x] **Convert positions to meters** by providing the person height, a calibration file, or 3D points [to click on the image](https://stackoverflow.com/questions/74248955/how-to-display-the-coordinates-of-the-points-clicked-on-the-image-in-google-cola)
 - [x] Support any detection and/or pose estimation model.
 
