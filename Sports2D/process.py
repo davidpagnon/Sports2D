@@ -56,10 +56,13 @@ import sys
 import logging
 import json
 import ast
+import shutil
+import os
 from functools import partial
 from datetime import datetime
 import itertools as it
 from tqdm import tqdm
+from collections import defaultdict
 from anytree import RenderTree
 
 import numpy as np
@@ -69,11 +72,14 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from rtmlib import PoseTracker, BodyWithFeet, Wholebody, Body, Custom
 from deep_sort_realtime.deepsort_tracker import DeepSort
+import opensim as osim
 
 from Sports2D.Utilities import filter
 from Sports2D.Utilities.common import *
 from Sports2D.Utilities.skeletons import *
 
+DEFAULT_MASS = 70
+DEFAULT_HEIGHT = 1.7
 
 ## AUTHORSHIP INFORMATION
 __author__ = "David Pagnon, HunMin Kim"
@@ -592,8 +598,8 @@ def load_pose_file(Q_coords):
     - scores_all: np.array. The scores in the format (Nframes, 1, Nmarkers)
     '''
 
-    Z_cols = [3*i+2 for i in range(len(Q_coords.columns)//3)]
-    Q_coords_xy = Q_coords.drop(Q_coords.columns[Z_cols], axis=1)
+    Z_cols = np.array([[3*i,3*i+1] for i in range(len(Q_coords.columns)//3)]).ravel()
+    Q_coords_xy = Q_coords.iloc[:,Z_cols]
     kpt_number = len(Q_coords_xy.columns)//2
 
     # shape (Nframes, 2*Nmarkers) --> (Nframes, 1, Nmarkers, 2)
@@ -1010,23 +1016,6 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                            butterworth_filter_order, butterworth_filter_cutoff, frame_rate,
                            gaussian_filter_kernel, loess_filter_kernel, median_filter_kernel]
 
-    # Inverse kinematics settings
-    do_ik = config_dict.get('kinematics').get('do_ik')
-    use_augmentation = config_dict.get('kinematics').get('use_augmentation')
-    use_contacts_muscles = config_dict.get('kinematics').get('use_contacts_muscles')
-    
-    osim_setup_path = config_dict.get('kinematics').get('osim_setup_path')
-    right_left_symmetry = config_dict.get('kinematics').get('right_left_symmetry')
-    default_height = config_dict.get('kinematics').get('default_height')
-    remove_scaling_setup = config_dict.get('kinematics').get('remove_individual_scaling_setup')
-    remove_ik_setup = config_dict.get('kinematics').get('remove_individual_ik_setup')
-    fastest_frames_to_remove_percent = config_dict.get('kinematics').get('fastest_frames_to_remove_percent')
-    large_hip_knee_angles = config_dict.get('kinematics').get('large_hip_knee_angles')
-    trimmed_extrema_percent = config_dict.get('kinematics').get('trimmed_extrema_percent')
-    close_to_zero_speed = config_dict.get('kinematics').get('close_to_zero_speed_m')
-
-    if do_ik: from Pose2Sim import Pose2Sim
-
     # Create output directories
     if video_file == "webcam":
         current_date = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -1044,6 +1033,27 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     output_dir.mkdir(parents=True, exist_ok=True)
     if save_img:
         img_output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Inverse kinematics settings
+    do_ik = config_dict.get('kinematics').get('do_ik')
+    use_augmentation = config_dict.get('kinematics').get('use_augmentation')
+    participant_masses = config_dict.get('kinematics').get('participant_mass')
+    participant_masses = participant_masses if isinstance(participant_masses, list) else [participant_masses]
+    if do_ik:
+        from Pose2Sim.markerAugmentation import augment_markers_all
+        from Pose2Sim.kinematics import kinematics_all
+        # Create a Pose2Sim dictionary and fill in missing keys
+        recursivedict = lambda: defaultdict(recursivedict)
+        Pose2Sim_config_dict = recursivedict()
+        # Fill Pose2Sim dictionary (height and mass will be filled later)
+        Pose2Sim_config_dict['project']['project_dir'] = str(output_dir)
+        Pose2Sim_config_dict['markerAugmentation']['make_c3d'] = make_c3d
+        Pose2Sim_config_dict['kinematics'] = config_dict.get('kinematics')
+        # Temporarily recreate Pose2Sim file hierarchy
+        pose3d_dir = Path(output_dir) / 'pose-3d'
+        pose3d_dir.mkdir(parents=True, exist_ok=True)
+        kinematics_dir = Path(output_dir) / 'kinematics'
+        kinematics_dir.mkdir(parents=True, exist_ok=True)
 
 
     # Set up video capture
@@ -1116,7 +1126,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         Q_coords, _, _, keypoints_names, _ = read_trc(load_trc_px)
         keypoints_ids = [i for i in range(len(keypoints_names))]
         keypoints_all, scores_all = load_pose_file(Q_coords)
-        for pre, _, node in RenderTree(model_name):
+        for pre, _, node in RenderTree(pose_model):
             if node.name in keypoints_names:
                 node.id = keypoints_names.index(node.name)
     
@@ -1241,7 +1251,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                         person_X_flipped = flip_left_right_direction(person_X, L_R_direction_idx, keypoints_names, keypoints_ids)
                     else:
                         person_X_flipped = person_X.copy()
-                        
+                    
                     # Compute angles
                     person_angles = []
                     # Add Neck and Hip if not provided
@@ -1343,7 +1353,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
 
             # Delete person if less than 4 valid frames
             pose_nan_count = len(np.where(all_frames_X_person.sum(axis=1)==0)[0])
-            if frame_count - pose_nan_count <= 4:
+            if frame_count - frame_range[0] - pose_nan_count <= 4:
                 trc_data_i = pd.DataFrame(0, index=all_frames_X_person.index, columns=np.array([[c]*3 for c in all_frames_X_person.columns]).flatten())
                 trc_data_i.insert(0, 't', all_frames_time)
                 trc_data.append(trc_data_i)
@@ -1411,6 +1421,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             
 
         # Convert px to meters
+        trc_data_m = []
         if to_meters:
             logging.info('\nConverting pose to meters:')
             if px_to_m_from_person_id>=len(trc_data):
@@ -1444,7 +1455,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     except:
                         floor_angle_estim = 0
                         xy_origin_estim = cam_width/2, cam_height/2
-                        logging.warning(f'Could not estimate the floor angle and xy_origin for person {px_to_m_from_person_id}. Make sure that the full body is visible. Using floor angle = 0° and xy_origin = [{cam_width/2}, {cam_height/2}].')
+                        logging.warning(f'Could not estimate the floor angle and xy_origin for person {px_to_m_from_person_id}. Make sure that the full body is visible. Using floor angle = 0° and xy_origin = [{cam_width/2}, {cam_height/2}] px.')
                 if not floor_angle == 'auto':
                     floor_angle_estim = floor_angle
                 if xy_origin == 'auto':
@@ -1453,11 +1464,10 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     cx, cy = xy_origin
                 logging.info(f'Using height of person #{px_to_m_from_person_id} ({px_to_m_person_height_m}m) to convert coordinates in meters. '
                              f'Floor angle: {np.degrees(floor_angle_estim) if not floor_angle=="auto" else f"auto (estimation: {round(np.degrees(floor_angle_estim),2)}°)"}, '
-                             f'xy_origin: {xy_origin if not xy_origin=="auto" else f"auto (estimation: {[round(c) for c in xy_origin_estim]})"}.')
+                             f'xy_origin: {xy_origin if not xy_origin=="auto" else f"auto (estimation: {[round(c) for c in xy_origin_estim]})"} px.')
 
             # Coordinates in m
             for i in range(len(trc_data)):
-                # print(i)
                 if not np.array(trc_data[i].iloc[:,1:] ==0).all():
                     # Automatically determine visible side
                     visible_side_i = visible_side[i] if len(visible_side)>i else 'auto' # set to 'auto' if list too short
@@ -1473,13 +1483,13 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                             visible_side_i = 'right' if gait_direction > 0.6 \
                                                 else 'left' if gait_direction < -0.6 \
                                                 else 'front'
+                            logging.info(f'- Person {i}: Seen from the {visible_side_i}.')
                         except:
                             visible_side_i = 'none'
-                            logging.warning(f'Could not automatically find gait direction for person {i}. Please set visible_side to "front", "back", "left", or "right" for this person. Setting to "none".')
-
+                            logging.warning(f'- Person {i}: Could not automatically find gait direction. Please set visible_side to "front", "back", "left", or "right" for this person. Setting to "none".')
                     # skip if none
                     if visible_side_i == 'none':
-                        logging.info(f'Skipping because "visible_side" is set to none for person {i}.')
+                        logging.info(f'- Person {i}: Keeping output in 2D because "visible_side" is set to "none" for person {i}.')
                         continue
                     
                     # Convert to meters
@@ -1492,18 +1502,16 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                         pose_plots(trc_data_unfiltered_m_i, trc_data_m_i, i)
                     
                     # Write to trc file
+                    trc_data_m.append(trc_data_m_i)
                     idx_path = selected_person_id if not multiperson and not calib_file else i
                     pose_path_person_m_i = (pose_output_path.parent / (pose_output_path_m.stem + f'_person{idx_path:02d}.trc'))
                     make_trc_with_trc_data(trc_data_m_i, pose_path_person_m_i, fps=fps)
                     if make_c3d:
                         c3d_path = convert_to_c3d(pose_path_person_m_i)
-                    logging.info(f'Person {idx_path}: Pose in meters saved to {pose_path_person_m_i.resolve()}. {"Also saved in c3d format." if make_c3d else ""}')
+                    logging.info(f'Pose in meters saved to {pose_path_person_m_i.resolve()}. {"Also saved in c3d format." if make_c3d else ""}')
                     
                 
             
-
-
-
 
 
 
@@ -1566,7 +1574,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             
             # Delete person if less than 4 valid frames
             angle_nan_count = len(np.where(all_frames_angles_person.sum(axis=1)==0)[0])
-            if frame_count - angle_nan_count <= 4:
+            if frame_count - frame_range[0] - angle_nan_count <= 4:
                 logging.info(f'- Person {i}: Less than 4 valid frames. Deleting person.')
 
             else:
@@ -1628,16 +1636,77 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     angle_plots(all_frames_angles_person, angle_data, i) # i = current person
 
 
-    # # Run scaling and inverse kinematics
-    # if save_angles and calculate_angles and do_ik:
-    #     logging.info('\nPost-processing angles (with inverse kinematics):')
-    #     if not to_meters:
-    #         logging.error('IK requires positions in meters rather than in pixels. Set to_meters to True.')
-    #         raise ValueError('IK requires positions in meters rather than in pixels. Set to_meters to True.')
-        
+    # OpenSim inverse kinematics (and optional marker augmentation)
+    if do_ik or use_augmentation:
+        logging.info('\nPost-processing angles (with inverse kinematics):')
+        if not to_meters:
+            logging.warning('Skipping marker augmentation and inverse kinematics as to_meters was set to False.')
+        else:
+            # move all trc files containing _m_ string to pose3d_dir
+            for trc_file in output_dir.glob('*_m_*.trc'):
+                if (pose3d_dir/trc_file.name).exists():
+                    os.remove(pose3d_dir/trc_file.name)
+                shutil.move(trc_file, pose3d_dir)
 
-    #     marker_Z_positions
-    #     if 'none': No IK possible. 
-    #     visible_side=='auto'
+            heights_m, masses = [], []
+            for i in range(len(trc_data_m)):
+                if do_ik and not use_augmentation:
+                    logging.info(f'- Person {i}: Running scaling and inverse kinematics without marker augmentation. Set use_augmentation to True if you need it.') 
+                elif not do_ik and use_augmentation:
+                    logging.info(f'- Person {i}: Running marker augmentation without inverse kinematics. Set do_ik to True if you need it.')
+                else:
+                    logging.info(f'- Person {i}: Running marker augmentation and inverse kinematics.')
 
-    #     convert_to_c3d(trc_path)
+                # Delete person if less than 4 valid frames
+                pose_path_person = pose_output_path.parent / (pose_output_path.stem + f'_person{i:02d}.trc')
+                all_frames_X_person = pd.DataFrame(all_frames_X_homog[:,i,:], columns=keypoints_names)
+                pose_nan_count = len(np.where(all_frames_X_person.sum(axis=1)==0)[0])
+                if frame_count - frame_range[0] - pose_nan_count <= 4:
+                    # heights_m.append(DEFAULT_HEIGHT)
+                    # masses.append(DEFAULT_MASS)
+                    logging.info(f'Less than 4 valid frames. Deleting person.')
+                else:
+                    if visible_side[i] == 'none':
+                        logging.info(f'Skipping marker augmentation and inverse kinematics because visible_side is "none".')
+                        # heights_m.append(DEFAULT_HEIGHT)
+                        # masses.append(DEFAULT_MASS)
+                    else:
+                        # Provide missing data to Pose2Sim_config_dict
+                        height_m_i = compute_height(trc_data_m_i.iloc[:,1:], keypoints_names,
+                            fastest_frames_to_remove_percent=fastest_frames_to_remove_percent, close_to_zero_speed=close_to_zero_speed_px, large_hip_knee_angles=large_hip_knee_angles, trimmed_extrema_percent=trimmed_extrema_percent)
+                        mass_i = participant_masses[i] if len(participant_masses)>i else 70
+                        if len(participant_masses)<=i:
+                            logging.warning(f'No mass provided. Using 70 kg as default.')
+                        heights_m.append(height_m_i)
+                        masses.append(mass_i)
+                
+            Pose2Sim_config_dict['project']['participant_height'] = heights_m
+            Pose2Sim_config_dict['project']['participant_mass'] = masses
+            Pose2Sim_config_dict['pose']['pose_model'] = pose_model_name.upper()
+            Pose2Sim_config_dict = to_dict(Pose2Sim_config_dict)
+
+            # Marker augmentation
+            if use_augmentation:
+                logging.info('Running marker augmentation...')
+                augment_markers_all(Pose2Sim_config_dict)
+                logging.info(f'Augmented trc results saved to {pose3d_dir.resolve()}.\n')
+
+            if do_ik:
+                if not save_angles or not calculate_angles:
+                    logging.warning(f'Skipping inverse kinematics because save_angles or calculate_angles is set to False.')
+                else:
+                    logging.info('Running inverse kinematics...')
+                    kinematics_all(Pose2Sim_config_dict)
+                    for mot_file in kinematics_dir.glob('*.mot'):
+                        os.rename(mot_file, mot_file.parent/(mot_file.stem+'_ik.mot'))
+                    logging.info(f'.osim model and .mot motion file results saved to {kinematics_dir.resolve()}.\n')
+                            
+            # Move all files in pose-3d and kinematics to the output_dir
+            osim.Logger.removeFileSink()
+            for directory in [pose3d_dir, kinematics_dir]:
+                for file in directory.glob('*'):
+                    if (output_dir/file.name).exists():
+                        os.remove(output_dir/file.name)
+                    shutil.move(file, output_dir)
+            pose3d_dir.rmdir()
+            kinematics_dir.rmdir()
