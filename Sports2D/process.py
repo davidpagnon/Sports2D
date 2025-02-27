@@ -979,11 +979,6 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     xy_origin = config_dict.get('px_to_meters_conversion').get('xy_origin') # ['auto'] or [x, y]    
     xy_origin = [float(o) for o in xy_origin] if xy_origin != ['auto'] else 'auto'
 
-    fastest_frames_to_remove_percent = config_dict.get('px_to_meters_conversion').get('fastest_frames_to_remove_percent')
-    large_hip_knee_angles = config_dict.get('px_to_meters_conversion').get('large_hip_knee_angles')
-    trimmed_extrema_percent = config_dict.get('px_to_meters_conversion').get('trimmed_extrema_percent')
-    close_to_zero_speed_px = config_dict.get('px_to_meters_conversion').get('close_to_zero_speed_px')
-
     keypoint_likelihood_threshold = config_dict.get('pose').get('keypoint_likelihood_threshold')
     average_likelihood_threshold = config_dict.get('pose').get('average_likelihood_threshold')
     keypoint_number_threshold = config_dict.get('pose').get('keypoint_number_threshold')
@@ -1039,6 +1034,11 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     use_augmentation = config_dict.get('kinematics').get('use_augmentation')
     participant_masses = config_dict.get('kinematics').get('participant_mass')
     participant_masses = participant_masses if isinstance(participant_masses, list) else [participant_masses]
+    fastest_frames_to_remove_percent = config_dict.get('kinematics').get('fastest_frames_to_remove_percent')
+    large_hip_knee_angles = config_dict.get('kinematics').get('large_hip_knee_angles')
+    trimmed_extrema_percent = config_dict.get('kinematics').get('trimmed_extrema_percent')
+    close_to_zero_speed_px = config_dict.get('kinematics').get('close_to_zero_speed_px')
+    close_to_zero_speed_m = config_dict.get('kinematics').get('close_to_zero_speed_m')
     if do_ik:
         from Pose2Sim.markerAugmentation import augment_markers_all
         from Pose2Sim.kinematics import kinematics_all
@@ -1488,9 +1488,10 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                             visible_side_i = 'none'
                             logging.warning(f'- Person {i}: Could not automatically find gait direction. Please set visible_side to "front", "back", "left", or "right" for this person. Setting to "none".')
                     # skip if none
-                    if visible_side_i == 'none':
+                    elif visible_side_i == 'none':
                         logging.info(f'- Person {i}: Keeping output in 2D because "visible_side" is set to "none" for person {i}.')
-                        continue
+                    else:
+                        logging.info(f'- Person {i}: Seen from the {visible_side_i}.')
                     
                     # Convert to meters
                     trc_data_m_i = pd.concat([convert_px_to_meters(trc_data[i][kpt_name], px_to_m_person_height_m, height_px, cx, cy, -floor_angle_estim, visible_side=visible_side_i) for kpt_name in keypoints_names], axis=1)
@@ -1550,7 +1551,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
 
 
 
-                
+
 
 
 
@@ -1673,7 +1674,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     else:
                         # Provide missing data to Pose2Sim_config_dict
                         height_m_i = compute_height(trc_data_m_i.iloc[:,1:], keypoints_names,
-                            fastest_frames_to_remove_percent=fastest_frames_to_remove_percent, close_to_zero_speed=close_to_zero_speed_px, large_hip_knee_angles=large_hip_knee_angles, trimmed_extrema_percent=trimmed_extrema_percent)
+                            fastest_frames_to_remove_percent=fastest_frames_to_remove_percent, close_to_zero_speed=close_to_zero_speed_m, large_hip_knee_angles=large_hip_knee_angles, trimmed_extrema_percent=trimmed_extrema_percent)
                         mass_i = participant_masses[i] if len(participant_masses)>i else 70
                         if len(participant_masses)<=i:
                             logging.warning(f'No mass provided. Using 70 kg as default.')
@@ -1698,6 +1699,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     logging.info('Running inverse kinematics...')
                     kinematics_all(Pose2Sim_config_dict)
                     for mot_file in kinematics_dir.glob('*.mot'):
+                        if (mot_file.parent/(mot_file.stem+'_ik.mot')).exists():
+                            os.remove(mot_file.parent/(mot_file.stem+'_ik.mot'))
                         os.rename(mot_file, mot_file.parent/(mot_file.stem+'_ik.mot'))
                     logging.info(f'.osim model and .mot motion file results saved to {kinematics_dir.resolve()}.\n')
                             

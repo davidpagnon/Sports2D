@@ -22,14 +22,13 @@
 
 > **`Announcement:`\
 > Complete rewriting of the code!** Run `pip install sports2d -U` to get the latest version.
+> - MarkerAugmentation and Inverse Kinematics for accurate 3D motion with OpenSim. **New in v0.7!** 
+> - Any detector and pose estimation model can be used. **New in v0.6!**
+> - Results in meters rather than pixels. **New in v0.5!**
 > - Faster, more accurate
 > - Works from a webcam
-> - Results in meters rather than pixels. **New in v0.5!**
 > - Better visualization output 
 > - More flexible, easier to run
-> - Batch process multiple videos at once
-> 
-> Note: Colab version broken for now. I'll fix it in the next few weeks.
 
 ***N.B.:*** As always, I am more than happy to welcome contributions (see [How to contribute](#how-to-contribute-and-to-do-list))!
 <!--User-friendly Colab version released! (and latest issues fixed, too)\
@@ -256,28 +255,28 @@ sports2d --to_meters True --px_to_m_person_height 1.65 --px_to_m_from_person_id 
 
 
 #### Run inverse kinematics:
-> N.B.: [Full install](#full-install) required.\
-> OpenSim inverse kinematics allows you to set joint constraints, joint angle limits, to constrain the bones to keep the same length all along the motion and potentially to have equal sizes on left and right side. Most generally, it gives more biomechanically accurate results. It can also give you the opportunity to compute joint torques, muscle forces, ground reaction forces, and more.
+> N.B.: [Full install](#full-install) required.
 
-***N.B.:** The person needs to be moving on a single plane for the whole selected time range.* 
+> **N.B.:** The person needs to be moving on a single plane for the whole selected time range.
 
-You can optionally use the LSTM marker augmentation to improve the quality of the output motion. 
+OpenSim inverse kinematics allows you to set joint constraints, joint angle limits, to constrain the bones to keep the same length all along the motion and potentially to have equal sizes on left and right side. Most generally, it gives more biomechanically accurate results. It can also give you the opportunity to compute joint torques, muscle forces, ground reaction forces, and more, [with MoCo](https://opensim-org.github.io/opensim-moco-site/) for example.
 
-
-
-
-              Why IK?
-              Add section in how it works
-
-
+This is done via [Pose2Sim](https://github.com/perfanalytics/pose2sim).\
+Model scaling is done according to the mean of the segment lengths, across a subset of frames. We remove the 10% fastest frames (potential outliers), the frames where the speed is 0 (person probably out of frame), the frames where the average knee and hip flexion angles are above 45° (pose estimation is not precise when the person is crouching) and the 20% most extreme segment values after the previous operations (potential outliers). All these parameters can be edited in your Config.toml file.
 
 ```cmd
-sports2d --time_range 1.2 2.7 --do_ik true `
-         --visible_side front auto --px_to_m_from_person_id 1
+sports2d --do_ik true `
+         --time_range 1.2 2.7`
+         --px_to_m_from_person_id 1 --px_to_m_person_height 1.65 `
+         --visible_side front auto 
 ```
 
+You can optionally use the LSTM marker augmentation to improve the quality of the output motion.\
+Mass has no influence on motion, only on forces if you decide to further pursue kinetics analysis.
+
 ```cmd
-sports2d --time_range 1.2 2.7 --do_ik true --use_augmentation True `
+sports2d --time_range 1.2 2.7 `
+         --do_ik true --use_augmentation True `
          --px_to_m_from_person_id 1 --px_to_m_person_height 1.65 `
          --visible_side front left --participant_mass 67.0 55.0
 ```

@@ -105,11 +105,6 @@ xy_origin = ['auto']    # ['auto'] or [px_x,px_y]. N.B.: px_y points downwards. 
 # If conversion from a calibration file
 calib_file = ''         # Calibration in the Pose2Sim format. 'calib_demo.toml', or '' if not available
 
-fastest_frames_to_remove_percent = 0.1 # Frames with high speed are considered as outliers
-close_to_zero_speed_px = 50 # Sum for all keypoints: about 50 px/frame or 0.2 m/frame
-large_hip_knee_angles = 45 # Hip and knee angles below this value are considered as imprecise
-trimmed_extrema_percent = 0.5 # Proportion of the most extreme segment values to remove before calculating their mean)
-
 
 [angles]
 display_angle_values_on = ['body', 'list'] # 'body', 'list', ['body', 'list'], 'none'. Display angle values on the body, as a list in the upper left of the image, both, or do not display them.
@@ -147,18 +142,17 @@ filter_type = 'butterworth'   # butterworth, gaussian, LOESS, median
 
 
 [kinematics]
-do_ik = false # Do scaling and inverse kinematics?
-use_augmentation = false  # true or false (lowercase) # Set to true if you want to use the model with augmented markers
+do_ik = true # Do scaling and inverse kinematics?
+use_augmentation = true  # true or false (lowercase) # Set to true if you want to use the model with augmented markers
 use_contacts_muscles = true # true or false (lowercase) # If true, contact spheres and muscles are added to the model
 participant_mass = [67.0, 55.0] # kg # defaults to 70 if not provided. No influence on kinematics (motion), only on kinetics (forces)
 right_left_symmetry = true # true or false (lowercase) # Set to false only if you have good reasons to think the participant is not symmetrical (e.g. prosthetic limb)
 
 # Choosing best frames to scale the model
 default_height = 1.7 # meters # If automatic height calculation did not work, this value is used to scale the model
-beginning_frames_to_remove_percent = 0.2 # First frames might be badly estimated
-end_frames_to_remove_percent = 0.2 # Last frames might be badly estimated
 fastest_frames_to_remove_percent = 0.1 # Frames with high speed are considered as outliers
-close_to_zero_speed_m = 0.2 # Sum for all keypoints: about 50 px/frame or 0.2 m/frame
+close_to_zero_speed_px = 50 # Sum for all keypoints: about 50 px/frame
+close_to_zero_speed_m = 0.2 # Sum for all keypoints: 0.2 m/frame
 large_hip_knee_angles = 45 # Hip and knee angles below this value are considered as imprecise
 trimmed_extrema_percent = 0.5 # Proportion of the most extreme segment values to remove before calculating their mean)
 remove_individual_scaling_setup = true # true or false (lowercase) # If true, the individual scaling setup files are removed to avoid cluttering
