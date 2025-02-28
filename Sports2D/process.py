@@ -1077,7 +1077,11 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         model_name = 'HALPE_26'
         ModelClass = BodyWithFeet # 26 keypoints(halpe26)
         logging.info(f"Using HALPE_26 model (body and feet) for pose estimation.")
-    elif pose_model.upper() in ('COCO_133', 'WHOLE_BODY', 'WHOLE_BODY_WRIST'):
+    elif pose_model.upper() == 'WHOLE_BODY_WRIST':
+        model_name = 'COCO_133_WRIST'
+        ModelClass = Wholebody
+        logging.info(f"Using COCO_133 model (body, feet, 2 hand points) for pose estimation.")
+    elif pose_model.upper() in ('COCO_133', 'WHOLE_BODY'):
         model_name = 'COCO_133'
         ModelClass = Wholebody
         logging.info(f"Using COCO_133 model (body, feet, hands, and face) for pose estimation.")

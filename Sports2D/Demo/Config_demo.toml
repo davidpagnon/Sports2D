@@ -53,7 +53,16 @@ result_dir = '' # If empty, project dir is current dir
 slowmo_factor = 1       # 1 for normal speed. For a video recorded at 240 fps and exported to 30 fps, it would be 240/30 = 8
 
 # Pose detection parameters
-pose_model = 'Body_with_feet'  #With RTMLib: Body_with_feet (default HALPE_26 model), Whole_body (COCO_133: body + feet + hands), Body (COCO_17), CUSTOM (see example at the end of the file), or any from skeletons.py
+pose_model = 'Body_with_feet'  #With RTMLib: 
+                         # - Body_with_feet (default HALPE_26 model), 
+                         # - Whole_body_wrist (COCO_133_WRIST: body + feet + 2 hand_points), 
+                         # - Whole_body (COCO_133: body + feet + hands), 
+                         # - Body (COCO_17). Marker augmentation won't work, Kinematic analysis will work,
+                         # - Hand (HAND_21, only lightweight mode. Potentially better results with Whole_body), 
+                         # - Face (FACE_106), 
+                         # - Animal (ANIMAL2D_17)
+                         # /!\ Only RTMPose is natively embeded in Pose2Sim. For all other pose estimation methods, you will have to run them yourself, and then refer to the documentation to convert the output files if needed
+                         # /!\ For Face and Animal, use mode="""{dictionary}""", and find the corresponding .onnx model there https://github.com/open-mmlab/mmpose/tree/main/projects/rtmpose
 mode = 'balanced' # 'lightweight', 'balanced', 'performance', or """{dictionary}""" (see below)
 
 # A dictionary (WITHIN THREE DOUBLE QUOTES) allows you to manually select the person detection (if top_down approach) and/or pose estimation models (see https://github.com/Tau-J/rtmlib). 

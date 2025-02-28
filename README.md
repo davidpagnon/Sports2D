@@ -177,10 +177,7 @@ The Demo video is voluntarily challenging to demonstrate the robustness of the p
 
    The OpenSim skeleton is not rigged yet. **[Feel free to contribute!](https://github.com/perfanalytics/pose2sim/issues/40)**
 
-<!-- IMAGE ICI
--->
-
- 
+<img src="Content/sports2d_blender.gif" width="760">
 
 <br>
 
@@ -195,10 +192,9 @@ The Demo video is voluntarily challenging to demonstrate the robustness of the p
    - **File -> Open Model:** Open your scaled model (e.g., `Model_Pose2Sim_LSTM.osim`).
    - **File -> Load Motion:** Open your motion file (e.g., `angles.mot`).
 
-<br>
+<img src="Content/sports2d_opensim.gif" width="760">
 
-<!-- IMAGE ICI
--->
+<br>
 
 
 
@@ -230,6 +226,7 @@ sports2d --time_range 1.2 2.7
 
 
 #### Get coordinates in meters: 
+> **N.B.:** Depth is estimated from a neutral pose. 
 
 <!-- You either need to provide a calibration file, or simply the height of a person (Note that the latter will not take distortions into account, and that it will be less accurate for motion in the frontal plane).\-->
 You may need to convert pixel coordinates to meters.\
@@ -265,14 +262,14 @@ This is done via [Pose2Sim](https://github.com/perfanalytics/pose2sim).\
 Model scaling is done according to the mean of the segment lengths, across a subset of frames. We remove the 10% fastest frames (potential outliers), the frames where the speed is 0 (person probably out of frame), the frames where the average knee and hip flexion angles are above 45° (pose estimation is not precise when the person is crouching) and the 20% most extreme segment values after the previous operations (potential outliers). All these parameters can be edited in your Config.toml file.
 
 ```cmd
-sports2d --do_ik true `
-         --time_range 1.2 2.7`
+sports2d --time_range 1.2 2.7 `
+         --do_ik true `
          --px_to_m_from_person_id 1 --px_to_m_person_height 1.65 `
          --visible_side front auto 
 ```
 
 You can optionally use the LSTM marker augmentation to improve the quality of the output motion.\
-Mass has no influence on motion, only on forces if you decide to further pursue kinetics analysis.
+You can also optionally give the participants proper masses. Mass has no influence on motion, only on forces (if you decide to further pursue kinetics analysis).
 
 ```cmd
 sports2d --time_range 1.2 2.7 `
