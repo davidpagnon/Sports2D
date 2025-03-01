@@ -68,7 +68,7 @@ def test_workflow():
     
     # With a time range, inverse kinematics, marker augmentation, body pose_model and custom RTMO mode
     demo_cmd3 = ["sports2d", "--show_realtime_results", "False", "--show_graphs", "False",
-                 "--time_range", "1.2 2.7",
+                 "--time_range", "1.2", "2.7",
                  "--do_ik", "True", "--use_augmentation", "True", 
                  "--px_to_m_from_person_id", "1", "--px_to_m_person_height", "1.65",
                  "--visible_side", "left front", "--participant_mass", "55.0 67.0",
