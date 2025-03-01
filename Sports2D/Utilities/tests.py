@@ -71,7 +71,7 @@ def test_workflow():
                  "--time_range", "1.2", "2.7",
                  "--do_ik", "True", "--use_augmentation", "True", 
                  "--px_to_m_from_person_id", "1", "--px_to_m_person_height", "1.65",
-                 "--visible_side", "left front", "--participant_mass", "55.0 67.0",
+                 "--visible_side", "left", "front", "--participant_mass", "55.0", "67.0",
                  "--pose_model", "body", "--mode", """{'pose_class':'RTMO', 'pose_model':'https://download.openmmlab.com/mmpose/v1/projects/rtmo/onnx_sdk/rtmo-m_16xb16-600e_body7-640x640-39e78cc4_20231211.zip', 'pose_input_size':[640, 640]}"""]
     subprocess.run(demo_cmd3, check=True, capture_output=True, text=True)
     
