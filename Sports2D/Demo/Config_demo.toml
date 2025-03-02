@@ -18,10 +18,10 @@ video_input = 'demo.mp4'   # 'webcam' or '<video_path.ext>', or ['video1_path.mp
 px_to_m_from_person_id = 2    # Person to use for pixels to meters conversion (not used if a calibration file is provided)
 px_to_m_person_height = 1.65  # Height of the reference person in meters (for pixels -> meters conversion). 
 visible_side = ['front', 'none', 'auto']  # Choose visible side among ['right', 'left', 'front', 'back', 'auto', 'none']. String or list of strings.
-               # if 'auto', will be either 'left', 'right', or 'front' depending on the direction of the motion
-               # if 'none', no processing will be performed on the corresponding person
+                  # if 'auto', will be either 'left', 'right', or 'front' depending on the direction of the motion
+                  # if 'none', coordinates will be left in 2D rather than 3D
 load_trc_px = ''  # If you do not want to recalculate pose, load it from a trc file (in px, not in m)
-compare = false      # Not implemented yet
+compare = false   # Not implemented yet
 
 # Video parameters
 time_range = []   # [] for the whole video, or [start_time, end_time] (in seconds), or [[start_time1, end_time1], [start_time2, end_time2], ...]
@@ -53,7 +53,16 @@ result_dir = '' # If empty, project dir is current dir
 slowmo_factor = 1       # 1 for normal speed. For a video recorded at 240 fps and exported to 30 fps, it would be 240/30 = 8
 
 # Pose detection parameters
-pose_model = 'Body_with_feet'  #With RTMLib: Body_with_feet (default HALPE_26 model), Whole_body (COCO_133: body + feet + hands), Body (COCO_17), CUSTOM (see example at the end of the file), or any from skeletons.py
+pose_model = 'Body_with_feet'  #With RTMLib: 
+                         # - Body_with_feet (default HALPE_26 model), 
+                         # - Whole_body_wrist (COCO_133_WRIST: body + feet + 2 hand_points), 
+                         # - Whole_body (COCO_133: body + feet + hands), 
+                         # - Body (COCO_17). Marker augmentation won't work, Kinematic analysis will work,
+                         # - Hand (HAND_21, only lightweight mode. Potentially better results with Whole_body), 
+                         # - Face (FACE_106), 
+                         # - Animal (ANIMAL2D_17)
+                         # /!\ Only RTMPose is natively embeded in Pose2Sim. For all other pose estimation methods, you will have to run them yourself, and then refer to the documentation to convert the output files if needed
+                         # /!\ For Face and Animal, use mode="""{dictionary}""", and find the corresponding .onnx model there https://github.com/open-mmlab/mmpose/tree/main/projects/rtmpose
 mode = 'balanced' # 'lightweight', 'balanced', 'performance', or """{dictionary}""" (see below)
 
 # A dictionary (WITHIN THREE DOUBLE QUOTES) allows you to manually select the person detection (if top_down approach) and/or pose estimation models (see https://github.com/Tau-J/rtmlib). 
@@ -81,7 +90,7 @@ det_frequency = 4       # Run person detection only every N frames, and inbetwee
 device = 'auto' # 'auto', 'CPU', 'CUDA', 'MPS', 'ROCM'
 backend = 'auto' # 'auto', 'openvino', 'onnxruntime', 'opencv'
 tracking_mode = 'sports2d' # 'sports2d' or 'deepsort'. 'deepsort' is slower but more robust in difficult configurations
-deepsort_params = """{'max_age':30, 'n_init':3, 'max_cosine_distance':0.3, 'max_iou_distance':0.8, 'embedder_gpu': True, embedder':'torchreid'}""" # """{dictionary between 3 double quotes}"""
+# deepsort_params = """{'max_age':30, 'n_init':3, 'max_cosine_distance':0.3, 'max_iou_distance':0.8, 'embedder_gpu': True, embedder':'torchreid'}""" # """{dictionary between 3 double quotes}"""
                   # More robust in crowded scenes but tricky to parametrize. More information there: https://github.com/levan92/deep_sort_realtime/blob/master/deep_sort_realtime/deepsort_tracker.py#L51
                   # Requires `pip install torch torchvision torchreid gdown tensorboard`
 
@@ -104,11 +113,6 @@ xy_origin = ['auto']    # ['auto'] or [px_x,px_y]. N.B.: px_y points downwards. 
 
 # If conversion from a calibration file
 calib_file = ''         # Calibration in the Pose2Sim format. 'calib_demo.toml', or '' if not available
-
-fastest_frames_to_remove_percent = 0.1 # Frames with high speed are considered as outliers
-close_to_zero_speed_px = 50 # Sum for all keypoints: about 50 px/frame or 0.2 m/frame
-large_hip_knee_angles = 45 # Hip and knee angles below this value are considered as imprecise
-trimmed_extrema_percent = 0.5 # Proportion of the most extreme segment values to remove before calculating their mean)
 
 
 [angles]
@@ -147,19 +151,21 @@ filter_type = 'butterworth'   # butterworth, gaussian, LOESS, median
 
 
 [kinematics]
-do_ik = false # Do scaling and inverse kinematics?
+do_ik = true # Do scaling and inverse kinematics?
 use_augmentation = true  # true or false (lowercase) # Set to true if you want to use the model with augmented markers
 use_contacts_muscles = true # true or false (lowercase) # If true, contact spheres and muscles are added to the model
-
-osim_setup_path = '../OpenSim_setup' # Path to the OpenSim setup folder
+participant_mass = [67.0, 55.0] # kg # defaults to 70 if not provided. No influence on kinematics (motion), only on kinetics (forces)
 right_left_symmetry = true # true or false (lowercase) # Set to false only if you have good reasons to think the participant is not symmetrical (e.g. prosthetic limb)
-# default_height = 1.7 # meters # If automatic height calculation did not work, this value is used to scale the model
-remove_individual_scaling_setup = true # true or false (lowercase) # If true, the individual scaling setup files are removed to avoid cluttering
-remove_individual_ik_setup = true # true or false (lowercase) # If true, the individual IK setup files are removed to avoid cluttering
+
+# Choosing best frames to scale the model
+default_height = 1.7 # meters # If automatic height calculation did not work, this value is used to scale the model
 fastest_frames_to_remove_percent = 0.1 # Frames with high speed are considered as outliers
-close_to_zero_speed_m = 0.2 # Sum for all keypoints: about 50 px/frame or 0.2 m/frame
+close_to_zero_speed_px = 50 # Sum for all keypoints: about 50 px/frame
+close_to_zero_speed_m = 0.2 # Sum for all keypoints: 0.2 m/frame
 large_hip_knee_angles = 45 # Hip and knee angles below this value are considered as imprecise
 trimmed_extrema_percent = 0.5 # Proportion of the most extreme segment values to remove before calculating their mean)
+remove_individual_scaling_setup = true # true or false (lowercase) # If true, the individual scaling setup files are removed to avoid cluttering
+remove_individual_ik_setup = true # true or false (lowercase) # If true, the individual IK setup files are removed to avoid cluttering
 
 
 [logging]

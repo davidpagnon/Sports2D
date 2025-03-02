@@ -22,6 +22,7 @@ import subprocess
 from pathlib import Path
 import itertools as it
 import logging
+from collections import defaultdict
 from anytree import PreOrderIter
 
 import numpy as np
@@ -32,9 +33,9 @@ import cv2
 import c3d
 
 import matplotlib.pyplot as plt
-from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget, QTabWidget, QVBoxLayout
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
+from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget, QTabWidget, QVBoxLayout
 
 
 ## AUTHORSHIP INFORMATION
@@ -64,7 +65,7 @@ angle_dict = { # lowercase!
     'right elbow': [['RWrist', 'RElbow', 'RShoulder'], 'flexion', 180, -1],
     'left elbow': [['LWrist', 'LElbow', 'LShoulder'], 'flexion', 180, -1],
     'right wrist': [['RElbow', 'RWrist', 'RIndex'], 'flexion', -180, 1],
-    'left wrist': [['LElbow', 'LIndex', 'LWrist'], 'flexion', -180, 1],
+    'left wrist': [['LElbow', 'LWrist', 'LIndex'], 'flexion', -180, 1],
 
     # segment angles
     'right foot': [['RBigToe', 'RHeel'], 'horizontal', 0, -1],
@@ -97,18 +98,18 @@ marker_Z_positions = {'right':
                         "LHip": 0.105, "LKnee": 0.0886, "LAnkle": 0.0972, "LBigToe":0.0766, "LHeel":0.0883, "LSmallToe": 0.1200, 
                         "LShoulder": 0.2016, "LElbow": 0.1613, "LWrist": 0.120, "LThumb": 0.1625, "LIndex": 0.1735, "LPinky": 0.1740, "LEye": 0.0311, 
                         "Hip": 0.0, "Neck": 0.0, "Head":0.0, "Nose": 0.0},
-                    'front':
-                        {"RHip": 0.0301, "RKnee": 0.0179, "RAnkle": 0.0230, "RBigToe": 0.2179, "RHeel": -0.0119, "RSmallToe": 0.1804, 
-                        "RShoulder": -0.01275, "RElbow": 0.0119, "RWrist": 0.0002, "RThumb": 0.0106, "RIndex": -0.0004, "RPinky": -0.0009, "REye": 0.0702, 
-                        "LHip": -0.0301, "LKnee": -0.0179, "LAnkle": 0.0230, "LBigToe": 0.2179, "LHeel": -0.0119, "LSmallToe": 0.1804, 
-                        "LShoulder": 0.01275, "LElbow": -0.0119, "LWrist": -0.0002, "LThumb": -0.0106, "LIndex": 0.0004, "LPinky": 0.0009, "LEye": -0.0702, 
-                        "Hip": 0.0301, "Neck": -0.0008, "Head": 0.0655, "Nose": 0.1076},
+                    'front': # original knee:0.0179
+                        {"RHip": 0.0301, "RKnee": 0.129, "RAnkle": 0.0230, "RBigToe": 0.2179, "RHeel": -0.0119, "RSmallToe": 0.1804, 
+                        "RShoulder": -0.01275, "RElbow": 0.0702, "RWrist": 0.1076, "RThumb": 0.0106, "RIndex": -0.0004, "RPinky": -0.0009, "REye": 0.0702, 
+                        "LHip": 0.0301, "LKnee": 0.129, "LAnkle": 0.0230, "LBigToe": 0.2179, "LHeel": -0.0119, "LSmallToe": 0.1804, 
+                        "LShoulder": -0.01275, "LElbow": 0.0702, "LWrist": 0.1076, "LThumb": 0.0106, "LIndex": -0.0004, "LPinky": -0.0009, "LEye": 0.0702, 
+                        "Hip": 0.0301, "Neck": 0.0008, "Head": 0.0655, "Nose": 0.1076},
                     'back':
-                        {"RHip": -0.0301, "RKnee": -0.0179, "RAnkle": -0.0230, "RBigToe": -0.2179, "RHeel": 0.0119, "RSmallToe": -0.1804, 
-                        "RShoulder": 0.01275, "RElbow": -0.0119, "RWrist": -0.0002, "RThumb": -0.0106, "RIndex": 0.0004, "RPinky": 0.0009, "REye": -0.0702, 
-                        "LHip": 0.0301, "LKnee": 0.0179, "LAnkle": -0.0230, "LBigToe": -0.2179, "LHeel": 0.0119, "LSmallToe": -0.1804, 
-                        "LShoulder": -0.01275, "LElbow": 0.0119, "LWrist": 0.0002, "LThumb": 0.0106, "LIndex": -0.0004, "LPinky": -0.0009, "LEye": 0.0702, 
-                        "Hip": 0.0301, "Neck": -0.0008, "Head": -0.0655, "Nose": 0.1076},
+                        {"RHip": -0.0301, "RKnee": -0.129, "RAnkle": -0.0230, "RBigToe": -0.2179, "RHeel": 0.0119, "RSmallToe": -0.1804, 
+                        "RShoulder": 0.01275, "RElbow": 0.0702, "RWrist": -1076.0002, "RThumb": -0.0106, "RIndex": 0.0004, "RPinky": 0.0009, "REye": -0.0702, 
+                        "LHip": -0.0301, "LKnee": -0.129, "LAnkle": -0.0230, "LBigToe": -0.2179, "LHeel": 0.0119, "LSmallToe": -0.1804, 
+                        "LShoulder": 0.01275, "LElbow": 0.0702, "LWrist": -0.1076, "LThumb": -0.0106, "LIndex": 0.0004, "LPinky": 0.0009, "LEye": -0.0702, 
+                        "Hip": -0.0301, "Neck": -0.0008, "Head": -0.0655, "Nose": -0.1076},
             }
 
 colors = [(255, 0, 0), (0, 0, 255), (255, 255, 0), (255, 0, 255), (0, 255, 255), (0, 0, 0), (255, 255, 255),
@@ -170,6 +171,15 @@ class plotWindow():
         self.app.exec_()
         
 ## FUNCTIONS
+def to_dict(d):
+    '''
+    Convert a defaultdict to a dict.
+    '''
+    if isinstance(d, defaultdict):
+        return {k: to_dict(v) for k, v in d.items()}
+    return d
+
+
 def read_trc(trc_path):
     '''
     Read a TRC file and extract its contents.
@@ -575,7 +585,7 @@ def add_neck_hip_coords(kpt_name, p_X, p_Y, p_scores, kpt_ids, kpt_names):
     return p_X, p_Y, p_scores
 
 
-def best_coords_for_measurements(Q_coords, keypoints_names, fastest_frames_to_remove_percent=0.2, close_to_zero_speed=0.2, large_hip_knee_angles=45):
+def best_coords_for_measurements(Q_coords, keypoints_names, beginning_frames_to_remove_percent=0.2, end_frames_to_remove_percent=0.2, fastest_frames_to_remove_percent=0.2, close_to_zero_speed=0.2, large_hip_knee_angles=45):
     '''
     Compute the best coordinates for measurements, after removing:
     - 20% fastest frames (may be outliers)
@@ -585,6 +595,8 @@ def best_coords_for_measurements(Q_coords, keypoints_names, fastest_frames_to_re
     INPUTS:
     - Q_coords: pd.DataFrame. The XYZ coordinates of each marker
     - keypoints_names: list. The list of marker names
+    - beginning_frames_to_remove_percent: float
+    - end_frames_to_remove_percent: float
     - fastest_frames_to_remove_percent: float
     - close_to_zero_speed: float (sum for all keypoints: about 50 px/frame or 0.2 m/frame)
     - large_hip_knee_angles: int
@@ -606,6 +618,9 @@ def best_coords_for_measurements(Q_coords, keypoints_names, fastest_frames_to_re
         df_Hip.columns = ['Hip']*3
         Q_coords = pd.concat((Q_coords.reset_index(drop=True), df_Hip), axis=1)
     n_markers = len(keypoints_names)
+
+    # Removing first and last frames
+    # Q_coords = Q_coords.iloc[int(len(Q_coords) * beginning_frames_to_remove_percent):int(len(Q_coords) * (1-end_frames_to_remove_percent))]
 
     # Using 80% slowest frames
     sum_speeds = pd.Series(np.nansum([np.linalg.norm(Q_coords.iloc[:,kpt:kpt+3].diff(), axis=1) for kpt in range(n_markers)], axis=0))

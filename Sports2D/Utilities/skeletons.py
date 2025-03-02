@@ -643,7 +643,6 @@ FACE_106 = Node("root", id=None, children=[
     ]),
 ])
 
-
 '''ANIMAL2D_17 (full-body animal)
 https://github.com/AlexTheBad/AP-10K/'''
 ANIMAL2D_17 = Node("Hip", id=4, children=[

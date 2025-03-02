@@ -22,14 +22,13 @@
 
 > **`Announcement:`\
 > Complete rewriting of the code!** Run `pip install sports2d -U` to get the latest version.
+> - MarkerAugmentation and Inverse Kinematics for accurate 3D motion with OpenSim. **New in v0.7!** 
+> - Any detector and pose estimation model can be used. **New in v0.6!**
+> - Results in meters rather than pixels. **New in v0.5!**
 > - Faster, more accurate
 > - Works from a webcam
-> - Results in meters rather than pixels. **New in v0.5!**
 > - Better visualization output 
 > - More flexible, easier to run
-> - Batch process multiple videos at once
-> 
-> Note: Colab version broken for now. I'll fix it in the next few weeks.
 
 ***N.B.:*** As always, I am more than happy to welcome contributions (see [How to contribute](#how-to-contribute-and-to-do-list))!
 <!--User-friendly Colab version released! (and latest issues fixed, too)\
@@ -178,10 +177,7 @@ The Demo video is voluntarily challenging to demonstrate the robustness of the p
 
    The OpenSim skeleton is not rigged yet. **[Feel free to contribute!](https://github.com/perfanalytics/pose2sim/issues/40)**
 
-<!-- IMAGE ICI
--->
-
- 
+<img src="Content/sports2d_blender.gif" width="760">
 
 <br>
 
@@ -196,10 +192,9 @@ The Demo video is voluntarily challenging to demonstrate the robustness of the p
    - **File -> Open Model:** Open your scaled model (e.g., `Model_Pose2Sim_LSTM.osim`).
    - **File -> Load Motion:** Open your motion file (e.g., `angles.mot`).
 
-<br>
+<img src="Content/sports2d_opensim.gif" width="760">
 
-<!-- IMAGE ICI
--->
+<br>
 
 
 
@@ -231,21 +226,26 @@ sports2d --time_range 1.2 2.7
 
 
 #### Get coordinates in meters: 
+> **N.B.:** Depth is estimated from a neutral pose. 
 
 <!-- You either need to provide a calibration file, or simply the height of a person (Note that the latter will not take distortions into account, and that it will be less accurate for motion in the frontal plane).\-->
 You may need to convert pixel coordinates to meters.\
-Just provide the height of the reference person (and their ID in case of multiple person detection).\
-The floor angle and the origin of the xy axis are computed automatically from gait. If you analyze another type of motion, you can manually specify them.\
-Note that it does not take distortions into account, and that it will be less accurate for motions in the frontal plane.
+Just provide the height of the reference person (and their ID in case of multiple person detection).
 
-``` cmd
+You can also specify whether the visible side of the person is left, right, front, or back. Set it to 'auto' if you do not want to find it automatically (only works for motion in the sagittal plane), or to 'none' if you want to keep 2D instead of 3D coordinates (if the person goes right, and then left for example).
+
+The floor angle and the origin of the xy axis are computed automatically from gait. If you analyze another type of motion, you can manually specify them. Note that `y` points down.\
+Also note that distortions are not taken into account, and that results will be less accurate for motions in the frontal plane.
+
+<!-- ``` cmd
 sports2d --to_meters True --calib_file calib_demo.toml
-```
+``` -->
 ``` cmd
 sports2d --to_meters True --px_to_m_person_height 1.65 --px_to_m_from_person_id 2
 ```
 ``` cmd
-sports2d --to_meters True --px_to_m_person_height 1.65 --px_to_m_from_person_id 2 --floor_angle 0 --xy_origin 0 940
+sports2d --to_meters True --px_to_m_person_height 1.65 --px_to_m_from_person_id 2 `
+         --visible_side front none auto --floor_angle 0 --xy_origin 0 940
 ```
 
 <br>
@@ -254,24 +254,28 @@ sports2d --to_meters True --px_to_m_person_height 1.65 --px_to_m_from_person_id 
 #### Run inverse kinematics:
 > N.B.: [Full install](#full-install) required.
 
-> N.B.: The person needs to be moving on a single plane for the whole selected time range. 
+> **N.B.:** The person needs to be moving on a single plane for the whole selected time range.
 
-Analyzed persons can be showing their left, right, front, or back side. If you want to ignore a certain person, set `--visible_side none`. 
+OpenSim inverse kinematics allows you to set joint constraints, joint angle limits, to constrain the bones to keep the same length all along the motion and potentially to have equal sizes on left and right side. Most generally, it gives more biomechanically accurate results. It can also give you the opportunity to compute joint torques, muscle forces, ground reaction forces, and more, [with MoCo](https://opensim-org.github.io/opensim-moco-site/) for example.
 
-
-
-
-              Why IK?
-              Add section in how it works
-
-
+This is done via [Pose2Sim](https://github.com/perfanalytics/pose2sim).\
+Model scaling is done according to the mean of the segment lengths, across a subset of frames. We remove the 10% fastest frames (potential outliers), the frames where the speed is 0 (person probably out of frame), the frames where the average knee and hip flexion angles are above 45° (pose estimation is not precise when the person is crouching) and the 20% most extreme segment values after the previous operations (potential outliers). All these parameters can be edited in your Config.toml file.
 
 ```cmd
-sports2d --time_range 1.2 2.7 --do_ik true --visible_side front left
+sports2d --time_range 1.2 2.7 `
+         --do_ik true `
+         --px_to_m_from_person_id 1 --px_to_m_person_height 1.65 `
+         --visible_side front auto 
 ```
 
+You can optionally use the LSTM marker augmentation to improve the quality of the output motion.\
+You can also optionally give the participants proper masses. Mass has no influence on motion, only on forces (if you decide to further pursue kinetics analysis).
+
 ```cmd
-sports2d --time_range 1.2 2.7 --do_ik true --visible_side front left --use_augmentation True
+sports2d --time_range 1.2 2.7 `
+         --do_ik true --use_augmentation True `
+         --px_to_m_from_person_id 1 --px_to_m_person_height 1.65 `
+         --visible_side front left --participant_mass 67.0 55.0
 ```
 
 <br>
@@ -337,7 +341,9 @@ sports2d --video_input demo.mp4 other_video.mp4 --time_range 1.2 2.7 0 3.5
   ```
 - Choose whether you want video, images, trc pose file, angle mot file, real-time display, and plots:
   ```cmd
-  sports2d --save_vid false --save_img true --save_pose false --save_angles true --show_realtime_results false --show_graphs false
+  sports2d --save_vid false --save_img true `
+           --save_pose false --save_angles true `
+           --show_realtime_results false --show_graphs false
   ```
 - Save results to a custom directory, specify the slow-motion factor:
   ``` cmd
@@ -354,12 +360,12 @@ sports2d --video_input demo.mp4 other_video.mp4 --time_range 1.2 2.7 0 3.5
   ```
 - Use any custom (deployed) MMPose model
   ``` cmd
-  sports2d --pose_model BodyWithFeet :
-           --mode """{'det_class':'YOLOX',
-                  'det_model':'https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/onnx_sdk/yolox_m_8xb8-300e_humanart-c2c7a14a.zip',
-                  'det_input_size':[640, 640],
-                  'pose_class':'RTMPose',
-                  'pose_model':'https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/onnx_sdk/rtmpose-m_simcc-body7_pt-body7-halpe26_700e-256x192-4d3e73dd_20230605.zip',
+  sports2d --pose_model BodyWithFeet : `
+           --mode """{'det_class':'YOLOX', `
+                  'det_model':'https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/onnx_sdk/yolox_m_8xb8-300e_humanart-c2c7a14a.zip', `
+                  'det_input_size':[640, 640], `
+                  'pose_class':'RTMPose', `
+                  'pose_model':'https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/onnx_sdk/rtmpose-m_simcc-body7_pt-body7-halpe26_700e-256x192-4d3e73dd_20230605.zip', `
                   'pose_input_size':[192,256]}"""
   ```
 
@@ -376,9 +382,10 @@ sports2d --help
 
 ``` 
 'config': ["C", "path to a toml configuration file"],
+
 'video_input': ["i", "webcam, or video_path.mp4, or video1_path.avi video2_path.mp4 ... Beware that images won't be saved if paths contain non ASCII characters"],
 'px_to_m_person_height': ["H", "height of the person in meters. 1.70 if not specified"],
-'visible_side': ["", "front, back, left, right, auto, or none. 'front auto' if not specified. If 'auto', will be either left or right depending on the direction of the motion. If 'none', no IK for this person"],
+'visible_side': ["", "front, back, left, right, auto, or none. 'front none auto' if not specified. If 'auto', will be either left or right depending on the direction of the motion. If 'none', no IK for this person"],
 'load_trc_px': ["", "load trc file to avaid running pose estimation again. false if not specified"],
 'compare': ["", "visually compare motion with trc file. false if not specified"],
 'webcam_id': ["w", "webcam ID. 0 if not specified"],
@@ -412,6 +419,7 @@ sports2d --help
 'do_ik': ["", "do inverse kinematics. false if not specified"],
 'use_augmentation': ["", "Use LSTM marker augmentation. false if not specified"],
 'use_contacts_muscles': ["", "Use model with contact spheres and muscles. false if not specified"],
+'participant_mass': ["", "mass of the participant in kg or none. Defaults to 70 if not provided. No influence on kinematics (motion), only on kinetics (forces)"],
 'close_to_zero_speed_m': ["","Sum for all keypoints: about 50 px/frame or 0.2 m/frame"], 
 'multiperson': ["", "multiperson involves tracking: will be faster if set to false. true if not specified"],
 'tracking_mode': ["", "sports2d or rtmlib. sports2d is generally much more accurate and comparable in speed. sports2d if not specified"],
@@ -544,7 +552,7 @@ Sports2D:
 
 4. **Chooses the right persons to keep.** In single-person mode, only keeps the person with the highest average scores over the sequence. In multi-person mode, only retrieves the keypoints with high enough confidence, and only keeps the persons with high enough average confidence over each frame.
 
-4. **Converts the pixel coordinates to meters.** The user can provide a calibration file, or simply the size of a specified person. The floor angle and the coordinate origin can either be detected automatically from the gait sequence, or be manually specified.
+4. **Converts the pixel coordinates to meters.** The user can provide a calibration file, or simply the size of a specified person. The floor angle and the coordinate origin can either be detected automatically from the gait sequence, or be manually specified. The depth coordinates are set to normative values, depending on whether the person is going left, right, facing the camera, or looking away.
 
 5. **Computes the selected joint and segment angles**, and flips them on the left/right side if the respective foot is pointing to the left/right. 
 
