@@ -928,6 +928,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     px_to_m_from_person_id = int(config_dict.get('project').get('px_to_m_from_person_id'))
     px_to_m_person_height_m = config_dict.get('project').get('px_to_m_person_height')
     visible_side = config_dict.get('project').get('visible_side')
+    if isinstance(visible_side, str): visible_side = [visible_side]
     # Pose from file
     load_trc_px = config_dict.get('project').get('load_trc_px')
     if load_trc_px == '': load_trc_px = None
@@ -1471,11 +1472,12 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                              f'xy_origin: {xy_origin if not xy_origin=="auto" else f"auto (estimation: {[round(c) for c in xy_origin_estim]})"} px.')
 
             # Coordinates in m
+            print(visible_side)
             for i in range(len(trc_data)):
                 if not np.array(trc_data[i].iloc[:,1:] ==0).all():
                     # Automatically determine visible side
                     visible_side_i = visible_side[i] if len(visible_side)>i else 'auto' # set to 'auto' if list too short
-                    
+                    print(visible_side_i)
                     # Set to 'front' if slope of X values between [-5,5]
                     if visible_side_i == 'auto':
                         try:
