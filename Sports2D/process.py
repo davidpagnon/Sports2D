@@ -1135,7 +1135,10 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         for pre, _, node in RenderTree(pose_model):
             if node.name in keypoints_names:
                 node.id = keypoints_names.index(node.name)
-        frame_range = [abs(time_col - time_range[0]).idxmin(), abs(time_col - time_range[1]).idxmin()+1]
+        if time_range:
+            frame_range = [abs(time_col - time_range[0]).idxmin(), abs(time_col - time_range[1]).idxmin()+1]
+        else:
+            frame_range = [0, len(Q_coords)]
         frame_iterator = tqdm(range(*frame_range))
     
     else:
