@@ -1472,12 +1472,10 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                              f'xy_origin: {xy_origin if not xy_origin=="auto" else f"auto (estimation: {[round(c) for c in xy_origin_estim]})"} px.')
 
             # Coordinates in m
-            print(visible_side)
             for i in range(len(trc_data)):
                 if not np.array(trc_data[i].iloc[:,1:] ==0).all():
                     # Automatically determine visible side
                     visible_side_i = visible_side[i] if len(visible_side)>i else 'auto' # set to 'auto' if list too short
-                    print(visible_side_i)
                     # Set to 'front' if slope of X values between [-5,5]
                     if visible_side_i == 'auto':
                         try:
