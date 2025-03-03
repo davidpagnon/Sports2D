@@ -1041,7 +1041,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     close_to_zero_speed_px = config_dict.get('kinematics').get('close_to_zero_speed_px')
     close_to_zero_speed_m = config_dict.get('kinematics').get('close_to_zero_speed_m')
     if do_ik:
-        from Pose2Sim.markerAugmentation import augment_markers_all
+        if use_augmentation:
+            from Pose2Sim.markerAugmentation import augment_markers_all
         from Pose2Sim.kinematics import kinematics_all
         # Create a Pose2Sim dictionary and fill in missing keys
         recursivedict = lambda: defaultdict(recursivedict)
