@@ -625,7 +625,7 @@ def trc_data_from_XYZtime(X, Y, Z, time):
     '''
 
     trc_data = pd.concat([pd.concat([X.iloc[:,kpt], Y.iloc[:,kpt], Z.iloc[:,kpt]], axis=1) for kpt in range(len(X.columns))], axis=1)
-    trc_data.insert(0, 't', time)
+    trc_data.insert(0, 'time', time)
 
     return trc_data
 
@@ -1128,12 +1128,15 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             logging.error(f'\n{load_trc_px} file needs to be in px, not in meters.')
         logging.info(f'\nUsing a pose file instead of running pose estimation and tracking: {load_trc_px}.')
         # Load pose file in px
-        Q_coords, _, _, keypoints_names, _ = read_trc(load_trc_px)
+        Q_coords, _, time_col, keypoints_names, _ = read_trc(load_trc_px)
+
         keypoints_ids = [i for i in range(len(keypoints_names))]
         keypoints_all, scores_all = load_pose_file(Q_coords)
         for pre, _, node in RenderTree(pose_model):
             if node.name in keypoints_names:
                 node.id = keypoints_names.index(node.name)
+        frame_range = [abs(time_col - time_range[0]).idxmin(), abs(time_col - time_range[1]).idxmin()+1]
+        frame_iterator = tqdm(range(*frame_range))
     
     else:
         # Retrieve keypoint names from model
@@ -1337,7 +1340,10 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     all_frames_scores = make_homogeneous(all_frames_scores)
 
     frame_range = [0,frame_count] if video_file == 'webcam' else frame_range
-    all_frames_time = pd.Series(np.linspace(frame_range[0]/fps, frame_range[1]/fps, frame_count+1), name='time')
+    if not load_trc_px:
+        all_frames_time = pd.Series(np.linspace(frame_range[0]/fps, frame_range[1]/fps, frame_count-frame_range[0]+1), name='time')
+    else:
+        all_frames_time = time_col
     if not multiperson:
         px_to_m_from_person_id = get_personID_with_highest_scores(all_frames_scores)
         detected_persons = [px_to_m_from_person_id]
@@ -1648,7 +1654,11 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             logging.warning('Skipping marker augmentation and inverse kinematics as to_meters was set to False.')
         else:
             # move all trc files containing _m_ string to pose3d_dir
-            for trc_file in output_dir.glob('*_m_*.trc'):
+            if not load_trc_px: 
+                trc_list = output_dir.glob('*_m_*.trc')
+            else:
+                trc_list = [pose_path_person_m_i]
+            for trc_file in trc_list:
                 if (pose3d_dir/trc_file.name).exists():
                     os.remove(pose3d_dir/trc_file.name)
                 shutil.move(trc_file, pose3d_dir)
