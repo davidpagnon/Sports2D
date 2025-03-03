@@ -73,7 +73,7 @@ def test_workflow():
                  "--time_range", "1.2", "2.7",
                  "--do_ik", "True", "--use_augmentation", "True", 
                  "--px_to_m_from_person_id", "1", "--px_to_m_person_height", "1.65",
-                 "--visible_side", "left", "front", "--participant_mass", "55.0", "67.0"]
+                 "--visible_side", "front", "auto", "--participant_mass", "55.0", "67.0"]
     subprocess.run(demo_cmd3, check=True, capture_output=True, text=True, encoding='utf-8')
     
     # From config file
