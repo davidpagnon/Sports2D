@@ -151,8 +151,8 @@ filter_type = 'butterworth'   # butterworth, gaussian, LOESS, median
 
 
 [kinematics]
-do_ik = true # Do scaling and inverse kinematics?
-use_augmentation = true  # true or false (lowercase) # Set to true if you want to use the model with augmented markers
+do_ik = false # Do scaling and inverse kinematics?
+use_augmentation = false  # true or false (lowercase) # Set to true if you want to use the model with augmented markers
 use_contacts_muscles = true # true or false (lowercase) # If true, contact spheres and muscles are added to the model
 participant_mass = [67.0, 55.0] # kg # defaults to 70 if not provided. No influence on kinematics (motion), only on kinetics (forces)
 right_left_symmetry = true # true or false (lowercase) # Set to false only if you have good reasons to think the participant is not symmetrical (e.g. prosthetic limb)
