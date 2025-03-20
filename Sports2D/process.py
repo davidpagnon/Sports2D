@@ -77,6 +77,7 @@ import opensim as osim
 from Sports2D.Utilities import filter
 from Sports2D.Utilities.common import *
 from Sports2D.Utilities.skeletons import *
+from Pose2Sim.common import *
 
 DEFAULT_MASS = 70
 DEFAULT_HEIGHT = 1.7
