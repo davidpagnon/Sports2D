@@ -1523,7 +1523,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     pose_path_person_m_i = (pose_output_path.parent / (pose_output_path_m.stem + f'_person{idx_path:02d}.trc'))
                     make_trc_with_trc_data(trc_data_m_i, pose_path_person_m_i, fps=fps)
                     if make_c3d:
-                        c3d_path = convert_to_c3d(pose_path_person_m_i)
+                        c3d_path = convert_to_c3d(str(pose_path_person_m_i))
                     logging.info(f'Pose in meters saved to {pose_path_person_m_i.resolve()}. {"Also saved in c3d format." if make_c3d else ""}')
                     
                 
