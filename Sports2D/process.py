@@ -72,7 +72,6 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from rtmlib import PoseTracker, BodyWithFeet, Wholebody, Body, Custom
 from deep_sort_realtime.deepsort_tracker import DeepSort
-import opensim as osim
 
 from Sports2D.Utilities import filter
 from Sports2D.Utilities.common import *
@@ -1654,6 +1653,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
 
     # OpenSim inverse kinematics (and optional marker augmentation)
     if do_ik or use_augmentation:
+        import opensim as osim
         logging.info('\nPost-processing angles (with inverse kinematics):')
         if not to_meters:
             logging.warning('Skipping marker augmentation and inverse kinematics as to_meters was set to False.')
