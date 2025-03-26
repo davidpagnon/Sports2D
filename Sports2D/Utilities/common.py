@@ -15,27 +15,15 @@
 
 
 ## INIT
-import re
 import sys
-import toml
+from importlib.metadata import version
 import subprocess
 from pathlib import Path
 import itertools as it
 import logging
 from collections import defaultdict
-from anytree import PreOrderIter
-
 import numpy as np
-import pandas as pd
-from scipy import interpolate
 import imageio_ffmpeg as ffmpeg
-import cv2
-import c3d
-
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
-from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget, QTabWidget, QVBoxLayout
 
 
 ## AUTHORSHIP INFORMATION
@@ -43,7 +31,7 @@ __author__ = "David Pagnon"
 __copyright__ = "Copyright 2023, Sports2D"
 __credits__ = ["David Pagnon"]
 __license__ = "BSD 3-Clause License"
-__version__ = "0.4.0"
+__version__ = version("sports2d")
 __maintainer__ = "David Pagnon"
 __email__ = "contact@david-pagnon.com"
 __status__ = "Development"

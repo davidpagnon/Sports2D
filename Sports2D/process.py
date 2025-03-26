@@ -58,6 +58,7 @@ import json
 import ast
 import shutil
 import os
+from importlib.metadata import version
 from functools import partial
 from datetime import datetime
 import itertools as it
@@ -86,7 +87,7 @@ __author__ = "David Pagnon, HunMin Kim"
 __copyright__ = "Copyright 2023, Sports2D"
 __credits__ = ["David Pagnon"]
 __license__ = "BSD 3-Clause License"
-__version__ = "0.4.0"
+__version__ = version("sports2d")
 __maintainer__ = "David Pagnon"
 __email__ = "contact@david-pagnon.com"
 __status__ = "Development"
