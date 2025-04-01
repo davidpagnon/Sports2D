@@ -18,7 +18,7 @@ video_input = 'demo.mp4'   # 'webcam' or '<video_path.ext>', or ['video1_path.mp
 
 nb_persons_to_detect = 'all'   # int or 'all' # Limiting or not the number of persons to be analyzed
 person_ordering_method = 'on_click' # 'on_click', 'highest_likelihood', 'greatest_displacement', 'least_displacement', 'first_detected', or 'last_detected'
-first_person_height = 1.76  # Height of the reference person in meters (for pixels -> meters conversion: not used if a calibration file is provided)
+first_person_height = 1.65  # Height of the reference person in meters (for pixels -> meters conversion: not used if a calibration file is provided)
 visible_side = ['auto', 'front', 'none']  # Choose visible side among ['right', 'left', 'front', 'back', 'auto', 'none']. String or list of strings.
                   # if 'auto', will be either 'left', 'right', or 'front' depending on the direction of the motion
                   # if 'none', coordinates will be left in 2D rather than 3D
@@ -153,7 +153,7 @@ filter_type = 'butterworth'   # butterworth, gaussian, LOESS, median
 do_ik = false # Do scaling and inverse kinematics?
 use_augmentation = false  # true or false (lowercase) # Set to true if you want to use the model with augmented markers
 use_contacts_muscles = true # true or false (lowercase) # If true, contact spheres and muscles are added to the model
-participant_mass = [67.0, 55.0] # kg # defaults to 70 if not provided. No influence on kinematics (motion), only on kinetics (forces)
+participant_mass = [55.0, 67.0] # kg # defaults to 70 if not provided. No influence on kinematics (motion), only on kinetics (forces)
 right_left_symmetry = true # true or false (lowercase) # Set to false only if you have good reasons to think the participant is not symmetrical (e.g. prosthetic limb)
 
 # Choosing best frames to scale the model

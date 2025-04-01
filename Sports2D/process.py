@@ -1228,6 +1228,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         logging.info(f'\nUsing a pose file instead of running pose estimation and tracking: {load_trc_px}.')
         # Load pose file in px
         Q_coords, _, time_col, keypoints_names, _ = read_trc(load_trc_px)
+        t0 = time_col[0]
 
         keypoints_ids = [i for i in range(len(keypoints_names))]
         keypoints_all, scores_all = load_pose_file(Q_coords)
@@ -1244,6 +1245,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         # Retrieve keypoint names from model
         keypoints_ids = [node.id for _, _, node in RenderTree(pose_model) if node.id!=None]
         keypoints_names = [node.name for _, _, node in RenderTree(pose_model) if node.id!=None]
+        t0 = 0
 
         # Set up pose tracker
         try:
@@ -1290,11 +1292,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     frames = []
     while cap.isOpened():
         # Skip to the starting frame
-        if frame_count < frame_range[0] and not load_trc_px:
-            cap.read()
-            frame_count += 1
-            continue
-        if frame_count <= int(time_col[0] * fps) and load_trc_px:
+        if frame_count <= int(t0 * fps) or frame_count < frame_range[0]:
             cap.read()
             frame_count += 1
             continue
@@ -1443,7 +1441,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         selected_persons = [0]
     else:
         # Select persons 
-        all_frames_time = pd.Series(np.linspace(frame_range[0]/fps, frame_range[1]/fps, frame_count-frame_range[0]+1), name='time')
+        all_frames_time = pd.Series(np.linspace(frame_range[0]/fps, frame_range[1]/fps, frame_count-frame_range[0]), name='time')
         nb_detected_persons = all_frames_scores_homog.shape[1]
         if nb_persons_to_detect == 'all':
             nb_persons_to_detect = all_frames_scores_homog.shape[1]
@@ -1774,7 +1772,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
 
     # Save images/video with processed pose and angles
     if save_vid or save_img:
-        logging.info('\nSaving processed pose and angles:')
+        logging.info('\nSaving images of processed pose and angles:')
         if save_vid:
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
             out_vid = cv2.VideoWriter(str(vid_output_path.absolute()), fourcc, fps, (cam_width, cam_height))
