@@ -1,14 +1,17 @@
 
 [![Continuous integration](https://github.com/davidpagnon/sports2d/actions/workflows/continuous-integration.yml/badge.svg?branch=main)](https://github.com/davidpagnon/sports2d/actions/workflows/continuous-integration.yml)
-[![PyPI version](https://badge.fury.io/py/Sports2D.svg)](https://badge.fury.io/py/Sports2D)\
+[![PyPI version](https://badge.fury.io/py/Sports2D.svg)](https://badge.fury.io/py/Sports2D)
+\
 [![Downloads](https://static.pepy.tech/badge/sports2d)](https://pepy.tech/project/sports2d)
 [![Stars](https://img.shields.io/github/stars/davidpagnon/sports2d)](https://github.com/davidpagnon/sports2d/stargazers)
 [![GitHub issues](https://img.shields.io/github/issues/davidpagnon/sports2d)](https://github.com/davidpagnon/sports2d/issues)
-[![GitHub issues-closed](https://img.shields.io/github/issues-closed/davidpagnon/sports2d)](https://GitHub.com/davidpagnon/sports2d/issues?q=is%3Aissue+is%3Aclosed)\
+[![GitHub issues-closed](https://img.shields.io/github/issues-closed/davidpagnon/sports2d)](https://GitHub.com/davidpagnon/sports2d/issues?q=is%3Aissue+is%3Aclosed)
+\
 [![status](https://joss.theoj.org/papers/1d525bbb2695c88c6ebbf2297bd35897/status.svg)](https://joss.theoj.org/papers/1d525bbb2695c88c6ebbf2297bd35897)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10576574.svg)](https://zenodo.org/doi/10.5281/zenodo.7903962)
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
-
+\
+[![Discord](https://img.shields.io/discord/1183750225471492206?logo=Discord&label=Discord%20community)](https://discord.com/invite/4mXUdSFjmt)
 
 <!-- [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://bit.ly/Sports2D_Colab)-->
 
@@ -20,8 +23,9 @@
 
 </br>
 
-> **`Announcement:`\
-> Complete rewriting of the code!** Run `pip install sports2d -U` to get the latest version.
+> **`Announcements:`**\
+> Run `pip install sports2d -U` to get the latest version.
+> - Select only the persons you want to analyze **New in v0.8!** 
 > - MarkerAugmentation and Inverse Kinematics for accurate 3D motion with OpenSim. **New in v0.7!** 
 > - Any detector and pose estimation model can be used. **New in v0.6!**
 > - Results in meters rather than pixels. **New in v0.5!**
@@ -244,11 +248,12 @@ Also note that distortions are not taken into account, and that results will be 
 sports2d --to_meters True --calib_file calib_demo.toml
 ``` -->
 ``` cmd
-sports2d --to_meters True --px_to_m_person_height 1.65 --px_to_m_from_person_id 2
+sports2d --to_meters True --first_person_height 1.76 --visible_side front none auto
 ```
 ``` cmd
-sports2d --to_meters True --px_to_m_person_height 1.65 --px_to_m_from_person_id 2 `
-         --visible_side front none auto --floor_angle 0 --xy_origin 0 940
+sports2d --to_meters True --first_person_height 1.65 --visible_side front none auto `
+         --person_ordering_method highest_likelihood `
+         --floor_angle 0 --xy_origin 0 940
 ```
 
 <br>
@@ -267,7 +272,7 @@ Model scaling is done according to the mean of the segment lengths, across a sub
 ```cmd
 sports2d --time_range 1.2 2.7 `
          --do_ik true `
-         --px_to_m_from_person_id 1 --px_to_m_person_height 1.65 `
+         --px_to_m_from_person_id 1 --first_person_height 1.65 `
          --visible_side front auto 
 ```
 
@@ -277,7 +282,7 @@ You can also optionally give the participants proper masses. Mass has no influen
 ```cmd
 sports2d --time_range 1.2 2.7 `
          --do_ik true --use_augmentation True `
-         --px_to_m_from_person_id 1 --px_to_m_person_height 1.65 `
+         --px_to_m_from_person_id 1 --first_person_height 1.65 `
          --visible_side front left --participant_mass 67.0 55.0
 ```
 
@@ -387,8 +392,10 @@ sports2d --help
 'config': ["C", "path to a toml configuration file"],
 
 'video_input': ["i", "webcam, or video_path.mp4, or video1_path.avi video2_path.mp4 ... Beware that images won't be saved if paths contain non ASCII characters"],
-'px_to_m_person_height': ["H", "height of the person in meters. 1.70 if not specified"],
-'visible_side': ["", "front, back, left, right, auto, or none. 'front none auto' if not specified. If 'auto', will be either left or right depending on the direction of the motion. If 'none', no IK for this person"],
+'nb_persons_to_detect': ["n", "number of persons to detect. int or 'all'. 'all' if not specified"],
+'person_ordering_method': ["", "'on_click', 'highest_likelihood', 'greatest_displacement', 'least_displacement', 'first_detected', or 'last_detected'. 'on_click' if not specified"],
+'first_person_height': ["H", "height of the reference person in meters. 1.65 if not specified. Not used if a calibration file is provided"],
+'visible_side': ["", "front, back, left, right, auto, or none. 'auto front none' if not specified. If 'auto', will be either left or right depending on the direction of the motion. If 'none', no IK for this person"],
 'load_trc_px': ["", "load trc file to avaid running pose estimation again. false if not specified"],
 'compare': ["", "visually compare motion with trc file. false if not specified"],
 'webcam_id': ["w", "webcam ID. 0 if not specified"],
@@ -414,7 +421,6 @@ sports2d --help
 'device': ["", "Device for pose estimatino can be 'auto', 'openvino', 'onnxruntime', 'opencv'"],
 'to_meters': ["M", "convert pixels to meters. true if not specified"],
 'make_c3d': ["", "Convert trc to c3d file. true if not specified"],
-'px_to_m_from_person_id': ["", "person ID to calibrate on. 0 if not specified"],
 'floor_angle': ["", "angle of the floor. 'auto' if not specified"],
 'xy_origin': ["", "origin of the xy plane. 'auto' if not specified"],
 'calib_file': ["", "path to calibration file. '' if not specified, eg no calibration file"],
@@ -424,7 +430,6 @@ sports2d --help
 'use_contacts_muscles': ["", "Use model with contact spheres and muscles. false if not specified"],
 'participant_mass': ["", "mass of the participant in kg or none. Defaults to 70 if not provided. No influence on kinematics (motion), only on kinetics (forces)"],
 'close_to_zero_speed_m': ["","Sum for all keypoints: about 50 px/frame or 0.2 m/frame"], 
-'multiperson': ["", "multiperson involves tracking: will be faster if set to false. true if not specified"],
 'tracking_mode': ["", "'sports2d' or 'deepsort'. 'deepsort' is slower, harder to parametrize but can be more robust if correctly tuned"],
 'deepsort_params': ["", 'Deepsort tracking parameters: """{dictionary between 3 double quotes}""". \n\
                     Default: max_age:30, n_init:3, nms_max_overlap:0.8, max_cosine_distance:0.3, nn_budget:200, max_iou_distance:0.8, embedder_gpu: True\n\
@@ -456,7 +461,8 @@ sports2d --help
 'remove_individual_scaling_setup': ["", "remove individual scaling setup files generated during scaling. true if not specified"],
 'remove_individual_ik_setup': ["", "remove individual IK setup files generated during IK. true if not specified"],
 'fastest_frames_to_remove_percent': ["", "Frames with high speed are considered as outliers. Defaults to 0.1"],
-'close_to_zero_speed_m': ["","Sum for all keypoints: about 50 px/frame or 0.2 m/frame"],
+'close_to_zero_speed_m': ["","Sum for all keypoints: about 0.2 m/frame. Defaults to 0.2"],
+'close_to_zero_speed_px': ["", "Sum for all keypoints: about 50 px/frame. Defaults to 50"],
 'large_hip_knee_angles': ["", "Hip and knee angles below this value are considered as imprecise and ignored. Defaults to 45"],
 'trimmed_extrema_percent': ["", "Proportion of the most extreme segment values to remove before calculating their mean. Defaults to 50"],
 'use_custom_logging': ["", "use custom logging. false if not specified"]

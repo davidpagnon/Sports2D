@@ -15,7 +15,6 @@
 
 
 ## INIT
-import sys
 from importlib.metadata import version
 import subprocess
 from pathlib import Path

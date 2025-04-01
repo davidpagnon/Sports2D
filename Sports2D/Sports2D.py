@@ -29,7 +29,7 @@
         sports2d --video_input webcam
     - Run with custom parameters (all non specified are set to default): 
         sports2d --show_plots False --time_range 0 2.1 --result_dir path_to_result_dir
-        sports2d --multiperson false --mode lightweight --det_frequency 50
+        sports2d --person_detection_method highest_likelihood --mode lightweight --det_frequency 50
     - Run with a toml configuration file: 
         sports2d --config path_to_config.toml
    
@@ -122,18 +122,17 @@ from Sports2D import Sports2D
 
 
 ## CONSTANTS
-DEFAULT_CONFIG =   {'project': {'video_input': ['demo.mp4'],
-                                'px_to_m_from_person_id': 2,
-                                'px_to_m_person_height': 1.65,
-                                'visible_side': ['front', 'none', 'auto'],
+DEFAULT_CONFIG =   {'base': {'video_input': ['demo.mp4'],
+                                'nb_persons_to_detect': 'all',
+                                'person_ordering_method': 'highest_likelihood',
+                                'first_person_height': 1.65,
+                                'visible_side': ['auto', 'front', 'none'],
                                 'load_trc_px': '',
                                 'compare': False,
                                 'time_range': [],
                                 'video_dir': '',
                                 'webcam_id': 0,
-                                'input_size': [1280, 720]
-                                },
-                    'process': {'multiperson': True,
+                                'input_size': [1280, 720],
                                 'show_realtime_results': True,
                                 'save_vid': True,
                                 'save_img': True,
@@ -149,7 +148,7 @@ DEFAULT_CONFIG =   {'project': {'video_input': ['demo.mp4'],
                                 'device': 'auto',
                                 'backend': 'auto',
                                 'tracking_mode': 'sports2d',
-                                'deepsort_params': """{'max_age':30, 'n_init':3, 'nms_max_overlap':0.8, 'max_cosine_distance':0.3, 'nn_budget':200, 'max_iou_distance':0.8, 'embedder_gpu': True}""",
+                                'deepsort_params': """{'max_age':30, 'n_init':3, 'nms_max_overlap':0.8, 'max_cosine_distance':0.3, 'nn_budget':200, 'max_iou_distance':0.8, 'embedder_gpu': True, 'embedder':'torchreid'}""",
                                 'keypoint_likelihood_threshold': 0.3,
                                 'average_likelihood_threshold': 0.5,
                                 'keypoint_number_threshold': 0.3
@@ -224,8 +223,10 @@ DEFAULT_CONFIG =   {'project': {'video_input': ['demo.mp4'],
 
 CONFIG_HELP =   {'config': ["C", "path to a toml configuration file"],
                 'video_input': ["i", "webcam, or video_path.mp4, or video1_path.avi video2_path.mp4 ... Beware that images won't be saved if paths contain non ASCII characters"],
-                'px_to_m_person_height': ["H", "height of the person in meters. 1.70 if not specified"],
-                'visible_side': ["", "front, back, left, right, auto, or none. 'front none auto' if not specified. If 'auto', will be either left or right depending on the direction of the motion. If 'none', no IK for this person"],
+                'nb_persons_to_detect': ["n", "number of persons to detect. int or 'all'. 'all' if not specified"],
+                'person_ordering_method': ["", "'on_click', 'highest_likelihood', 'greatest_displacement', 'least_displacement', 'first_detected', or 'last_detected'. 'on_click' if not specified"],
+                'first_person_height': ["H", "height of the reference person in meters. 1.65 if not specified. Not used if a calibration file is provided"],
+                'visible_side': ["", "front, back, left, right, auto, or none. 'auto front none' if not specified. If 'auto', will be either left or right depending on the direction of the motion. If 'none', no IK for this person"],
                 'load_trc_px': ["", "load trc file to avaid running pose estimation again. false if not specified"],
                 'compare': ["", "visually compare motion with trc file. false if not specified"],
                 'webcam_id': ["w", "webcam ID. 0 if not specified"],
@@ -251,7 +252,6 @@ CONFIG_HELP =   {'config': ["C", "path to a toml configuration file"],
                 'device': ["", "Device for pose estimatino can be 'auto', 'openvino', 'onnxruntime', 'opencv'"],
                 'to_meters': ["M", "convert pixels to meters. true if not specified"],
                 'make_c3d': ["", "Convert trc to c3d file. true if not specified"],
-                'px_to_m_from_person_id': ["", "person ID to calibrate on. 0 if not specified"],
                 'floor_angle': ["", "angle of the floor. 'auto' if not specified"],
                 'xy_origin': ["", "origin of the xy plane. 'auto' if not specified"],
                 'calib_file': ["", "path to calibration file. '' if not specified, eg no calibration file"],
@@ -261,7 +261,6 @@ CONFIG_HELP =   {'config': ["C", "path to a toml configuration file"],
                 'use_contacts_muscles': ["", "Use model with contact spheres and muscles. false if not specified"],
                 'participant_mass': ["", "mass of the participant in kg or none. Defaults to 70 if not provided. No influence on kinematics (motion), only on kinetics (forces)"],
                 'close_to_zero_speed_m': ["","Sum for all keypoints: about 50 px/frame or 0.2 m/frame"], 
-                'multiperson': ["", "multiperson involves tracking: will be faster if set to false. true if not specified"],
                 'tracking_mode': ["", "'sports2d' or 'deepsort'. 'deepsort' is slower, harder to parametrize but can be more robust if correctly tuned"],
                 'deepsort_params': ["", 'Deepsort tracking parameters: """{dictionary between 3 double quotes}""". \n\
                                     Default: max_age:30, n_init:3, nms_max_overlap:0.8, max_cosine_distance:0.3, nn_budget:200, max_iou_distance:0.8, embedder_gpu: True\n\
@@ -270,6 +269,10 @@ CONFIG_HELP =   {'config': ["C", "path to a toml configuration file"],
                 'keypoint_likelihood_threshold': ["", "detected keypoints are not retained if likelihood is below this threshold. 0.3 if not specified"],
                 'average_likelihood_threshold': ["", "detected persons are not retained if average keypoint likelihood is below this threshold. 0.5 if not specified"],
                 'keypoint_number_threshold': ["", "detected persons are not retained if number of detected keypoints is below this threshold. 0.3 if not specified, i.e., i.e., 30 percent"],
+                'fastest_frames_to_remove_percent': ["", "Frames with high speed are considered as outliers. Defaults to 0.1"],
+                'close_to_zero_speed_px': ["", "Sum for all keypoints: about 50 px/frame or 0.2 m/frame. Defaults to 50"],
+                'large_hip_knee_angles': ["", "Hip and knee angles below this value are considered as imprecise. Defaults to 45"],
+                'trimmed_extrema_percent': ["", "Proportion of the most extreme segment values to remove before calculating their mean. Defaults to 50"],
                 'fontSize': ["", "font size for angle values. 0.3 if not specified"],
                 'flip_left_right': ["", "true or false. true to get consistent angles with people facing both left and right sides. Set it to false if you want timeseries to be continuous even when the participent switches their stance. true if not specified"],
                 'correct_segment_angles_with_floor_angle': ["", "true or false. If the camera is tilted, corrects segment angles as regards to the floor angle. Set to false is the floor is tilted instead. True if not specified"],
@@ -324,16 +327,16 @@ def base_params(config_dict):
     '''
 
     # video_dir and result_dir
-    video_dir = config_dict.get('project').get('video_dir')
+    video_dir = config_dict.get('base').get('video_dir')
     if video_dir == '': video_dir = Path.cwd()
     else: video_dir = Path(video_dir).resolve()
 
-    result_dir = config_dict.get('process').get('result_dir')
+    result_dir = config_dict.get('base').get('result_dir')
     if result_dir == '': result_dir = Path.cwd()
     else: result_dir = Path(result_dir).resolve()
 
     # video_files, frame_rates, time_ranges
-    video_input = config_dict.get('project').get('video_input')
+    video_input = config_dict.get('base').get('video_input')
     if video_input == "webcam" or video_input == ["webcam"]:
         video_files = ['webcam']  # No video files for webcam
         frame_rates = [None]  # No frame rate for webcam
@@ -359,7 +362,7 @@ def base_params(config_dict):
             video.release()
 
         # time_ranges
-        time_ranges = np.array(config_dict.get('project').get('time_range'))
+        time_ranges = np.array(config_dict.get('base').get('time_range'))
         # No time range provided
         if time_ranges.shape == (0,): 
             time_ranges = [None] * len(video_files)
@@ -394,7 +397,7 @@ def get_leaf_keys(config, prefix=''):
 
 def update_nested_dict(config, key_path, value):
     '''
-    Update a nested dictionary based on a key path string like 'process.multiperson'.
+    Update a nested dictionary based on a key path string like 'base.nb_persons_to_detect'.
     '''
 
     keys = key_path.split('.')
@@ -527,7 +530,7 @@ def main():
     else:
         new_config = DEFAULT_CONFIG.copy()
         if not args.video_input: 
-            new_config.get('project').update({'video_dir': Path(__file__).resolve().parent / 'Demo'})
+            new_config.get('base').update({'video_dir': Path(__file__).resolve().parent / 'Demo'})
 
     # Override dictionary with command-line arguments if provided
     leaf_keys = get_leaf_keys(new_config)

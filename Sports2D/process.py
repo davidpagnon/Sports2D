@@ -76,8 +76,9 @@ from deep_sort_realtime.deepsort_tracker import DeepSort
 
 from Sports2D.Utilities import filter
 from Sports2D.Utilities.common import *
-from Sports2D.Utilities.skeletons import *
+from Sports2D.Utilities.person_selector import *
 from Pose2Sim.common import *
+from Pose2Sim.skeletons import *
 
 DEFAULT_MASS = 70
 DEFAULT_HEIGHT = 1.7
@@ -625,8 +626,10 @@ def trc_data_from_XYZtime(X, Y, Z, time):
     - trc_data: pd.DataFrame. Dataframe of trc data
     '''
 
-    trc_data = pd.concat([pd.concat([X.iloc[:,kpt], Y.iloc[:,kpt], Z.iloc[:,kpt]], axis=1) for kpt in range(len(X.columns))], axis=1)
-    trc_data.insert(0, 'time', time)
+    columns_to_concat = []
+    for kpt in range(len(X.columns)):
+        columns_to_concat.extend([X.iloc[:,kpt], Y.iloc[:,kpt], Z.iloc[:,kpt]])
+    trc_data = pd.concat([time] + columns_to_concat, axis=1)
 
     return trc_data
 
@@ -777,21 +780,99 @@ def angle_plots(angle_data_unfiltered, angle_data, person_id):
     pw.show()
 
 
-def get_personID_with_highest_scores(all_frames_scores):
+def get_personIDs_with_highest_scores(all_frames_scores, nb_persons_to_detect):
     '''
     Get the person ID with the highest scores
 
     INPUTS:
     - all_frames_scores: array of scores for all frames, all persons, all keypoints
+    - nb_persons_to_detect: int or 'all'. The number of persons to detect
 
     OUTPUT:
-    - person_id: int. The person ID with the highest scores
+    - selected_persons: list of int. The person IDs with the highest scores
     '''
 
     # Get the person with the highest scores over all frames and all keypoints
-    person_id = np.argmax(np.nansum(np.nansum(all_frames_scores, axis=0), axis=1))
+    score_means = np.nansum(np.nanmean(all_frames_scores, axis=0), axis=1)
+    selected_persons = (-score_means).argsort()[:nb_persons_to_detect]
+    
+    return selected_persons
 
-    return person_id
+
+def get_personIDs_in_detection_order(nb_persons_to_detect, reverse=False):
+    '''
+    Get the person IDs in the order of detection
+
+    INPUTS:
+    - nb_persons_to_detect: int. The number of persons to detect
+    - reverse: bool. Whether to reverse the order of detection
+
+    OUTPUT:
+    - selected_persons: list of int. The person IDs in the order of detection
+    '''
+
+    selected_persons = list(range(nb_persons_to_detect))
+    if reverse:
+        selected_persons = selected_persons[::-1]
+
+    return selected_persons
+
+
+def get_personIDs_with_greatest_displacement(all_frames_X_homog, all_frames_Y_homog, nb_persons_to_detect, reverse=False, horizontal=True):
+    '''
+    Get the person ID with the greatest displacement
+    
+    INPUTS:
+    - all_frames_X_homog: shape (Nframes, Npersons, Nkpts) 
+    - all_frames_Y_homog: shape (Nframes, Npersons, Nkpts) 
+    - nb_persons_to_detect: int. The number of persons to detect
+    - reverse: bool. Whether to reverse the order of detection
+    - horizontal: bool. Whether to compute the displacement in the horizontal direction
+
+    OUTPUT:
+    - selected_persons: list of int. The person IDs with the greatest displacement
+    '''
+    
+    # Average position over all keypoints to shape (Npersons, Nframes, Ndims)
+    mean_pos_X_kpts = np.nanmean(all_frames_X_homog, axis=2)
+    
+    # Compute sum of distances from one frame to the next
+    if horizontal:
+        max_dist_traveled = abs(np.nansum(np.diff(mean_pos_X_kpts, axis=0), axis=0))
+    else:
+        mean_pos_Y_kpts = np.nanmean(all_frames_Y_homog, axis=2)
+        pos_XY = np.stack((mean_pos_X_kpts.T, mean_pos_Y_kpts.T), axis=-1)
+        max_dist_traveled = np.nansum([euclidean_distance(m,p) for (m,p) in zip(pos_XY[:,1:,:], pos_XY[:,:-1,:])], axis=1)
+    max_dist_traveled = np.where(np.isinf(max_dist_traveled), 0, max_dist_traveled)
+
+    selected_persons = (-max_dist_traveled).argsort()[:nb_persons_to_detect]
+    if reverse:
+        selected_persons = selected_persons[::-1]
+    
+    return selected_persons
+
+
+def get_personIDs_on_click(vid_or_img_files, all_frames_X_homog, all_frames_Y_homog, nb_persons_to_detect):
+    '''
+    Get the person IDs on click in the image
+
+    INPUTS:
+    - vid_or_img_files: path or list of paths. The video or image files
+    - all_frames_X_homog: shape (Nframes, Npersons, Nkpts)
+    - all_frames_Y_homog: shape (Nframes, Npersons, Nkpts)
+    - nb_persons_to_detect: int or 'all'. The number of persons to detect
+
+    OUTPUT:
+    - selected_persons: list of int. The person IDs selected by the user
+    '''
+
+    # Reorganize the coordinates to shape (Npersons, Nframes, Nkpts, Ndims)
+    all_pose_coords = np.stack((np.transpose(all_frames_X_homog, (1,0,2)), np.transpose(all_frames_Y_homog, (1,0,2))), axis=-1)
+    
+    # Select person IDs on click on video/image
+    selected_persons = select_persons_on_vid(vid_or_img_files, all_pose_coords, nb_persons_to_detect=nb_persons_to_detect)
+
+    return selected_persons
 
 
 def compute_floor_line(trc_data, keypoint_names = ['LBigToe', 'RBigToe'], toe_speed_below = 7, tot_speed_above=2.0):
@@ -813,7 +894,9 @@ def compute_floor_line(trc_data, keypoint_names = ['LBigToe', 'RBigToe'], toe_sp
     '''
 
     # Remove frames where the person is mostly not moving (outlier)
-    av_speeds = np.nanmean([np.insert(np.linalg.norm(trc_data[kpt].diff(), axis=1)[1:],0,0) for kpt in trc_data.columns.unique()[1:]], axis=0)
+    speeds_kpts = np.array([np.insert(np.linalg.norm(trc_data[kpt].diff(), axis=1)[1:],0,0) 
+                        for kpt in trc_data.columns.unique()[1:]]).T
+    av_speeds = np.array([np.nanmean(speed_kpt) if not np.isnan(speed_kpt).all() else 0 for speed_kpt in speeds_kpts])
     trc_data = trc_data[av_speeds>tot_speed_above]
 
     # Retrieve zero-speed coordinates for the foot
@@ -846,13 +929,13 @@ def compute_floor_line(trc_data, keypoint_names = ['LBigToe', 'RBigToe'], toe_sp
     return angle, xy_origin, gait_direction
 
 
-def convert_px_to_meters(Q_coords_kpt, px_to_m_person_height_m, height_px, cx, cy, floor_angle, visible_side='none'):
+def convert_px_to_meters(Q_coords_kpt, first_person_height, height_px, cx, cy, floor_angle, visible_side='none'):
     '''
     Convert pixel coordinates to meters.
 
     INPUTS:
     - Q_coords_kpt: pd.DataFrame. The xyz coordinates of a keypoint in pixels, with z filled with zeros
-    - px_to_m_person_height_m: float. The height of the person in meters
+    - first_person_height: float. The height of the person in meters
     - height_px: float. The height of the person in pixels
     - cx, cy: float. The origin of the image in pixels
     - floor_angle: float. The angle of the floor in radians
@@ -865,11 +948,11 @@ def convert_px_to_meters(Q_coords_kpt, px_to_m_person_height_m, height_px, cx, c
     u = Q_coords_kpt.iloc[:,0]
     v = Q_coords_kpt.iloc[:,1]
 
-    X = px_to_m_person_height_m / height_px * ((u-cx) + (v-cy)*np.sin(floor_angle))
-    Y = - px_to_m_person_height_m / height_px * np.cos(floor_angle) * (v-cy - np.tan(floor_angle)*(u-cx))
+    X = first_person_height / height_px * ((u-cx) + (v-cy)*np.sin(floor_angle))
+    Y = - first_person_height / height_px * np.cos(floor_angle) * (v-cy - np.tan(floor_angle)*(u-cx))
 
-    if 'marker_Z_positions' in globals() and visible_side!='none':
-        marker_name = Q_coords_kpt.columns[0]
+    marker_name = Q_coords_kpt.columns[0]
+    if 'marker_Z_positions' in globals() and visible_side!='none' and marker_name in marker_Z_positions[visible_side].keys():
         Z = X.copy()
         Z[:] = marker_Z_positions[visible_side][marker_name]
     else:
@@ -925,28 +1008,42 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     '''
     
     # Base parameters
-    video_dir = Path(config_dict.get('project').get('video_dir'))
-    px_to_m_from_person_id = int(config_dict.get('project').get('px_to_m_from_person_id'))
-    px_to_m_person_height_m = config_dict.get('project').get('px_to_m_person_height')
-    visible_side = config_dict.get('project').get('visible_side')
+    video_dir = Path(config_dict.get('base').get('video_dir'))
+
+    nb_persons_to_detect = config_dict.get('base').get('nb_persons_to_detect')
+    if nb_persons_to_detect != 'all': 
+        try:
+            nb_persons_to_detect = int(nb_persons_to_detect)
+            if nb_persons_to_detect < 1:
+                logging.warning('nb_persons_to_detect must be "all" or > 1. Detecting all persons instead.')
+                nb_persons_to_detect = 'all'
+        except:
+            logging.warning('nb_persons_to_detect must be "all" or an integer. Detecting all persons instead.')
+            nb_persons_to_detect = 'all'
+
+    person_ordering_method = config_dict.get('base').get('person_ordering_method')
+
+    first_person_height = config_dict.get('base').get('first_person_height')
+    visible_side = config_dict.get('base').get('visible_side')
     if isinstance(visible_side, str): visible_side = [visible_side]
+
     # Pose from file
-    load_trc_px = config_dict.get('project').get('load_trc_px')
+    load_trc_px = config_dict.get('base').get('load_trc_px')
     if load_trc_px == '': load_trc_px = None
     else: load_trc_px = Path(load_trc_px).resolve()
-    compare = config_dict.get('project').get('compare')
-    # Webcam settings
-    webcam_id =  config_dict.get('project').get('webcam_id')
-    input_size = config_dict.get('project').get('input_size')
+    compare = config_dict.get('base').get('compare')
 
-    # Process settings
-    multiperson = config_dict.get('process').get('multiperson')
-    show_realtime_results = config_dict.get('process').get('show_realtime_results')
-    save_vid = config_dict.get('process').get('save_vid')
-    save_img = config_dict.get('process').get('save_img')
-    save_pose = config_dict.get('process').get('save_pose')
-    calculate_angles = config_dict.get('process').get('calculate_angles')
-    save_angles = config_dict.get('process').get('save_angles')
+    # Webcam settings
+    webcam_id =  config_dict.get('base').get('webcam_id')
+    input_size = config_dict.get('base').get('input_size')
+
+    # Output settings    
+    show_realtime_results = config_dict.get('base').get('show_realtime_results')
+    save_vid = config_dict.get('base').get('save_vid')
+    save_img = config_dict.get('base').get('save_img')
+    save_pose = config_dict.get('base').get('save_pose')
+    calculate_angles = config_dict.get('base').get('calculate_angles')
+    save_angles = config_dict.get('base').get('save_angles')
 
     # Pose_advanced settings
     slowmo_factor = config_dict.get('pose').get('slowmo_factor')
@@ -1160,8 +1257,9 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             tracking_mode = 'sports2d'
         logging.info(f'\nPose tracking set up for "{pose_model_name}" model.')
         logging.info(f'Mode: {mode}.\n')
-        logging.info(f'Persons are detected every {det_frequency} frames and tracked inbetween. Multi-person is {"" if multiperson else "not "}selected. Tracking is done with {tracking_mode}.')
+        logging.info(f'Persons are detected every {det_frequency} frames and tracked inbetween. Tracking is done with {tracking_mode}.')
         if tracking_mode == 'deepsort': logging.info(f'Deepsort parameters: {deepsort_params}.')
+        logging.info(f'{"All persons are" if nb_persons_to_detect=="all" else f"{nb_persons_to_detect} persons are" if nb_persons_to_detect>1 else "1 person is"} analyzed. Person ordering method is {person_ordering_method}.')
         logging.info(f"{keypoint_likelihood_threshold=}, {average_likelihood_threshold=}, {keypoint_number_threshold=}")
 
     if flip_left_right:
@@ -1186,12 +1284,17 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     # Process video or webcam feed
     logging.info(f"\nProcessing video stream...")
     # logging.info(f"{'Video, ' if save_vid else ''}{'Images, ' if save_img else ''}{'Pose, ' if save_pose else ''}{'Angles ' if save_angles else ''}{'and ' if save_angles or save_img or save_pose or save_vid else ''}Logs will be saved in {result_dir}.")
-    all_frames_X, all_frames_Y, all_frames_scores, all_frames_angles = [], [], [], []
+    all_frames_X, all_frames_X_flipped, all_frames_Y, all_frames_scores, all_frames_angles = [], [], [], [], []
     frame_processing_times = []
     frame_count = 0
+    frames = []
     while cap.isOpened():
         # Skip to the starting frame
         if frame_count < frame_range[0] and not load_trc_px:
+            cap.read()
+            frame_count += 1
+            continue
+        if frame_count <= int(time_col[0] * fps) and load_trc_px:
             cap.read()
             frame_count += 1
             continue
@@ -1212,6 +1315,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     all_frames_angles.append([])
                 continue
             else:
+                frames.append(frame.copy())
                 cv2.putText(frame, f"Press 'q' to quit", (cam_width-int(400*fontSize), cam_height-20), cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (255,255,255), thickness+1, cv2.LINE_AA)
                 cv2.putText(frame, f"Press 'q' to quit", (cam_width-int(400*fontSize), cam_height-20), cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (0,0,255), thickness, cv2.LINE_AA)
 
@@ -1256,26 +1360,24 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                         person_Y = np.full_like(person_Y, np.nan)
                         person_scores = np.full_like(person_scores, np.nan)
 
+                # Check whether the person is looking to the left or right
+                if flip_left_right:
+                    person_X_flipped = flip_left_right_direction(person_X, L_R_direction_idx, keypoints_names, keypoints_ids)
+                else:
+                    person_X_flipped = person_X.copy()
+                
+                # Add Neck and Hip if not provided
+                new_keypoints_names, new_keypoints_ids = keypoints_names.copy(), keypoints_ids.copy()
+                for kpt in ['Hip', 'Neck']:
+                    if kpt not in new_keypoints_names:
+                        person_X_flipped, person_Y, person_scores = add_neck_hip_coords(kpt, person_X_flipped, person_Y, person_scores, new_keypoints_ids, new_keypoints_names)
+                        person_X, _, _ = add_neck_hip_coords(kpt, person_X, person_Y, person_scores, new_keypoints_ids, new_keypoints_names)
+                        new_keypoints_names.append(kpt)
+                        new_keypoints_ids.append(len(person_X_flipped)-1)
 
                 # Compute angles
                 if calculate_angles:
-                    # Check whether the person is looking to the left or right
-                    if flip_left_right:
-                        person_X_flipped = flip_left_right_direction(person_X, L_R_direction_idx, keypoints_names, keypoints_ids)
-                    else:
-                        person_X_flipped = person_X.copy()
-                    
-                    # Compute angles
                     person_angles = []
-                    # Add Neck and Hip if not provided
-                    new_keypoints_names, new_keypoints_ids = keypoints_names.copy(), keypoints_ids.copy()
-                    for kpt in ['Neck', 'Hip']:
-                        if kpt not in new_keypoints_names:
-                            person_X_flipped, person_Y, person_scores = add_neck_hip_coords(kpt, person_X_flipped, person_Y, person_scores, new_keypoints_ids, new_keypoints_names)
-                            person_X, _, _ = add_neck_hip_coords(kpt, person_X, person_Y, person_scores, new_keypoints_ids, new_keypoints_names)
-                            new_keypoints_names.append(kpt)
-                            new_keypoints_ids.append(len(person_X_flipped)-1)
-
                     for ang_name in angle_names:
                         ang_params = angle_dict.get(ang_name)
                         kpts = ang_params[0]
@@ -1298,17 +1400,13 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 img = draw_skel(img, valid_X, valid_Y, pose_model)
                 if calculate_angles:
                     img = draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, new_keypoints_ids, new_keypoints_names, angle_names, display_angle_values_on=display_angle_values_on, colors=colors, fontSize=fontSize, thickness=thickness)
-
                 if show_realtime_results:
                     cv2.imshow(f'{video_file} Sports2D', img)
                     if (cv2.waitKey(1) & 0xFF) == ord('q') or (cv2.waitKey(1) & 0xFF) == 27:
                         break
-                if save_vid:
-                    out_vid.write(img)
-                if save_img:
-                    cv2.imwrite(str((img_output_dir / f'{output_dir_name}_{(frame_count-1):06d}.png')), img)
 
             all_frames_X.append(np.array(valid_X))
+            all_frames_X_flipped.append(np.array(valid_X_flipped))
             all_frames_Y.append(np.array(valid_Y))
             all_frames_scores.append(np.array(valid_scores))
             
@@ -1318,63 +1416,88 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 elapsed_time = (datetime.now() - start_time).total_seconds()
                 frame_processing_times.append(elapsed_time)
 
-
         # End of the video is reached
         cap.release()
         logging.info(f"Video processing completed.")
         if save_vid:
             out_vid.release()
-            if video_file == 'webcam':
-                actual_framerate = len(frame_processing_times) / sum(frame_processing_times)
-                logging.info(f"Rewriting webcam video based on the averate framerate {actual_framerate}.")
-                resample_video(vid_output_path, fps, actual_framerate)
-                fps = actual_framerate
-            logging.info(f"Processed video saved to {vid_output_path.resolve()}.")
-        if save_img:
-            logging.info(f"Processed images saved to {img_output_dir.resolve()}.")
         if show_realtime_results:
             cv2.destroyAllWindows()
     
 
-    # Post-processing: Interpolate, filter, and save pose and angles
+    # Post-processing: Select persons, Interpolate, filter, and save pose and angles
     all_frames_X_homog = make_homogeneous(all_frames_X)
-    all_frames_X_homog = all_frames_X_homog[...,keypoints_ids]
+    all_frames_X_homog = all_frames_X_homog[...,new_keypoints_ids]
+    all_frames_X_flipped_homog = make_homogeneous(all_frames_X_flipped)
+    all_frames_X_flipped_homog = all_frames_X_flipped_homog[...,new_keypoints_ids]
     all_frames_Y_homog = make_homogeneous(all_frames_Y)
-    all_frames_Y_homog = all_frames_Y_homog[...,keypoints_ids]
-    all_frames_Z_homog = pd.DataFrame(np.zeros_like(all_frames_X_homog)[:,0,:], columns=keypoints_names)
-    all_frames_scores = make_homogeneous(all_frames_scores)
+    all_frames_Y_homog = all_frames_Y_homog[...,new_keypoints_ids]
+    all_frames_Z_homog = pd.DataFrame(np.zeros_like(all_frames_X_homog)[:,0,:], columns=new_keypoints_names)
+    all_frames_scores_homog = make_homogeneous(all_frames_scores)
+    all_frames_scores_homog = all_frames_scores_homog[...,new_keypoints_ids]
+    all_frames_angles_homog = make_homogeneous(all_frames_angles)
 
     frame_range = [0,frame_count] if video_file == 'webcam' else frame_range
-    if not load_trc_px:
-        all_frames_time = pd.Series(np.linspace(frame_range[0]/fps, frame_range[1]/fps, frame_count-frame_range[0]+1), name='time')
-    else:
+    if load_trc_px:
         all_frames_time = time_col
-    if not multiperson:
-        px_to_m_from_person_id = get_personID_with_highest_scores(all_frames_scores)
-        detected_persons = [px_to_m_from_person_id]
+        selected_persons = [0]
     else:
-        detected_persons = range(all_frames_X_homog.shape[1])
+        # Select persons 
+        all_frames_time = pd.Series(np.linspace(frame_range[0]/fps, frame_range[1]/fps, frame_count-frame_range[0]+1), name='time')
+        nb_detected_persons = all_frames_scores_homog.shape[1]
+        if nb_persons_to_detect == 'all':
+            nb_persons_to_detect = all_frames_scores_homog.shape[1]
+        if nb_detected_persons < nb_persons_to_detect:
+            logging.warning(f'Less than the {nb_persons_to_detect} required persons were detected. Analyzing all {nb_detected_persons} persons.')
+            nb_persons_to_detect = nb_detected_persons
 
+        if person_ordering_method == 'on_click':
+            if save_vid: 
+                vid_or_img_files = out_vid
+            elif save_img:
+                vid_or_img_files = list(img_output_dir.glob('*.png'))
+            else:
+                person_ordering_method = 'highest_likelihood'
+                logging.warning(f"Neither save_vid nor save_img is set to True. Setting person_ordering_method to 'highest_likelihood'.")
+            if person_ordering_method == 'on_click':
+                selected_persons = get_personIDs_on_click(vid_or_img_files, all_frames_X_homog, all_frames_Y_homog, nb_persons_to_detect)
+        if person_ordering_method == 'highest_likelihood':
+            selected_persons = get_personIDs_with_highest_scores(all_frames_scores_homog, nb_persons_to_detect)
+        elif person_ordering_method == 'first_detected':
+            selected_persons = get_personIDs_in_detection_order(nb_persons_to_detect)
+        elif person_ordering_method == 'last_detected':
+            selected_persons = get_personIDs_in_detection_order(nb_persons_to_detect, reverse=True)
+        elif person_ordering_method == 'greatest_displacement':
+            selected_persons = get_personIDs_with_greatest_displacement(all_frames_X_homog, all_frames_Y_homog, nb_persons_to_detect=nb_persons_to_detect, horizontal=True)
+        elif person_ordering_method == 'least_displacement':
+            selected_persons = get_personIDs_with_greatest_displacement(all_frames_X_homog, all_frames_Y_homog, nb_persons_to_detect=nb_persons_to_detect, reverse=True, horizontal=True)
+        else:
+            raise ValueError(f"Invalid person_ordering_method: {person_ordering_method}. Must be 'on_click', 'highest_likelihood', 'greatest_displacement', 'first_detected', or 'last_detected'.")
+        logging.info(f'Reordered persons: IDs of persons {selected_persons} become {list(range(len(selected_persons)))}.')
+    
     # Post-processing pose
+    all_frames_X_processed, all_frames_X_flipped_processed, all_frames_Y_processed, all_frames_scores_processed, all_frames_angles_processed = all_frames_X_homog.copy(), all_frames_X_flipped_homog.copy(), all_frames_Y_homog.copy(), all_frames_scores_homog.copy(), all_frames_angles_homog.copy()
     if save_pose:
         logging.info('\nPost-processing pose:')
-
         # Process pose for each person
-        trc_data = []
-        trc_data_unfiltered = []
-        for i in detected_persons:
+        trc_data, trc_data_unfiltered = [], []
+        for i, idx_person in enumerate(selected_persons):
             pose_path_person = pose_output_path.parent / (pose_output_path.stem + f'_person{i:02d}.trc')
-            all_frames_X_person = pd.DataFrame(all_frames_X_homog[:,i,:], columns=keypoints_names)
-            all_frames_Y_person = pd.DataFrame(all_frames_Y_homog[:,i,:], columns=keypoints_names)
+            all_frames_X_person = pd.DataFrame(all_frames_X_homog[:,idx_person,:], columns=new_keypoints_names)
+            all_frames_X_flipped_person = pd.DataFrame(all_frames_X_flipped_homog[:,idx_person,:], columns=new_keypoints_names)
+            all_frames_Y_person = pd.DataFrame(all_frames_Y_homog[:,idx_person,:], columns=new_keypoints_names)
 
             # Delete person if less than 4 valid frames
             pose_nan_count = len(np.where(all_frames_X_person.sum(axis=1)==0)[0])
             if frame_count - frame_range[0] - pose_nan_count <= 4:
-                trc_data_i = pd.DataFrame(0, index=all_frames_X_person.index, columns=np.array([[c]*3 for c in all_frames_X_person.columns]).flatten())
-                trc_data_i.insert(0, 't', all_frames_time)
+                all_frames_X_processed[:,idx_person,:], all_frames_X_flipped_processed[:,idx_person,:], all_frames_Y_processed[:,idx_person,:] = np.nan, np.nan, np.nan
+                columns=np.array([[c]*3 for c in all_frames_X_person.columns]).flatten()
+                trc_data_i = pd.DataFrame(0, index=all_frames_X_person.index, columns=['t']+list(columns))
+                trc_data_i['t'] = all_frames_time
                 trc_data.append(trc_data_i)
                 trc_data_unfiltered_i = trc_data_i.copy()
                 trc_data_unfiltered.append(trc_data_unfiltered_i)
+                
                 logging.info(f'- Person {i}: Less than 4 valid frames. Deleting person.')
 
             else:
@@ -1429,20 +1552,21 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     logging.info(f'Pose in pixels saved to {pose_path_person.resolve()}.')
 
                 # Plotting coordinates before and after interpolation and filtering
-                trc_data_unfiltered_i = pd.concat([pd.concat([all_frames_X_person.iloc[:,kpt], all_frames_Y_person.iloc[:,kpt], all_frames_Z_homog.iloc[:,kpt]], axis=1) for kpt in range(len(all_frames_X_person.columns))], axis=1)
-                trc_data_unfiltered_i.insert(0, 't', all_frames_time)
+                columns_to_concat = []
+                for kpt in range(len(all_frames_X_person.columns)):
+                    columns_to_concat.extend([all_frames_X_person.iloc[:,kpt], all_frames_Y_person.iloc[:,kpt], all_frames_Z_homog.iloc[:,kpt]])
+                trc_data_unfiltered_i = pd.concat([all_frames_time] + columns_to_concat, axis=1)
                 trc_data_unfiltered.append(trc_data_unfiltered_i)
                 if show_plots and not to_meters:
                     pose_plots(trc_data_unfiltered_i, trc_data_i, i)
-            
+                
+                all_frames_X_processed[:,idx_person,:], all_frames_X_flipped_processed[:,idx_person,:], all_frames_Y_processed[:,idx_person,:] = all_frames_X_person_filt, all_frames_X_flipped_person, all_frames_Y_person_filt
+                
 
         # Convert px to meters
         trc_data_m = []
-        if to_meters:
+        if to_meters and save_pose:
             logging.info('\nConverting pose to meters:')
-            if px_to_m_from_person_id>=len(trc_data):
-                logging.warning(f'Person #{px_to_m_from_person_id} not detected in the video. Calibrating on person #0 instead.')
-                px_to_m_from_person_id = 0
             if calib_file:
                 logging.info(f'Using calibration file to convert coordinates in meters: {calib_file}.')
                 calib_params_dict = retrieve_calib_params(calib_file)
@@ -1450,35 +1574,32 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
 
             else:
                 # Compute calibration parameters
-                if not multiperson: 
-                    selected_person_id = px_to_m_from_person_id
-                    px_to_m_from_person_id = 0
-                height_px = compute_height(trc_data[px_to_m_from_person_id].iloc[:,1:], keypoints_names,
+                height_px = compute_height(trc_data[0].iloc[:,1:], new_keypoints_names,
                                             fastest_frames_to_remove_percent=fastest_frames_to_remove_percent, close_to_zero_speed=close_to_zero_speed_px, large_hip_knee_angles=large_hip_knee_angles, trimmed_extrema_percent=trimmed_extrema_percent)
 
                 toe_speed_below = 1 # m/s (below which the foot is considered to be stationary)
-                px_per_m = height_px/px_to_m_person_height_m
+                px_per_m = height_px/first_person_height
                 toe_speed_below_px_frame = toe_speed_below * px_per_m / fps
                 if floor_angle == 'auto' or xy_origin == 'auto':
                     # estimated from the line formed by the toes when they are on the ground (where speed = 0)
-                    try:
-                        if all(key in trc_data[px_to_m_from_person_id] for key in ['LBigToe', 'RBigToe']):
-                            floor_angle_estim, xy_origin_estim, _ = compute_floor_line(trc_data[px_to_m_from_person_id], keypoint_names=['LBigToe', 'RBigToe'], toe_speed_below=toe_speed_below_px_frame)
+                    # try:
+                        if all(key in trc_data[0] for key in ['LBigToe', 'RBigToe']):
+                            floor_angle_estim, xy_origin_estim, _ = compute_floor_line(trc_data[0], keypoint_names=['LBigToe', 'RBigToe'], toe_speed_below=toe_speed_below_px_frame)
                         else:
-                            floor_angle_estim, xy_origin_estim, _ = compute_floor_line(trc_data[px_to_m_from_person_id], keypoint_names=['LAnkle', 'RAnkle'], toe_speed_below=toe_speed_below_px_frame)
+                            floor_angle_estim, xy_origin_estim, _ = compute_floor_line(trc_data[0], keypoint_names=['LAnkle', 'RAnkle'], toe_speed_below=toe_speed_below_px_frame)
                             xy_origin_estim[0] = xy_origin_estim[0]-0.13
                             logging.warning(f'The RBigToe and LBigToe are missing from your model. Using ankles - 13 cm to compute the floor line.')
-                    except:
-                        floor_angle_estim = 0
-                        xy_origin_estim = cam_width/2, cam_height/2
-                        logging.warning(f'Could not estimate the floor angle and xy_origin for person {px_to_m_from_person_id}. Make sure that the full body is visible. Using floor angle = 0° and xy_origin = [{cam_width/2}, {cam_height/2}] px.')
+                    # except:
+                    #     floor_angle_estim = 0
+                    #     xy_origin_estim = cam_width/2, cam_height/2
+                    #     logging.warning(f'Could not estimate the floor angle and xy_origin from person {0}. Make sure that the full body is visible. Using floor angle = 0° and xy_origin = [{cam_width/2}, {cam_height/2}] px.')
                 if not floor_angle == 'auto':
                     floor_angle_estim = floor_angle
                 if xy_origin == 'auto':
                     cx, cy = xy_origin_estim
                 else:
                     cx, cy = xy_origin
-                logging.info(f'Using height of person #{px_to_m_from_person_id} ({px_to_m_person_height_m}m) to convert coordinates in meters. '
+                logging.info(f'Using height of person #0 ({first_person_height}m) to convert coordinates in meters. '
                              f'Floor angle: {np.degrees(floor_angle_estim) if not floor_angle=="auto" else f"auto (estimation: {round(np.degrees(floor_angle_estim),2)}°)"}, '
                              f'xy_origin: {xy_origin if not xy_origin=="auto" else f"auto (estimation: {[round(c) for c in xy_origin_estim]})"} px.')
 
@@ -1495,8 +1616,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                             else:
                                 _, _, gait_direction = compute_floor_line(trc_data[i], keypoint_names=['LAnkle', 'RAnkle'], toe_speed_below=toe_speed_below_px_frame)
                                 logging.warning(f'The RBigToe and LBigToe are missing from your model. Gait direction will be determined from the ankle points.')
-                            visible_side_i = 'right' if gait_direction > 0.6 \
-                                                else 'left' if gait_direction < -0.6 \
+                            visible_side_i = 'right' if gait_direction > 0.3 \
+                                                else 'left' if gait_direction < -0.3 \
                                                 else 'front'
                             logging.info(f'- Person {i}: Seen from the {visible_side_i}.')
                         except:
@@ -1509,18 +1630,17 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                         logging.info(f'- Person {i}: Seen from the {visible_side_i}.')
                     
                     # Convert to meters
-                    trc_data_m_i = pd.concat([convert_px_to_meters(trc_data[i][kpt_name], px_to_m_person_height_m, height_px, cx, cy, -floor_angle_estim, visible_side=visible_side_i) for kpt_name in keypoints_names], axis=1)
-                    trc_data_m_i.insert(0, 't', all_frames_time)
-                    trc_data_unfiltered_m_i = pd.concat([convert_px_to_meters(trc_data_unfiltered[i][kpt_name], px_to_m_person_height_m, height_px, cx, cy, -floor_angle_estim) for kpt_name in keypoints_names], axis=1)
-                    trc_data_unfiltered_m_i.insert(0, 't', all_frames_time)
+                    px_to_m_i = [convert_px_to_meters(trc_data[i][kpt_name], first_person_height, height_px, cx, cy, -floor_angle_estim, visible_side=visible_side_i) for kpt_name in new_keypoints_names]
+                    trc_data_m_i = pd.concat([all_frames_time.rename('t')]+px_to_m_i, axis=1)
+                    px_to_m_unfiltered_i = [convert_px_to_meters(trc_data_unfiltered[i][kpt_name], first_person_height, height_px, cx, cy, -floor_angle_estim) for kpt_name in new_keypoints_names]
+                    trc_data_unfiltered_m_i = pd.concat([all_frames_time.rename('t')]+px_to_m_unfiltered_i, axis=1)
 
                     if to_meters and show_plots:
                         pose_plots(trc_data_unfiltered_m_i, trc_data_m_i, i)
                     
                     # Write to trc file
                     trc_data_m.append(trc_data_m_i)
-                    idx_path = selected_person_id if not multiperson and not calib_file else i
-                    pose_path_person_m_i = (pose_output_path.parent / (pose_output_path_m.stem + f'_person{idx_path:02d}.trc'))
+                    pose_path_person_m_i = (pose_output_path.parent / (pose_output_path_m.stem + f'_person{i:02d}.trc'))
                     make_trc_with_trc_data(trc_data_m_i, pose_path_person_m_i, fps=fps)
                     if make_c3d:
                         c3d_path = convert_to_c3d(str(pose_path_person_m_i))
@@ -1539,7 +1659,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
 
 
                 # z = 3.0 # distance between the camera and the person. Required in the calibration file but simplified in the equations
-                # f = height_px / px_to_m_person_height_m * z
+                # f = height_px / first_person_height * z
 
 
                 # # Name
@@ -1574,23 +1694,23 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     # Post-processing angles
     if save_angles and calculate_angles:
         logging.info('\nPost-processing angles (without inverse kinematics):')
-        all_frames_angles = make_homogeneous(all_frames_angles)
-        
+
         # unwrap angles
-        # all_frames_angles = np.unwrap(all_frames_angles, axis=0, period=180) # This give all nan values -> need to mask nans
-        for i in range(all_frames_angles.shape[1]):  # for each person
-            for j in range(all_frames_angles.shape[2]):  # for each angle
-                valid_mask = ~np.isnan(all_frames_angles[:, i, j])
-                all_frames_angles[valid_mask, i, j] = np.unwrap(all_frames_angles[valid_mask, i, j], period=180)
+        # all_frames_angles_homog = np.unwrap(all_frames_angles_homog, axis=0, period=180) # This give all nan values -> need to mask nans
+        for i in range(all_frames_angles_homog.shape[1]):  # for each person
+            for j in range(all_frames_angles_homog.shape[2]):  # for each angle
+                valid_mask = ~np.isnan(all_frames_angles_homog[:, i, j])
+                all_frames_angles_homog[valid_mask, i, j] = np.unwrap(all_frames_angles_homog[valid_mask, i, j], period=180)
 
         # Process angles for each person
-        for i in detected_persons:
+        for i, idx_person in enumerate(selected_persons):
             angles_path_person = angles_output_path.parent / (angles_output_path.stem + f'_person{i:02d}.mot')
-            all_frames_angles_person = pd.DataFrame(all_frames_angles[:,i,:], columns=angle_names)
+            all_frames_angles_person = pd.DataFrame(all_frames_angles_homog[:,idx_person,:], columns=angle_names)
             
             # Delete person if less than 4 valid frames
             angle_nan_count = len(np.where(all_frames_angles_person.sum(axis=1)==0)[0])
             if frame_count - frame_range[0] - angle_nan_count <= 4:
+                all_frames_angles_processed[:,idx_person,:] = np.nan
                 logging.info(f'- Person {i}: Less than 4 valid frames. Deleting person.')
 
             else:
@@ -1631,16 +1751,17 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     logging.info(f'Filtering with {args}')
                     all_frames_angles_person_filt = all_frames_angles_person_interp.apply(filter.filter1d, axis=0, args=filter_options)
 
-                # Remove columns with all nan values
-                all_frames_angles_person_filt.dropna(axis=1, how='all', inplace=True)
-                all_frames_angles_person = all_frames_angles_person[all_frames_angles_person_filt.columns]
-
                 # Add floor_angle_estim to segment angles
-                if correct_segment_angles_with_floor_angle and to_meters: 
+                if correct_segment_angles_with_floor_angle and to_meters:
                     logging.info(f'Correcting segment angles by removing the {round(np.degrees(floor_angle_estim),2)}° floor angle.')
                     for ang_name in all_frames_angles_person_filt.columns:
                         if 'horizontal' in angle_dict[ang_name][1]:
                             all_frames_angles_person_filt[ang_name] -= np.degrees(floor_angle_estim)
+
+                # Remove columns with all nan values
+                all_frames_angles_processed[:,idx_person,:] = all_frames_angles_person_filt
+                all_frames_angles_person_filt.dropna(axis=1, how='all', inplace=True)
+                all_frames_angles_person = all_frames_angles_person[all_frames_angles_person_filt.columns]
 
                 # Build mot file
                 angle_data = make_mot_with_angles(all_frames_angles_person_filt, all_frames_time, str(angles_path_person))
@@ -1650,6 +1771,58 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 if show_plots:
                     all_frames_angles_person.insert(0, 't', all_frames_time)
                     angle_plots(all_frames_angles_person, angle_data, i) # i = current person
+
+    # Save images/video with processed pose and angles
+    if save_vid or save_img:
+        logging.info('\nSaving processed pose and angles:')
+        if save_vid:
+            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+            out_vid = cv2.VideoWriter(str(vid_output_path.absolute()), fourcc, fps, (cam_width, cam_height))
+        
+        # Reorder persons
+        all_frames_X_processed, all_frames_X_flipped_processed, all_frames_Y_processed = all_frames_X_processed[:,selected_persons,:], all_frames_X_flipped_processed[:,selected_persons,:], all_frames_Y_processed[:,selected_persons,:]
+        all_frames_scores_processed = all_frames_scores_processed[:,selected_persons,:]
+        all_frames_angles_processed = all_frames_angles_processed[:,selected_persons,:]
+
+        # Reorder keypoints ids
+        pose_model_with_new_ids = pose_model
+        new_id = 0
+        for node in PreOrderIter(pose_model_with_new_ids):
+            if node.id!=None:
+                node.id = new_id
+                new_id+=1
+        max_id = max(node.id for node in PreOrderIter(pose_model_with_new_ids) if node.id is not None)
+        for node in PreOrderIter(pose_model_with_new_ids):
+            if node.id==None:
+                node.id = max_id+1
+                max_id+=1
+        new_keypoints_ids = list(range(len(new_keypoints_ids)))
+
+        # Draw pose and angles
+        for frame_count, (frame, valid_X, valid_X_flipped, valid_Y, valid_scores, valid_angles) in enumerate(zip(frames, all_frames_X_processed, all_frames_X_flipped_processed, all_frames_Y_processed, all_frames_scores_processed, all_frames_angles_processed)):
+            img = frame.copy()
+            img = draw_bounding_box(img, valid_X, valid_Y, colors=colors, fontSize=fontSize, thickness=thickness)
+            img = draw_keypts(img, valid_X, valid_Y, valid_scores, cmap_str='RdYlGn')
+            img = draw_skel(img, valid_X, valid_Y, pose_model)
+            if calculate_angles:
+                img = draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, new_keypoints_ids, new_keypoints_names, angle_names, display_angle_values_on=display_angle_values_on, colors=colors, fontSize=fontSize, thickness=thickness)
+
+            # Save video or images
+            if save_vid:
+                out_vid.write(img)
+            if save_img:
+                cv2.imwrite(str((img_output_dir / f'{output_dir_name}_{(frame_count-1):06d}.png')), img)
+
+        if save_vid:
+            out_vid.release()
+            if video_file == 'webcam':
+                actual_framerate = len(frame_processing_times) / sum(frame_processing_times)
+                logging.info(f"Rewriting webcam video based on the averate framerate {actual_framerate}.")
+                resample_video(vid_output_path, fps, actual_framerate)
+                fps = actual_framerate
+            logging.info(f"Processed video saved to {vid_output_path.resolve()}.")
+        if save_img:
+            logging.info(f"Processed images saved to {img_output_dir.resolve()}.")
 
 
     # OpenSim inverse kinematics (and optional marker augmentation)

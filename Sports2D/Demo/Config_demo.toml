@@ -11,15 +11,18 @@
 # Sports2D.process('Config_demo.toml')
 
 
-[project]
+[base]
 video_input = 'demo.mp4'   # 'webcam' or '<video_path.ext>', or ['video1_path.mp4', 'video2_path.avi>', ...]
                            # On Windows, replace '\' with '/'
                            # Beware that images won't be saved if paths contain non ASCII characters.
-px_to_m_from_person_id = 2    # Person to use for pixels to meters conversion (not used if a calibration file is provided)
-px_to_m_person_height = 1.65  # Height of the reference person in meters (for pixels -> meters conversion). 
-visible_side = ['front', 'none', 'auto']  # Choose visible side among ['right', 'left', 'front', 'back', 'auto', 'none']. String or list of strings.
+
+nb_persons_to_detect = 'all'   # int or 'all' # Limiting or not the number of persons to be analyzed
+person_ordering_method = 'on_click' # 'on_click', 'highest_likelihood', 'greatest_displacement', 'least_displacement', 'first_detected', or 'last_detected'
+first_person_height = 1.76  # Height of the reference person in meters (for pixels -> meters conversion: not used if a calibration file is provided)
+visible_side = ['auto', 'front', 'none']  # Choose visible side among ['right', 'left', 'front', 'back', 'auto', 'none']. String or list of strings.
                   # if 'auto', will be either 'left', 'right', or 'front' depending on the direction of the motion
                   # if 'none', coordinates will be left in 2D rather than 3D
+
 load_trc_px = ''  # If you do not want to recalculate pose, load it from a trc file (in px, not in m)
 compare = false   # Not implemented yet
 
@@ -32,10 +35,6 @@ video_dir = ''    # If empty, video dir is current dir
 webcam_id = 0 # your webcam id (0 is default)
 input_size = [1280, 720] # [W, H]. Lower resolution will be faster but less precise.
 
-
-[process]
-multiperson = true   # Saving the motions of all the persons detected and tracked in the video. 
-                     # If false, the person saved will be the one with the highest sum of keypoint scores over the video
 show_realtime_results = true
 save_vid = true
 save_img = true
@@ -107,7 +106,7 @@ to_meters = true
 make_c3d = true
 save_calib = true # Coming soon!
 
-# If conversion from px_to_m_person_height
+# If conversion from first_person_height
 floor_angle = 'auto'    # 'auto' or a value in degrees, eg 2.3. If 'auto', estimated from the line formed by the toes when they are on the ground (where speed = 0)
 xy_origin = ['auto']    # ['auto'] or [px_x,px_y]. N.B.: px_y points downwards. If ['auto'], direction estimated from the start to the end of the line formed by the toes when they are on the ground
 
