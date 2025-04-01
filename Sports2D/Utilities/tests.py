@@ -45,9 +45,11 @@ def test_workflow():
     #############################
 
     # Default
-    config_path = Path.cwd().parent / 'Demo' / 'Config_demo.toml'
+    config_path = Path(__file__).resolve().parent.parent / 'Demo' / 'Config_demo.toml'
     config_dict = toml.load(config_path)
-    config_dict.get("base").update({"video_dir":'../Demo'})
+    video_dir = Path(__file__).resolve().parent.parent / 'Demo'
+    config_dict.get("base").update({"video_dir": str(video_dir)})
+    config_dict.get("base").update({"person_ordering_method": "highest_likelihood"})
     config_dict.get("base").update({"show_realtime_results":False})
     config_dict.get("post-processing").update({"show_graphs":False})
     
@@ -89,13 +91,13 @@ def test_workflow():
     subprocess.run(demo_cmd4, check=True, capture_output=True, text=True, encoding='utf-8')
     
     # From config file
-    cli_config_path = Path(__file__).resolve().parent.parent / 'Demo' / 'Config_demo.toml'
-    config_dict = toml.load(cli_config_path)
-    cli_video_dir = Path(__file__).resolve().parent.parent / 'Demo'
-    config_dict.get("base").update({"video_dir": str(cli_video_dir)})
+    config_path = Path(__file__).resolve().parent.parent / 'Demo' / 'Config_demo.toml'
+    config_dict = toml.load(config_path)
+    video_dir = Path(__file__).resolve().parent.parent / 'Demo'
+    config_dict.get("base").update({"video_dir": str(video_dir)})
     config_dict.get("base").update({"person_ordering_method": "highest_likelihood"})
-    with open(cli_config_path, 'w') as f: toml.dump(config_dict, f)
-    demo_cmd4 = ["sports2d", "--config", str(cli_config_path), "--show_realtime_results", "False", "--show_graphs", "False"]
+    with open(config_path, 'w') as f: toml.dump(config_dict, f)
+    demo_cmd4 = ["sports2d", "--config", str(config_path), "--show_realtime_results", "False", "--show_graphs", "False"]
     subprocess.run(demo_cmd4, check=True, capture_output=True, text=True, encoding='utf-8')
 
 
