@@ -71,12 +71,14 @@ import pandas as pd
 import cv2
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from matplotlib.widgets import Slider, Button
+from matplotlib import patheffects
+
 from rtmlib import PoseTracker, BodyWithFeet, Wholebody, Body, Custom
 from deep_sort_realtime.deepsort_tracker import DeepSort
 
 from Sports2D.Utilities import filter
 from Sports2D.Utilities.common import *
-from Sports2D.Utilities.person_selector import *
 from Pose2Sim.common import *
 from Pose2Sim.skeletons import *
 
@@ -852,25 +854,236 @@ def get_personIDs_with_greatest_displacement(all_frames_X_homog, all_frames_Y_ho
     return selected_persons
 
 
-def get_personIDs_on_click(vid_or_img_files, all_frames_X_homog, all_frames_Y_homog, nb_persons_to_detect):
+def get_personIDs_on_click(frames, all_frames_X_homog, all_frames_Y_homog):
     '''
     Get the person IDs on click in the image
 
     INPUTS:
-    - vid_or_img_files: path or list of paths. The video or image files
+    - frames: list of images read by cv2.imread. shape (Nframes, H, W, 3)
     - all_frames_X_homog: shape (Nframes, Npersons, Nkpts)
     - all_frames_Y_homog: shape (Nframes, Npersons, Nkpts)
-    - nb_persons_to_detect: int or 'all'. The number of persons to detect
 
     OUTPUT:
     - selected_persons: list of int. The person IDs selected by the user
     '''
 
-    # Reorganize the coordinates to shape (Npersons, Nframes, Nkpts, Ndims)
-    all_pose_coords = np.stack((np.transpose(all_frames_X_homog, (1,0,2)), np.transpose(all_frames_Y_homog, (1,0,2))), axis=-1)
+    # Reorganize the coordinates to shape (Nframes, Npersons, Nkpts, Ndims)
+    all_pose_coords = np.stack((all_frames_X_homog, all_frames_Y_homog), axis=-1)
+
+    # Trim all_pose_coords and frames to the same size
+    min_frames = min(all_pose_coords.shape[0], len(frames))
+    all_pose_coords = all_pose_coords[:min_frames]
+    frames = frames[:min_frames]
     
     # Select person IDs on click on video/image
-    selected_persons = select_persons_on_vid(vid_or_img_files, all_pose_coords, nb_persons_to_detect=nb_persons_to_detect)
+    selected_persons = select_persons_on_vid(frames, all_pose_coords)
+
+    return selected_persons
+
+
+def select_persons_on_vid(frames, all_pose_coords):
+    '''
+    Interactive UI to select persons from a video by clicking on their bounding boxes.
+    
+    INPUTS:
+    - frames: list of images read by cv2.imread. shape (Nframes, H, W, 3)
+    - all_pose_coords: keypoints coordinates. shape (Nframes, Npersons, Nkpts, Ndims)
+        
+    OUTPUT:
+    - selected_persons : list with indices of selected persons
+    '''
+
+    BACKGROUND_COLOR = 'white'
+    SLIDER_COLOR = '#4682B4'
+    SLIDER_EDGE_COLOR = (0.5, 0.5, 0.5, 0.5)
+    UNSELECTED_COLOR = (1, 1, 1, 0.1)
+    LINE_UNSELECTED_COLOR = 'white'
+    LINE_SELECTED_COLOR = 'darkorange'
+
+    selected_persons = []
+
+    # Calculate bounding boxes for each person in each frame
+    n_frames, n_persons = all_pose_coords.shape[0], all_pose_coords.shape[1]
+    all_bboxes = []
+    for frame_idx in range(n_frames):
+        frame_bboxes = []
+        for person_idx in range(n_persons):
+            # Get keypoints for current person
+            keypoints = all_pose_coords[frame_idx, person_idx]
+            valid_keypoints = keypoints[~np.isnan(keypoints).all(axis=1)]
+            if len(valid_keypoints) > 0:
+                # Calculate bounding box
+                x_min, y_min = np.min(valid_keypoints, axis=0)
+                x_max, y_max = np.max(valid_keypoints, axis=0)
+                frame_bboxes.append((x_min, y_min, x_max, y_max))
+            else:
+                frame_bboxes.append((np.nan, np.nan, np.nan, np.nan))  # No valid bounding box for this person
+        all_bboxes.append(frame_bboxes)
+    all_bboxes = np.array(all_bboxes)  # Shape: (Nframes, Npersons, 4)
+    
+    # Create figure, axes, and slider
+    frame_height, frame_width = frames[0].shape[:2]
+    is_vertical = frame_height > frame_width
+    if is_vertical:
+        fig_height = frame_height / 250  # For vertical videos
+    else:
+        fig_height = max(frame_height / 300, 6)  # For horizontal videos
+    fig = plt.figure(figsize=(8, fig_height), num=f'Select the persons to analyze in the desired order')
+    fig.patch.set_facecolor(BACKGROUND_COLOR)
+
+    video_axes_height = 0.7 if is_vertical else 0.6
+    ax_video = plt.axes([0.1, 0.2, 0.8, video_axes_height])
+    ax_video.axis('off')
+    ax_video.set_facecolor(BACKGROUND_COLOR)    
+
+    # First image
+    frame_rgb = cv2.cvtColor(frames[0], cv2.COLOR_BGR2RGB)
+    rects, annotations = [], []
+    for person_idx, bbox in enumerate(all_bboxes[0]):
+        if ~np.isnan(bbox).any():
+            x_min, y_min, x_max, y_max = bbox.astype(int)
+            rect = plt.Rectangle(
+                (x_min, y_min), x_max - x_min, y_max - y_min,
+                linewidth=1, edgecolor=LINE_UNSELECTED_COLOR, facecolor=UNSELECTED_COLOR,
+                linestyle='-', path_effects=[patheffects.withSimplePatchShadow()], zorder=2
+            ) 
+            ax_video.add_patch(rect)
+            annotation = ax_video.text(
+                x_min, y_min - 10, f'{person_idx}', color=LINE_UNSELECTED_COLOR, fontsize=7, fontweight='normal',
+                bbox=dict(facecolor=UNSELECTED_COLOR, edgecolor=LINE_UNSELECTED_COLOR, boxstyle='square,pad=0.3', path_effects=[patheffects.withSimplePatchShadow()]), zorder=3
+            )
+            rects.append(rect)
+            annotations.append(annotation)
+    img_plot = ax_video.imshow(frame_rgb)
+
+    # Slider
+    ax_slider = plt.axes([ax_video.get_position().x0, ax_video.get_position().y0-0.05, ax_video.get_position().width, 0.04])
+    ax_slider.set_facecolor(BACKGROUND_COLOR)
+    frame_slider = Slider(
+        ax=ax_slider,
+        label='',
+        valmin=0,
+        valmax=len(all_pose_coords)-1,
+        valinit=0,
+        valstep=1,
+        valfmt=None 
+    )
+    frame_slider.poly.set_edgecolor(SLIDER_EDGE_COLOR)
+    frame_slider.poly.set_facecolor(SLIDER_COLOR)
+    frame_slider.poly.set_linewidth(1)
+    frame_slider.valtext.set_visible(False)
+
+
+    # Status text and OK button
+    ax_status = plt.axes([ax_video.get_position().x0, ax_video.get_position().y0-0.1, 2*ax_video.get_position().width/3, 0.04])
+    ax_status.axis('off')
+    status_text = ax_status.text(0.0, 0.5, f"Selected: None", color='black', fontsize=10)
+
+    ax_button = plt.axes([ax_video.get_position().x0 + 3*ax_video.get_position().width/4, ax_video.get_position().y0-0.1, ax_video.get_position().width/4, 0.04])
+    ok_button = Button(ax_button, 'OK', color=BACKGROUND_COLOR)
+    
+
+    def update_frame(val):
+        nonlocal rects, annotations
+        
+        # Update image
+        frame_idx = int(frame_slider.val)
+        frame_rgb = cv2.cvtColor(frames[frame_idx], cv2.COLOR_BGR2RGB)
+
+        # Update bboxes and annotations
+        for items in [rects, annotations]:
+            for item in items:
+                item.remove()
+            items.clear()
+
+        for person_idx, bbox in enumerate(all_bboxes[frame_idx]):
+            if ~np.isnan(bbox).any():
+                x_min, y_min, x_max, y_max = bbox.astype(int)
+                rect = plt.Rectangle(
+                    (x_min, y_min), x_max - x_min, y_max - y_min,
+                    linewidth=1, edgecolor='white', facecolor=UNSELECTED_COLOR,
+                    linestyle='-', path_effects=[patheffects.withSimplePatchShadow()], zorder=2
+                ) 
+                ax_video.add_patch(rect)
+                rects.append(rect)
+
+                annotation = ax_video.text(
+                    x_min, y_min - 10, f'{person_idx}', color=LINE_UNSELECTED_COLOR, fontsize=7, fontweight='normal',
+                    bbox=dict(facecolor=UNSELECTED_COLOR, edgecolor=LINE_UNSELECTED_COLOR, boxstyle='square,pad=0.3'), path_effects=[patheffects.withSimplePatchShadow()], zorder=3
+                )
+                annotations.append(annotation)
+
+        # Update plot
+        img_plot.set_data(frame_rgb)
+        fig.canvas.draw_idle()
+
+
+    def on_click(event):
+        if event.inaxes != ax_video:
+            return
+        
+        frame_idx = int(frame_slider.val)
+        x, y = event.xdata, event.ydata
+        
+        # Check if click is inside any bounding box
+        for person_idx, bbox in enumerate(all_bboxes[frame_idx]):
+            if ~np.isnan(bbox).any():
+                x_min, y_min, x_max, y_max = bbox.astype(int)
+                if x_min <= x <= x_max and y_min <= y <= y_max:
+                    # Toggle selection
+                    if person_idx in selected_persons:
+                        rects[person_idx].set_linewidth(1)
+                        rects[person_idx].set_edgecolor(LINE_UNSELECTED_COLOR)
+                        selected_persons.remove(person_idx)
+                    else:
+                        rects[person_idx].set_linewidth(2)
+                        rects[person_idx].set_edgecolor(LINE_SELECTED_COLOR)
+                        selected_persons.append(person_idx)
+                    
+                    # Update display
+                    status_text.set_text(f"Selected: {selected_persons}")
+                    # draw_bounding_boxes(frame_idx)
+                    fig.canvas.draw_idle()
+                    break
+    
+
+    def on_hover(event):
+        if event.inaxes != ax_video:
+            return
+        
+        frame_idx = int(frame_slider.val)
+        x, y = event.xdata, event.ydata
+
+        # Change color on hover
+        for person_idx, bbox in enumerate(all_bboxes[frame_idx]):
+            if ~np.isnan(bbox).any():
+                x_min, y_min, x_max, y_max = bbox.astype(int)
+                if x_min <= x <= x_max and y_min <= y <= y_max:
+                    rects[person_idx].set_linewidth(2)
+                    rects[person_idx].set_edgecolor(LINE_SELECTED_COLOR)
+                    rects[person_idx].set_facecolor((1, 1, 0, 0.2))
+                else:
+                    rects[person_idx].set_facecolor(UNSELECTED_COLOR)
+                    if person_idx in selected_persons:
+                        rects[person_idx].set_linewidth(2)
+                        rects[person_idx].set_edgecolor(LINE_SELECTED_COLOR)
+                    else:
+                        rects[person_idx].set_linewidth(1)
+                        rects[person_idx].set_edgecolor(LINE_UNSELECTED_COLOR)
+                fig.canvas.draw_idle()
+
+
+    def on_ok(event):
+        plt.close(fig)
+
+
+    # Connect events
+    frame_slider.on_changed(update_frame)
+    fig.canvas.mpl_connect('button_press_event', on_click)
+    fig.canvas.mpl_connect('motion_notify_event', on_hover)
+    ok_button.on_clicked(on_ok)
+
+    plt.show()
 
     return selected_persons
 
@@ -1229,9 +1442,9 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         # Load pose file in px
         Q_coords, _, time_col, keypoints_names, _ = read_trc(load_trc_px)
         t0 = time_col[0]
-
         keypoints_ids = [i for i in range(len(keypoints_names))]
         keypoints_all, scores_all = load_pose_file(Q_coords)
+
         for pre, _, node in RenderTree(pose_model):
             if node.name in keypoints_names:
                 node.id = keypoints_names.index(node.name)
@@ -1283,7 +1496,9 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 logging.warning(f"Skipping {ang_name} angle computation because at least one of the following keypoints is not provided by the model: {ang_params[0]}.")
 
 
+    # ====================================================
     # Process video or webcam feed
+    # ====================================================
     logging.info(f"\nProcessing video stream...")
     # logging.info(f"{'Video, ' if save_vid else ''}{'Images, ' if save_img else ''}{'Pose, ' if save_pose else ''}{'Angles ' if save_angles else ''}{'and ' if save_angles or save_img or save_pose or save_vid else ''}Logs will be saved in {result_dir}.")
     all_frames_X, all_frames_X_flipped, all_frames_Y, all_frames_scores, all_frames_angles = [], [], [], [], []
@@ -1314,6 +1529,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 continue
             else:
                 frames.append(frame.copy())
+
                 cv2.putText(frame, f"Press 'q' to quit", (cam_width-int(400*fontSize), cam_height-20), cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (255,255,255), thickness+1, cv2.LINE_AA)
                 cv2.putText(frame, f"Press 'q' to quit", (cam_width-int(400*fontSize), cam_height-20), cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (0,0,255), thickness, cv2.LINE_AA)
 
@@ -1334,7 +1550,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 if tracking_mode == 'sports2d': 
                     if 'prev_keypoints' not in locals(): prev_keypoints = keypoints
                     prev_keypoints, keypoints, scores = sort_people_sports2d(prev_keypoints, keypoints, scores=scores)
-                        
+
             
             # Process coordinates and compute angles
             valid_X, valid_Y, valid_scores = [], [], []
@@ -1391,17 +1607,16 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 valid_scores.append(person_scores)
 
             # Draw keypoints and skeleton
-            if show_realtime_results or save_vid or save_img:
+            if show_realtime_results:
                 img = frame.copy()
                 img = draw_bounding_box(img, valid_X, valid_Y, colors=colors, fontSize=fontSize, thickness=thickness)
                 img = draw_keypts(img, valid_X, valid_Y, valid_scores, cmap_str='RdYlGn')
                 img = draw_skel(img, valid_X, valid_Y, pose_model)
                 if calculate_angles:
                     img = draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, new_keypoints_ids, new_keypoints_names, angle_names, display_angle_values_on=display_angle_values_on, colors=colors, fontSize=fontSize, thickness=thickness)
-                if show_realtime_results:
-                    cv2.imshow(f'{video_file} Sports2D', img)
-                    if (cv2.waitKey(1) & 0xFF) == ord('q') or (cv2.waitKey(1) & 0xFF) == 27:
-                        break
+                cv2.imshow(f'{video_file} Sports2D', img)
+                if (cv2.waitKey(1) & 0xFF) == ord('q') or (cv2.waitKey(1) & 0xFF) == 27:
+                    break
 
             all_frames_X.append(np.array(valid_X))
             all_frames_X_flipped.append(np.array(valid_X_flipped))
@@ -1421,9 +1636,11 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             out_vid.release()
         if show_realtime_results:
             cv2.destroyAllWindows()
-    
 
+
+    # ====================================================
     # Post-processing: Select persons, Interpolate, filter, and save pose and angles
+    # ====================================================
     all_frames_X_homog = make_homogeneous(all_frames_X)
     all_frames_X_homog = all_frames_X_homog[...,new_keypoints_ids]
     all_frames_X_flipped_homog = make_homogeneous(all_frames_X_flipped)
@@ -1450,16 +1667,14 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             nb_persons_to_detect = nb_detected_persons
 
         if person_ordering_method == 'on_click':
-            if save_vid: 
-                vid_or_img_files = out_vid
-            elif save_img:
-                vid_or_img_files = list(img_output_dir.glob('*.png'))
-            else:
-                person_ordering_method = 'highest_likelihood'
-                logging.warning(f"Neither save_vid nor save_img is set to True. Setting person_ordering_method to 'highest_likelihood'.")
-            if person_ordering_method == 'on_click':
-                selected_persons = get_personIDs_on_click(vid_or_img_files, all_frames_X_homog, all_frames_Y_homog, nb_persons_to_detect)
-        if person_ordering_method == 'highest_likelihood':
+            selected_persons = get_personIDs_on_click(frames, all_frames_X_homog, all_frames_Y_homog)
+            if len(selected_persons) == 0:
+                logging.warning('No persons selected. Analyzing all detected persons.')
+                selected_persons = list(range(nb_detected_persons))
+            if len(selected_persons) != nb_persons_to_detect:
+                logging.warning(f'You selected more (or less) than the required {nb_persons_to_detect} persons. "nb_persons_to_detect" will be set to {len(selected_persons)}.')
+                nb_persons_to_detect = len(selected_persons)
+        elif person_ordering_method == 'highest_likelihood':
             selected_persons = get_personIDs_with_highest_scores(all_frames_scores_homog, nb_persons_to_detect)
         elif person_ordering_method == 'first_detected':
             selected_persons = get_personIDs_in_detection_order(nb_persons_to_detect)
@@ -1473,7 +1688,10 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             raise ValueError(f"Invalid person_ordering_method: {person_ordering_method}. Must be 'on_click', 'highest_likelihood', 'greatest_displacement', 'first_detected', or 'last_detected'.")
         logging.info(f'Reordered persons: IDs of persons {selected_persons} become {list(range(len(selected_persons)))}.')
     
+
+    # ====================================================
     # Post-processing pose
+    # ====================================================
     all_frames_X_processed, all_frames_X_flipped_processed, all_frames_Y_processed, all_frames_scores_processed, all_frames_angles_processed = all_frames_X_homog.copy(), all_frames_X_flipped_homog.copy(), all_frames_Y_homog.copy(), all_frames_scores_homog.copy(), all_frames_angles_homog.copy()
     if save_pose:
         logging.info('\nPost-processing pose:')
@@ -1485,9 +1703,9 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             all_frames_X_flipped_person = pd.DataFrame(all_frames_X_flipped_homog[:,idx_person,:], columns=new_keypoints_names)
             all_frames_Y_person = pd.DataFrame(all_frames_Y_homog[:,idx_person,:], columns=new_keypoints_names)
 
-            # Delete person if less than 4 valid frames
+            # Delete person if less than 10 valid frames
             pose_nan_count = len(np.where(all_frames_X_person.sum(axis=1)==0)[0])
-            if frame_count - frame_range[0] - pose_nan_count <= 4:
+            if frame_count - frame_range[0] - pose_nan_count <= 10:
                 all_frames_X_processed[:,idx_person,:], all_frames_X_flipped_processed[:,idx_person,:], all_frames_Y_processed[:,idx_person,:] = np.nan, np.nan, np.nan
                 columns=np.array([[c]*3 for c in all_frames_X_person.columns]).flatten()
                 trc_data_i = pd.DataFrame(0, index=all_frames_X_person.index, columns=['t']+list(columns))
@@ -1496,7 +1714,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 trc_data_unfiltered_i = trc_data_i.copy()
                 trc_data_unfiltered.append(trc_data_unfiltered_i)
                 
-                logging.info(f'- Person {i}: Less than 4 valid frames. Deleting person.')
+                logging.info(f'- Person {i}: Less than 10 valid frames. Deleting person.')
 
             else:
                 # Interpolate
@@ -1688,8 +1906,9 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
 
 
 
-
+    # ====================================================
     # Post-processing angles
+    # ====================================================
     if save_angles and calculate_angles:
         logging.info('\nPost-processing angles (without inverse kinematics):')
 
@@ -1770,7 +1989,10 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     all_frames_angles_person.insert(0, 't', all_frames_time)
                     angle_plots(all_frames_angles_person, angle_data, i) # i = current person
 
+
+    # ====================================================
     # Save images/video with processed pose and angles
+    # ====================================================
     if save_vid or save_img:
         logging.info('\nSaving images of processed pose and angles:')
         if save_vid:
@@ -1823,7 +2045,9 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             logging.info(f"Processed images saved to {img_output_dir.resolve()}.")
 
 
+    # ====================================================
     # OpenSim inverse kinematics (and optional marker augmentation)
+    # ====================================================
     if do_ik or use_augmentation:
         import opensim as osim
         logging.info('\nPost-processing angles (with inverse kinematics):')

@@ -151,6 +151,8 @@ sports2d
 
 You should see the joint positions and angles being displayed in real time.
 
+When prompted, select the persons you are interested in in the desired order. In our case, lets slide to a frame where both people are visible, and select the woman first, then the man.
+
 Check the folder where you run that command line to find the resulting `video`, `images`, `TRC pose` and `MOT angle` files (which can be opened with any spreadsheet software), and `logs`.
 
 ***Important:*** If you ran the conda install, you first need to activate the environment: run `conda activate sports2d` in the Anaconda prompt.

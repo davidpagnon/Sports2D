@@ -124,7 +124,7 @@ from Sports2D import Sports2D
 ## CONSTANTS
 DEFAULT_CONFIG =   {'base': {'video_input': ['demo.mp4'],
                                 'nb_persons_to_detect': 'all',
-                                'person_ordering_method': 'highest_likelihood',
+                                'person_ordering_method': 'on_click',
                                 'first_person_height': 1.65,
                                 'visible_side': ['auto', 'front', 'none'],
                                 'load_trc_px': '',
