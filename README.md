@@ -293,9 +293,7 @@ Model scaling is done according to the mean of the segment lengths, across a sub
 
 ```cmd
 sports2d --time_range 1.2 2.7 `
-         --do_ik true `
-         --px_to_m_from_person_id 1 --first_person_height 1.65 `
-         --visible_side front auto 
+         --do_ik true --first_person_height 1.65 --visible_side auto front
 ```
 
 You can optionally use the LSTM marker augmentation to improve the quality of the output motion.\
@@ -303,9 +301,8 @@ You can also optionally give the participants proper masses. Mass has no influen
 
 ```cmd
 sports2d --time_range 1.2 2.7 `
-         --do_ik true --use_augmentation True `
-         --px_to_m_from_person_id 1 --first_person_height 1.65 `
-         --visible_side front left --participant_mass 67.0 55.0
+         --do_ik true --first_person_height 1.65 --visible_side left front `
+         --use_augmentation True --participant_mass 55.0 67.0
 ```
 
 <br>
@@ -365,10 +362,6 @@ sports2d --video_input demo.mp4 other_video.mp4 --time_range 1.2 2.7 0 3.5
 
 
 #### Customize your output:
-- Only analyze the most prominent person:
-  ``` cmd
-  sports2d --multiperson false
-  ```
 - Choose whether you want video, images, trc pose file, angle mot file, real-time display, and plots:
   ```cmd
   sports2d --save_vid false --save_img true `
@@ -510,7 +503,6 @@ Note that any detection and pose models can be used (first [deploy them with MMP
           'pose_input_size':[192,256]}"""
   ```
 - Use `--det_frequency 50`: Will detect poses only every 50 frames, and track keypoints in between, which is faster.
-- Use `--multiperson false`: Can be used if one single person is present in the video. Otherwise, persons' IDs may be mixed up.
 - Use `--load_trc_px <path_to_file_px.trc>`: Will use pose estimation results from a file. Useful if you want to use different parameters for pixel to meter conversion or angle calculation without running detection and pose estimation all over.
 - Make sure you use `--tracking_mode sports2d`: Will use the default Sports2D tracker. Unlike DeepSort, it is faster, does not require any parametrization, and is as good in non-crowded scenes. 
 
@@ -664,10 +656,9 @@ You will be proposed a to-do list, but please feel absolutely free to propose yo
 - [x] Run again without pose estimation with the option `--load_trc_px` for px .trc file.
 - [x] **Convert positions to meters** by providing the person height, a calibration file, or 3D points [to click on the image](https://stackoverflow.com/questions/74248955/how-to-display-the-coordinates-of-the-points-clicked-on-the-image-in-google-cola)
 - [x] Support any detection and/or pose estimation model.
+- [x]  Optionally let user select the persons of interest.
+- [x] Perform **Inverse kinematics and dynamics** with OpenSim (cf. [Pose2Sim](https://github.com/perfanalytics/pose2sim), but in 2D). Update [this model](https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Utilities/2D_gait.osim) (add arms, markers, remove muscles and contact spheres). Add pipeline example.
 
-- [ ] Perform **Inverse kinematics and dynamics** with OpenSim (cf. [Pose2Sim](https://github.com/perfanalytics/pose2sim), but in 2D). Update [this model](https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Utilities/2D_gait.osim) (add arms, markers, remove muscles and contact spheres). Add pipeline example.
-- [ ]  Optionally let user select the person of interest in single_person mode:\
-`multiperson = true # true, or 'single_auto', or 'single_click'. 'single_auto' selects the person with highest average likelihood, and 'single_click' lets the user manually select the person of interest.`
 - [ ] Run with the option `--compare_to` to visually compare motion with a trc file. If run with a webcam input, the user can follow the motion of the trc file. Further calculation can then be done to compare specific variables.
 - [ ] **Colab version**: more user-friendly, usable on a smartphone.
 - [ ] **GUI applications** for Windows, Mac, and Linux, as well as for Android and iOS.

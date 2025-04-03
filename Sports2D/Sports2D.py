@@ -495,7 +495,7 @@ def main():
         sports2d --video_input webcam
     - Run with custom parameters (all non specified are set to default): 
         sports2d --show_plots False --time_range 0 2.1 --result_dir path_to_result_dir
-        sports2d --multiperson false --mode lightweight --det_frequency 50
+        sports2d --mode lightweight --det_frequency 50
     - Run with a toml configuration file: 
         sports2d --config path_to_config.toml
     '''
