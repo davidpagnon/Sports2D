@@ -17,7 +17,7 @@ video_input = 'demo.mp4'   # 'webcam' or '<video_path.ext>', or ['video1_path.mp
                            # Beware that images won't be saved if paths contain non ASCII characters.
 
 nb_persons_to_detect = 'all'   # int or 'all' # Limiting or not the number of persons to be analyzed
-person_ordering_method = 'on_click' # 'on_click', 'highest_likelihood', 'greatest_displacement', 'least_displacement', 'first_detected', or 'last_detected'
+person_ordering_method = 'highest_likelihood' # 'on_click', 'highest_likelihood', 'greatest_displacement', 'least_displacement', 'first_detected', or 'last_detected'
 first_person_height = 1.65  # Height of the reference person in meters (for pixels -> meters conversion: not used if a calibration file is provided)
 visible_side = ['auto', 'front', 'none']  # Choose visible side among ['right', 'left', 'front', 'back', 'auto', 'none']. String or list of strings.
                   # if 'auto', will be either 'left', 'right', or 'front' depending on the direction of the motion

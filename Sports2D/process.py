@@ -984,8 +984,6 @@ def select_persons_on_vid(frames, all_pose_coords):
     
 
     def update_frame(val):
-        nonlocal rects, annotations
-        
         # Update image
         frame_idx = int(frame_slider.val)
         frame_rgb = cv2.cvtColor(frames[frame_idx], cv2.COLOR_BGR2RGB)

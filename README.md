@@ -68,14 +68,15 @@ If you need 3D research-grade markerless joint kinematics, consider using severa
    3. [Play with the parameters](#play-with-the-parameters)
       1. [Run on a custom video or on a webcam](#run-on-a-custom-video-or-on-a-webcam)
       2. [Run for a specific time range](#run-for-a-specific-time-range)
-      3. [Get coordinates in meters](#get-coordinates-in-meters)
-      4. [Run inverse kinematics](#run-inverse-kinematics)
-      5. [Run on several videos at once](#run-on-several-videos-at-once)
-      6. [Use the configuration file or run within Python](#use-the-configuration-file-or-run-within-python)
-      7. [Get the angles the way you want](#get-the-angles-the-way-you-want)
-      8. [Customize your output](#customize-your-output)
-      9. [Use a custom pose estimation model](#use-a-custom-pose-estimation-model)
-      10. [All the parameters](#all-the-parameters)
+      3. [Select the persons you are interested in](#select-the-persons-you-are-interested-in)
+      4. [Get coordinates in meters](#get-coordinates-in-meters)
+      5. [Run inverse kinematics](#run-inverse-kinematics)
+      6. [Run on several videos at once](#run-on-several-videos-at-once)
+      7. [Use the configuration file or run within Python](#use-the-configuration-file-or-run-within-python)
+      8. [Get the angles the way you want](#get-the-angles-the-way-you-want)
+      9. [Customize your output](#customize-your-output)
+      10. [Use a custom pose estimation model](#use-a-custom-pose-estimation-model)
+      11. [All the parameters](#all-the-parameters)
 2. [Go further](#go-further)
    1. [Too slow for you?](#too-slow-for-you)
    3. [Run inverse kinematics](#run-inverse-kinematics)
@@ -151,8 +152,6 @@ sports2d
 
 You should see the joint positions and angles being displayed in real time.
 
-When prompted, select the persons you are interested in in the desired order. In our case, lets slide to a frame where both people are visible, and select the woman first, then the man.
-
 Check the folder where you run that command line to find the resulting `video`, `images`, `TRC pose` and `MOT angle` files (which can be opened with any spreadsheet software), and `logs`.
 
 ***Important:*** If you ran the conda install, you first need to activate the environment: run `conda activate sports2d` in the Anaconda prompt.
@@ -225,12 +224,33 @@ sports2d --video_input webcam
 
 <br>
 
-
 #### Run for a specific time range:
 ```cmd
 sports2d --time_range 1.2 2.7
 ```
  
+<br>
+
+
+#### Select the persons you are interested in:
+If you only want to analyze a subset of the detected persons, you can use the `--nb_persons_to_detect` and `--person_ordering_method` parameters. The order matters if you want to [convert coordinates in meters](#get-coordinates-in-meters) or [run inverse kinematics](#run-inverse-kinematics). 
+
+
+``` cmd
+sports2d --nb_persons_to_detect 2 --person_ordering_method highest_likelihood
+```
+
+We recommend to use the `on_click` method if you can afford a manual input. This lets the user handle both the person number and their order in the same stage. When prompted, select the persons you are interested in in the desired order. In our case, lets slide to a frame where both people are visible, and select the woman first, then the man.
+
+``` cmd
+sports2d --person_ordering_method on_click
+```
+
+
+
+<img src="Content/Person_selection.png" width="760">
+
+
 <br>
 
 
@@ -250,11 +270,11 @@ Also note that distortions are not taken into account, and that results will be 
 sports2d --to_meters True --calib_file calib_demo.toml
 ``` -->
 ``` cmd
-sports2d --to_meters True --first_person_height 1.76 --visible_side front none auto
+sports2d --to_meters True --first_person_height 1.65 --visible_side auto front none
 ```
 ``` cmd
-sports2d --to_meters True --first_person_height 1.65 --visible_side front none auto `
-         --person_ordering_method highest_likelihood `
+sports2d --to_meters True --first_person_height 1.65 --visible_side auto front none `
+         --person_ordering_method on_click `
          --floor_angle 0 --xy_origin 0 940
 ```
 
