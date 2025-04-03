@@ -23,8 +23,7 @@
 
 </br>
 
-> **`Announcements:`**\
-> Run `pip install sports2d -U` to get the latest version.
+> **`Announcements:`**
 > - Select only the persons you want to analyze **New in v0.8!** 
 > - MarkerAugmentation and Inverse Kinematics for accurate 3D motion with OpenSim. **New in v0.7!** 
 > - Any detector and pose estimation model can be used. **New in v0.6!**
@@ -33,6 +32,8 @@
 > - Works from a webcam
 > - Better visualization output 
 > - More flexible, easier to run
+>
+> Run `pip install sports2d -U` to get the latest version.
 
 ***N.B.:*** As always, I am more than happy to welcome contributions (see [How to contribute](#how-to-contribute-and-to-do-list))!
 <!--User-friendly Colab version released! (and latest issues fixed, too)\
