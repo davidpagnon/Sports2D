@@ -33,7 +33,7 @@
 > - Better visualization output 
 > - More flexible, easier to run
 >
-> Run `pip install sports2d -U` to get the latest version.
+> Run `pip install sports2d pose2sim -U` to get the latest version.
 
 ***N.B.:*** As always, I am more than happy to welcome contributions (see [How to contribute](#how-to-contribute-and-to-do-list))!
 <!--User-friendly Colab version released! (and latest issues fixed, too)\
