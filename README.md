@@ -166,7 +166,6 @@ The Demo video is voluntarily challenging to demonstrate the robustness of the p
 - One person walking in the sagittal plane
 - One person doing jumping jacks in the frontal plane. This person then performs a flip while being backlit, both of which are challenging for the pose detection algorithm
 - One tiny person flickering in the background who needs to be ignored
-- The first person is starting high and ending low on the image, which messes up the automatic floor angle calculation. You can set it up manually with the parameter `--floor_angle 0`
 
 <br>
 
@@ -437,7 +436,7 @@ sports2d --help
 'device': ["", "Device for pose estimatino can be 'auto', 'openvino', 'onnxruntime', 'opencv'"],
 'to_meters': ["M", "convert pixels to meters. true if not specified"],
 'make_c3d': ["", "Convert trc to c3d file. true if not specified"],
-'floor_angle': ["", "angle of the floor. 'auto' if not specified"],
+'floor_angle': ["", "angle of the floor (degrees). 'auto' if not specified"],
 'xy_origin': ["", "origin of the xy plane. 'auto' if not specified"],
 'calib_file': ["", "path to calibration file. '' if not specified, eg no calibration file"],
 'save_calib': ["", "save calibration file. true if not specified"],
