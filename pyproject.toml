@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sports2d"
-version = "0.8.0"
+version = "0.8.1"
 authors = [
     {name = "David Pagnon", email = "contact@david-pagnon.com"},
 ]
