@@ -1844,6 +1844,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     # Convert to meters
                     px_to_m_i = [convert_px_to_meters(trc_data[i][kpt_name], first_person_height, height_px, cx, cy, -floor_angle_estim, visible_side=visible_side_i) for kpt_name in new_keypoints_names]
                     trc_data_m_i = pd.concat([all_frames_time.rename('time')]+px_to_m_i, axis=1)
+                    trc_data_m_i = trc_data_m_i.ffill(axis=0).bfill(axis=0)
                     px_to_m_unfiltered_i = [convert_px_to_meters(trc_data_unfiltered[i][kpt_name], first_person_height, height_px, cx, cy, -floor_angle_estim) for kpt_name in new_keypoints_names]
                     trc_data_unfiltered_m_i = pd.concat([all_frames_time.rename('time')]+px_to_m_unfiltered_i, axis=1)
 
@@ -2097,6 +2098,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             Pose2Sim_config_dict['project']['participant_mass'] = masses
             Pose2Sim_config_dict['pose']['pose_model'] = pose_model_name.upper()
             Pose2Sim_config_dict = to_dict(Pose2Sim_config_dict)
+            print(Pose2Sim_config_dict)
 
             # Marker augmentation
             if use_augmentation:
