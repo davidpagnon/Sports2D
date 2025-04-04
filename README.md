@@ -136,7 +136,7 @@ pip install .
    
 - **Install Sports2D with Pose2Sim**:
   ``` cmd
-  pip install sports2d pose2sim
+  pip install sports2d
   ```
 
 

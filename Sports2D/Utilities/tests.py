@@ -54,7 +54,7 @@ def test_workflow():
     config_dict.get("post-processing").update({"show_graphs":False})
     
     from Sports2D import Sports2D
-    Sports2D.process(config_dict) 
+    Sports2D.process(config_dict)
 
 
     #############################

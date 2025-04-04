@@ -642,7 +642,7 @@ def make_trc_with_trc_data(trc_data, trc_path, fps=30):
 
     INPUTS:
     - trc_data: pd.DataFrame. The time and coordinates of the keypoints. 
-                    The column names must be 't', 'kpt1', 'kpt1', 'kpt1', 'kpt2', 'kpt2', 'kpt2', ...
+                    The column names must be 'time', 'kpt1', 'kpt1', 'kpt1', 'kpt2', 'kpt2', 'kpt2', ...
     - trc_path: Path. The path to the TRC file to save
     - fps: float. The framerate of the video
 
@@ -1349,10 +1349,11 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     trimmed_extrema_percent = config_dict.get('kinematics').get('trimmed_extrema_percent')
     close_to_zero_speed_px = config_dict.get('kinematics').get('close_to_zero_speed_px')
     close_to_zero_speed_m = config_dict.get('kinematics').get('close_to_zero_speed_m')
-    if do_ik:
+    if do_ik or use_augmentation:
         if use_augmentation:
             from Pose2Sim.markerAugmentation import augment_markers_all
-        from Pose2Sim.kinematics import kinematics_all
+        if do_ik:
+            from Pose2Sim.kinematics import kinematics_all
         # Create a Pose2Sim dictionary and fill in missing keys
         recursivedict = lambda: defaultdict(recursivedict)
         Pose2Sim_config_dict = recursivedict()
@@ -1494,7 +1495,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 logging.warning(f"Skipping {ang_name} angle computation because at least one of the following keypoints is not provided by the model: {ang_params[0]}.")
 
 
-    # ====================================================
+    #%% ==================================================
     # Process video or webcam feed
     # ====================================================
     logging.info(f"\nProcessing video stream...")
@@ -1527,10 +1528,6 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 continue
             else:
                 frames.append(frame.copy())
-
-                cv2.putText(frame, f"Press 'q' to quit", (cam_width-int(400*fontSize), cam_height-20), cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (255,255,255), thickness+1, cv2.LINE_AA)
-                cv2.putText(frame, f"Press 'q' to quit", (cam_width-int(400*fontSize), cam_height-20), cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (0,0,255), thickness, cv2.LINE_AA)
-
 
             # Retrieve pose or Estimate pose and track people
             if load_trc_px: 
@@ -1607,6 +1604,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             # Draw keypoints and skeleton
             if show_realtime_results:
                 img = frame.copy()
+                cv2.putText(img, f"Press 'q' to quit", (cam_width-int(600*fontSize), cam_height-20), cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (255,255,255), thickness+1, cv2.LINE_AA)
+                cv2.putText(img, f"Press 'q' to quit", (cam_width-int(600*fontSize), cam_height-20), cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (0,0,255), thickness, cv2.LINE_AA)
                 img = draw_bounding_box(img, valid_X, valid_Y, colors=colors, fontSize=fontSize, thickness=thickness)
                 img = draw_keypts(img, valid_X, valid_Y, valid_scores, cmap_str='RdYlGn')
                 img = draw_skel(img, valid_X, valid_Y, pose_model)
@@ -1636,7 +1635,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             cv2.destroyAllWindows()
 
 
-    # ====================================================
+    #%% ==================================================
     # Post-processing: Select persons, Interpolate, filter, and save pose and angles
     # ====================================================
     all_frames_X_homog = make_homogeneous(all_frames_X)
@@ -1651,12 +1650,11 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     all_frames_angles_homog = make_homogeneous(all_frames_angles)
 
     frame_range = [0,frame_count] if video_file == 'webcam' else frame_range
+    all_frames_time = pd.Series(np.linspace(frame_range[0]/fps, frame_range[1]/fps, frame_count-frame_range[0]), name='time')
     if load_trc_px:
-        all_frames_time = time_col
         selected_persons = [0]
     else:
         # Select persons 
-        all_frames_time = pd.Series(np.linspace(frame_range[0]/fps, frame_range[1]/fps, frame_count-frame_range[0]), name='time')
         nb_detected_persons = all_frames_scores_homog.shape[1]
         if nb_persons_to_detect == 'all':
             nb_persons_to_detect = all_frames_scores_homog.shape[1]
@@ -1687,7 +1685,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         logging.info(f'Reordered persons: IDs of persons {selected_persons} become {list(range(len(selected_persons)))}.')
     
 
-    # ====================================================
+    #%% ==================================================
     # Post-processing pose
     # ====================================================
     all_frames_X_processed, all_frames_X_flipped_processed, all_frames_Y_processed, all_frames_scores_processed, all_frames_angles_processed = all_frames_X_homog.copy(), all_frames_X_flipped_homog.copy(), all_frames_Y_homog.copy(), all_frames_scores_homog.copy(), all_frames_angles_homog.copy()
@@ -1706,8 +1704,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             if frame_count - frame_range[0] - pose_nan_count <= 10:
                 all_frames_X_processed[:,idx_person,:], all_frames_X_flipped_processed[:,idx_person,:], all_frames_Y_processed[:,idx_person,:] = np.nan, np.nan, np.nan
                 columns=np.array([[c]*3 for c in all_frames_X_person.columns]).flatten()
-                trc_data_i = pd.DataFrame(0, index=all_frames_X_person.index, columns=['t']+list(columns))
-                trc_data_i['t'] = all_frames_time
+                trc_data_i = pd.DataFrame(0, index=all_frames_X_person.index, columns=['time']+list(columns))
+                trc_data_i['time'] = all_frames_time
                 trc_data.append(trc_data_i)
                 trc_data_unfiltered_i = trc_data_i.copy()
                 trc_data_unfiltered.append(trc_data_unfiltered_i)
@@ -1777,7 +1775,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 all_frames_X_processed[:,idx_person,:], all_frames_X_flipped_processed[:,idx_person,:], all_frames_Y_processed[:,idx_person,:] = all_frames_X_person_filt, all_frames_X_flipped_person, all_frames_Y_person_filt
                 
 
-        # Convert px to meters
+        #%% Convert px to meters
         trc_data_m = []
         if to_meters and save_pose:
             logging.info('\nConverting pose to meters:')
@@ -1796,17 +1794,17 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 toe_speed_below_px_frame = toe_speed_below * px_per_m / fps
                 if floor_angle == 'auto' or xy_origin == 'auto':
                     # estimated from the line formed by the toes when they are on the ground (where speed = 0)
-                    # try:
+                    try:
                         if all(key in trc_data[0] for key in ['LBigToe', 'RBigToe']):
                             floor_angle_estim, xy_origin_estim, _ = compute_floor_line(trc_data[0], keypoint_names=['LBigToe', 'RBigToe'], toe_speed_below=toe_speed_below_px_frame)
                         else:
                             floor_angle_estim, xy_origin_estim, _ = compute_floor_line(trc_data[0], keypoint_names=['LAnkle', 'RAnkle'], toe_speed_below=toe_speed_below_px_frame)
                             xy_origin_estim[0] = xy_origin_estim[0]-0.13
                             logging.warning(f'The RBigToe and LBigToe are missing from your model. Using ankles - 13 cm to compute the floor line.')
-                    # except:
-                    #     floor_angle_estim = 0
-                    #     xy_origin_estim = cam_width/2, cam_height/2
-                    #     logging.warning(f'Could not estimate the floor angle and xy_origin from person {0}. Make sure that the full body is visible. Using floor angle = 0° and xy_origin = [{cam_width/2}, {cam_height/2}] px.')
+                    except:
+                        floor_angle_estim = 0
+                        xy_origin_estim = cam_width/2, cam_height/2
+                        logging.warning(f'Could not estimate the floor angle and xy_origin from person {0}. Make sure that the full body is visible. Using floor angle = 0° and xy_origin = [{cam_width/2}, {cam_height/2}] px.')
                 if not floor_angle == 'auto':
                     floor_angle_estim = floor_angle
                 if xy_origin == 'auto':
@@ -1845,9 +1843,9 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     
                     # Convert to meters
                     px_to_m_i = [convert_px_to_meters(trc_data[i][kpt_name], first_person_height, height_px, cx, cy, -floor_angle_estim, visible_side=visible_side_i) for kpt_name in new_keypoints_names]
-                    trc_data_m_i = pd.concat([all_frames_time.rename('t')]+px_to_m_i, axis=1)
+                    trc_data_m_i = pd.concat([all_frames_time.rename('time')]+px_to_m_i, axis=1)
                     px_to_m_unfiltered_i = [convert_px_to_meters(trc_data_unfiltered[i][kpt_name], first_person_height, height_px, cx, cy, -floor_angle_estim) for kpt_name in new_keypoints_names]
-                    trc_data_unfiltered_m_i = pd.concat([all_frames_time.rename('t')]+px_to_m_unfiltered_i, axis=1)
+                    trc_data_unfiltered_m_i = pd.concat([all_frames_time.rename('time')]+px_to_m_unfiltered_i, axis=1)
 
                     if to_meters and show_plots:
                         pose_plots(trc_data_unfiltered_m_i, trc_data_m_i, i)
@@ -1904,7 +1902,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
 
 
 
-    # ====================================================
+    #%% ==================================================
     # Post-processing angles
     # ====================================================
     if save_angles and calculate_angles:
@@ -1984,11 +1982,11 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
 
                 # Plotting angles before and after interpolation and filtering
                 if show_plots:
-                    all_frames_angles_person.insert(0, 't', all_frames_time)
+                    all_frames_angles_person.insert(0, 'time', all_frames_time)
                     angle_plots(all_frames_angles_person, angle_data, i) # i = current person
 
 
-    # ====================================================
+    #%% ==================================================
     # Save images/video with processed pose and angles
     # ====================================================
     if save_vid or save_img:
@@ -2043,7 +2041,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             logging.info(f"Processed images saved to {img_output_dir.resolve()}.")
 
 
-    # ====================================================
+    #%% ==================================================
     # OpenSim inverse kinematics (and optional marker augmentation)
     # ====================================================
     if do_ik or use_augmentation:
@@ -2064,6 +2062,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
 
             heights_m, masses = [], []
             for i in range(len(trc_data_m)):
+                trc_data_m_i = trc_data_m[i]
                 if do_ik and not use_augmentation:
                     logging.info(f'- Person {i}: Running scaling and inverse kinematics without marker augmentation. Set use_augmentation to True if you need it.') 
                 elif not do_ik and use_augmentation:
