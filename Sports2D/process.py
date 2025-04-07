@@ -1464,7 +1464,6 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         keypoints_ids = [node.id for _, _, node in RenderTree(pose_model) if node.id!=None]
         keypoints_names = [node.name for _, _, node in RenderTree(pose_model) if node.id!=None]
         t0 = 0
-        print(keypoints_names, keypoints_ids)
 
         # Set up pose tracker
         try:
