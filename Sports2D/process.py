@@ -56,6 +56,7 @@ import sys
 import logging
 import json
 import ast
+import copy
 import shutil
 import os
 from importlib.metadata import version
@@ -1350,10 +1351,15 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     close_to_zero_speed_px = config_dict.get('kinematics').get('close_to_zero_speed_px')
     close_to_zero_speed_m = config_dict.get('kinematics').get('close_to_zero_speed_m')
     if do_ik or use_augmentation:
-        if use_augmentation:
-            from Pose2Sim.markerAugmentation import augment_markers_all
-        if do_ik:
-            from Pose2Sim.kinematics import kinematics_all
+        try:
+            if use_augmentation:
+                from Pose2Sim.markerAugmentation import augment_markers_all
+            if do_ik:
+                from Pose2Sim.kinematics import kinematics_all
+        except ImportError:
+            logging.error("OpenSim package is not installed. Please install it to use inverse kinematics or marker augmentation features (see 'Full install' section of the documentation).")
+            raise ImportError("OpenSim package is not installed. Please install it to use inverse kinematics or marker augmentation features (see 'Full install' section of the documentation).")
+        
         # Create a Pose2Sim dictionary and fill in missing keys
         recursivedict = lambda: defaultdict(recursivedict)
         Pose2Sim_config_dict = recursivedict()
@@ -1428,7 +1434,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                         backend=backend, device=device)
             
         except (json.JSONDecodeError, TypeError):
-            logging.warning("\nInvalid mode. Must be 'lightweight', 'balanced', 'performance', or '''{dictionary}''' of parameters within triple quotes. Make sure input_sizes are within square brackets.")
+            logging.warning("Invalid mode. Must be 'lightweight', 'balanced', 'performance', or '''{dictionary}''' of parameters within triple quotes. Make sure input_sizes are within square brackets.")
             logging.warning('Using the default "balanced" mode.')
             mode = 'balanced'
     
@@ -1458,6 +1464,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         keypoints_ids = [node.id for _, _, node in RenderTree(pose_model) if node.id!=None]
         keypoints_names = [node.name for _, _, node in RenderTree(pose_model) if node.id!=None]
         t0 = 0
+        print(keypoints_names, keypoints_ids)
 
         # Set up pose tracker
         try:
@@ -1469,7 +1476,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         if tracking_mode not in ['deepsort', 'sports2d']:
             logging.warning(f"Tracking mode {tracking_mode} not recognized. Using sports2d method.")
             tracking_mode = 'sports2d'
-        logging.info(f'\nPose tracking set up for "{pose_model_name}" model.')
+        logging.info(f'Pose tracking set up for "{pose_model_name}" model.')
         logging.info(f'Mode: {mode}.\n')
         logging.info(f'Persons are detected every {det_frequency} frames and tracked inbetween. Tracking is done with {tracking_mode}.')
         if tracking_mode == 'deepsort': logging.info(f'Deepsort parameters: {deepsort_params}.')
@@ -2002,7 +2009,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         all_frames_angles_processed = all_frames_angles_processed[:,selected_persons,:]
 
         # Reorder keypoints ids
-        pose_model_with_new_ids = pose_model
+        pose_model_with_new_ids = copy.deepcopy(pose_model)
         new_id = 0
         for node in PreOrderIter(pose_model_with_new_ids):
             if node.id!=None:
@@ -2020,7 +2027,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             img = frame.copy()
             img = draw_bounding_box(img, valid_X, valid_Y, colors=colors, fontSize=fontSize, thickness=thickness)
             img = draw_keypts(img, valid_X, valid_Y, valid_scores, cmap_str='RdYlGn')
-            img = draw_skel(img, valid_X, valid_Y, pose_model)
+            img = draw_skel(img, valid_X, valid_Y, pose_model_with_new_ids)
             if calculate_angles:
                 img = draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, new_keypoints_ids, new_keypoints_names, angle_names, display_angle_values_on=display_angle_values_on, colors=colors, fontSize=fontSize, thickness=thickness)
 
