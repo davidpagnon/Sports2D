@@ -2098,7 +2098,6 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             Pose2Sim_config_dict['project']['participant_mass'] = masses
             Pose2Sim_config_dict['pose']['pose_model'] = pose_model_name.upper()
             Pose2Sim_config_dict = to_dict(Pose2Sim_config_dict)
-            print(Pose2Sim_config_dict)
 
             # Marker augmentation
             if use_augmentation:
