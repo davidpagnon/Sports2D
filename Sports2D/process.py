@@ -1532,8 +1532,9 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 if save_angles:
                     all_frames_angles.append([])
                 continue
-            else:
-                frames.append(frame.copy())
+            else: # does not save frame if they are not saved or used for ordering UI
+                if save_img or save_vid or person_ordering_method == 'on_click':
+                    frames.append(frame.copy())
 
             # Retrieve pose or Estimate pose and track people
             if load_trc_px: 

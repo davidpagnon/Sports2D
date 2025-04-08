@@ -18,6 +18,7 @@ permissions:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     
     strategy:
       fail-fast: false
@@ -54,6 +55,7 @@ jobs:
         run: |
           conda install -n sports2d -c conda-forge -c defaults pip
           conda install -n sports2d opensim-org::opensim -y
+        timeout-minutes: 15
 
       - name: Cache pip dependencies
         uses: actions/cache@v4
@@ -68,6 +70,7 @@ jobs:
           conda run -n sports2d python -m pip install flake8 pytest
           conda run -n sports2d python -m pip install git+https://github.com/${{ github.repository }}.git@${{ github.sha }}
           # conda run -n sports2d python -m pip install torch torchvision
+        timeout-minutes: 10
       
       - name: Lint with flake8
         run: |
@@ -75,6 +78,7 @@ jobs:
           conda run -n sports2d flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
           # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
           conda run -n sports2d flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        timeout-minutes: 5
                 
       - name: Test with pytest
         env: 
@@ -84,3 +88,4 @@ jobs:
         run: |
           cd Sports2D/Utilities
           conda run -n sports2d pytest -v tests.py --capture=sys
+        timeout-minutes: 20
