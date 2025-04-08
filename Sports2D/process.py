@@ -1532,7 +1532,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 if save_angles:
                     all_frames_angles.append([])
                 continue
-            else: # does not save frame if they are not saved or used for ordering UI
+            else: # does not store all frames in memory if they are not saved or used for ordering
                 if save_img or save_vid or person_ordering_method == 'on_click':
                     frames.append(frame.copy())
 
