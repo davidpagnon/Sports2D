@@ -242,6 +242,8 @@ sports2d --nb_persons_to_detect 2 --person_ordering_method highest_likelihood
 
 We recommend to use the `on_click` method if you can afford a manual input. This lets the user handle both the person number and their order in the same stage. When prompted, select the persons you are interested in in the desired order. In our case, lets slide to a frame where both people are visible, and select the woman first, then the man.
 
+Otherwise, if you want to run Sports2D automatically for example, you can choose other ordering methods such as 'highest_likelihood', 'largest_size', 'smallest_size',  'greatest_displacement', 'least_displacement', 'first_detected', or 'last_detected'.
+
 ``` cmd
 sports2d --person_ordering_method on_click
 ```
@@ -408,7 +410,7 @@ sports2d --help
 
 'video_input': ["i", "webcam, or video_path.mp4, or video1_path.avi video2_path.mp4 ... Beware that images won't be saved if paths contain non ASCII characters"],
 'nb_persons_to_detect': ["n", "number of persons to detect. int or 'all'. 'all' if not specified"],
-'person_ordering_method': ["", "'on_click', 'highest_likelihood', 'greatest_displacement', 'least_displacement', 'first_detected', or 'last_detected'. 'on_click' if not specified"],
+'person_ordering_method': ["", "'on_click', 'highest_likelihood', 'largest_size', 'smallest_size', 'greatest_displacement', 'least_displacement', 'first_detected', or 'last_detected'. 'on_click' if not specified"],
 'first_person_height': ["H", "height of the reference person in meters. 1.65 if not specified. Not used if a calibration file is provided"],
 'visible_side': ["", "front, back, left, right, auto, or none. 'auto front none' if not specified. If 'auto', will be either left or right depending on the direction of the motion. If 'none', no IK for this person"],
 'load_trc_px': ["", "load trc file to avaid running pose estimation again. false if not specified"],
@@ -458,7 +460,7 @@ sports2d --help
 'large_hip_knee_angles': ["", "Hip and knee angles below this value are considered as imprecise. Defaults to 45"],
 'trimmed_extrema_percent': ["", "Proportion of the most extreme segment values to remove before calculating their mean. Defaults to 50"],
 'fontSize': ["", "font size for angle values. 0.3 if not specified"],
-'flip_left_right': ["", "true or false. true to get consistent angles with people facing both left and right sides. Set it to false if you want timeseries to be continuous even when the participent switches their stance. true if not specified"],
+'flip_left_right': ["", "true or false. Flips angles when the person faces the other side. The person looks to the right if their toe keypoint is to the right of their heel. Set it to false if the person is sprinting or if you want timeseries to be continuous even when the participent switches their stance. true if not specified"],
 'correct_segment_angles_with_floor_angle': ["", "true or false. If the camera is tilted, corrects segment angles as regards to the floor angle. Set to false is the floor is tilted instead. True if not specified"],
 'interpolate': ["", "interpolate missing data. true if not specified"],
 'interp_gap_smaller_than': ["", "interpolate sequences of missing data if they are less than N frames long. 10 if not specified"],
@@ -559,8 +561,9 @@ VIDEO THERE
 Sports2D:
 - Detects 2D joint centers from a video or a webcam with RTMLib.
 - Converts pixel coordinates to meters.
-- Optionally computes selected joint and segment angles. 
-- Optionally saves processed image files and video file. Optionally saves processed poses as a TRC file, and angles as a MOT file (OpenSim compatible).
+- Computes selected joint and segment angles. 
+- Optionally performs kinematic optimization via OpenSim.
+- Optionally saves processed image and video files. 
 
 <br>
 

@@ -785,7 +785,7 @@ def angle_plots(angle_data_unfiltered, angle_data, person_id):
 
 def get_personIDs_with_highest_scores(all_frames_scores, nb_persons_to_detect):
     '''
-    Get the person ID with the highest scores
+    Get the person IDs with the highest scores
 
     INPUTS:
     - all_frames_scores: array of scores for all frames, all persons, all keypoints
@@ -821,15 +821,46 @@ def get_personIDs_in_detection_order(nb_persons_to_detect, reverse=False):
     return selected_persons
 
 
+def get_personIDs_with_largest_size(all_frames_X_homog, all_frames_Y_homog, nb_persons_to_detect, reverse=False, vertical=False):
+    '''
+    Get the person IDs with the largest size
+    
+    INPUTS:
+    - all_frames_X_homog: shape (Nframes, Npersons, Nkpts)
+    - all_frames_Y_homog: shape (Nframes, Npersons, Nkpts)
+    - nb_persons_to_detect: int. The number of persons to detect
+    - reverse: bool. Whether to reverse the order of detection from smallest to largest size
+    - vertical: bool. Whether to compute the size in the vertical direction only
+
+    OUTPUT:
+    - selected_persons: list of int. The person IDs with the largest size
+    '''
+
+    # average size over all keypoints (axis=2) and all frames (axis=0) for each person (axis=1)
+    y_sizes = np.array([np.nanmean(np.nanmax(all_frames_Y_homog, axis=2) - np.nanmin(all_frames_Y_homog, axis=2), axis=0)][0])
+    if vertical:
+        sizes = y_sizes
+    else:
+        x_sizes = np.array([np.nanmean(np.nanmax(all_frames_X_homog, axis=2) - np.nanmin(all_frames_X_homog, axis=2), axis=0)][0])
+        sizes = np.sqrt(x_sizes**2 + y_sizes**2)
+
+    if not reverse: # greatest to smallest size
+        sizes = -sizes
+
+    selected_persons = sizes.argsort()[:nb_persons_to_detect]
+    
+    return selected_persons
+
+
 def get_personIDs_with_greatest_displacement(all_frames_X_homog, all_frames_Y_homog, nb_persons_to_detect, reverse=False, horizontal=True):
     '''
-    Get the person ID with the greatest displacement
+    Get the person IDs with the greatest displacement
     
     INPUTS:
     - all_frames_X_homog: shape (Nframes, Npersons, Nkpts) 
     - all_frames_Y_homog: shape (Nframes, Npersons, Nkpts) 
     - nb_persons_to_detect: int. The number of persons to detect
-    - reverse: bool. Whether to reverse the order of detection
+    - reverse: bool. Whether to reverse the order of detection from smallest to greatest displacement
     - horizontal: bool. Whether to compute the displacement in the horizontal direction
 
     OUTPUT:
@@ -848,9 +879,10 @@ def get_personIDs_with_greatest_displacement(all_frames_X_homog, all_frames_Y_ho
         max_dist_traveled = np.nansum([euclidean_distance(m,p) for (m,p) in zip(pos_XY[:,1:,:], pos_XY[:,:-1,:])], axis=1)
     max_dist_traveled = np.where(np.isinf(max_dist_traveled), 0, max_dist_traveled)
 
-    selected_persons = (-max_dist_traveled).argsort()[:nb_persons_to_detect]
-    if reverse:
-        selected_persons = selected_persons[::-1]
+    if not reversed: # greatest to smallest displacement
+        max_dist_traveled = -max_dist_traveled
+    
+    selected_persons = (max_dist_traveled).argsort()[:nb_persons_to_detect]
     
     return selected_persons
 
@@ -1683,10 +1715,14 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             selected_persons = get_personIDs_in_detection_order(nb_persons_to_detect)
         elif person_ordering_method == 'last_detected':
             selected_persons = get_personIDs_in_detection_order(nb_persons_to_detect, reverse=True)
+        elif person_ordering_method == 'largest_size':
+            selected_persons = get_personIDs_with_largest_size(all_frames_X_homog, all_frames_Y_homog, nb_persons_to_detect=nb_persons_to_detect, vertical=False)
+        elif person_ordering_method == 'smallest_size':
+            selected_persons = get_personIDs_with_largest_size(all_frames_X_homog, all_frames_Y_homog, nb_persons_to_detect=nb_persons_to_detect, vertical=False, reverse=True)
         elif person_ordering_method == 'greatest_displacement':
             selected_persons = get_personIDs_with_greatest_displacement(all_frames_X_homog, all_frames_Y_homog, nb_persons_to_detect=nb_persons_to_detect, horizontal=True)
         elif person_ordering_method == 'least_displacement':
-            selected_persons = get_personIDs_with_greatest_displacement(all_frames_X_homog, all_frames_Y_homog, nb_persons_to_detect=nb_persons_to_detect, reverse=True, horizontal=True)
+            selected_persons = get_personIDs_with_greatest_displacement(all_frames_X_homog, all_frames_Y_homog, nb_persons_to_detect=nb_persons_to_detect, horizontal=True, reverse=True)
         else:
             raise ValueError(f"Invalid person_ordering_method: {person_ordering_method}. Must be 'on_click', 'highest_likelihood', 'greatest_displacement', 'first_detected', or 'last_detected'.")
         logging.info(f'Reordered persons: IDs of persons {selected_persons} become {list(range(len(selected_persons)))}.')
