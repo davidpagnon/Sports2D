@@ -879,7 +879,7 @@ def get_personIDs_with_greatest_displacement(all_frames_X_homog, all_frames_Y_ho
         max_dist_traveled = np.nansum([euclidean_distance(m,p) for (m,p) in zip(pos_XY[:,1:,:], pos_XY[:,:-1,:])], axis=1)
     max_dist_traveled = np.where(np.isinf(max_dist_traveled), 0, max_dist_traveled)
 
-    if not reversed: # greatest to smallest displacement
+    if not reverse: # greatest to smallest displacement
         max_dist_traveled = -max_dist_traveled
     
     selected_persons = (max_dist_traveled).argsort()[:nb_persons_to_detect]
