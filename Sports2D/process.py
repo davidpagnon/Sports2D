@@ -1679,14 +1679,18 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     # ====================================================
     all_frames_X_homog = make_homogeneous(all_frames_X)
     all_frames_X_homog = all_frames_X_homog[...,new_keypoints_ids]
-    all_frames_X_flipped_homog = make_homogeneous(all_frames_X_flipped)
-    all_frames_X_flipped_homog = all_frames_X_flipped_homog[...,new_keypoints_ids]
+    if calculate_angles or save_angles:
+        all_frames_X_flipped_homog = make_homogeneous(all_frames_X_flipped)
+        all_frames_X_flipped_homog = all_frames_X_flipped_homog[...,new_keypoints_ids]
+        all_frames_angles_homog = make_homogeneous(all_frames_angles)
+    else:
+        all_frames_X_flipped_homog = all_frames_X_flipped
+        all_frames_angles_homog = all_frames_angles
     all_frames_Y_homog = make_homogeneous(all_frames_Y)
     all_frames_Y_homog = all_frames_Y_homog[...,new_keypoints_ids]
     all_frames_Z_homog = pd.DataFrame(np.zeros_like(all_frames_X_homog)[:,0,:], columns=new_keypoints_names)
     all_frames_scores_homog = make_homogeneous(all_frames_scores)
     all_frames_scores_homog = all_frames_scores_homog[...,new_keypoints_ids]
-    all_frames_angles_homog = make_homogeneous(all_frames_angles)
 
     frame_range = [0,frame_count] if video_file == 'webcam' else frame_range
     all_frames_time = pd.Series(np.linspace(frame_range[0]/fps, frame_range[1]/fps, frame_count-frame_range[0]), name='time')
@@ -1738,10 +1742,10 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         trc_data, trc_data_unfiltered = [], []
         for i, idx_person in enumerate(selected_persons):
             pose_path_person = pose_output_path.parent / (pose_output_path.stem + f'_person{i:02d}.trc')
-            all_frames_X_person = pd.DataFrame(all_frames_X_homog[:,idx_person,:], columns=new_keypoints_names)
-            all_frames_X_flipped_person = pd.DataFrame(all_frames_X_flipped_homog[:,idx_person,:], columns=new_keypoints_names)
-            all_frames_Y_person = pd.DataFrame(all_frames_Y_homog[:,idx_person,:], columns=new_keypoints_names)
-
+            all_frames_X_person = pd.DataFrame(all_frames_X_processed[:,idx_person,:], columns=new_keypoints_names)
+            all_frames_Y_person = pd.DataFrame(all_frames_Y_processed[:,idx_person,:], columns=new_keypoints_names)
+            if calculate_angles or save_angles:
+                all_frames_X_flipped_person = pd.DataFrame(all_frames_X_flipped_processed[:,idx_person,:], columns=new_keypoints_names)
             # Delete person if less than 10 valid frames
             pose_nan_count = len(np.where(all_frames_X_person.sum(axis=1)==0)[0])
             if frame_count - frame_range[0] - pose_nan_count <= 10:
@@ -1815,7 +1819,9 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 if show_plots and not to_meters:
                     pose_plots(trc_data_unfiltered_i, trc_data_i, i)
                 
-                all_frames_X_processed[:,idx_person,:], all_frames_X_flipped_processed[:,idx_person,:], all_frames_Y_processed[:,idx_person,:] = all_frames_X_person_filt, all_frames_X_flipped_person, all_frames_Y_person_filt
+                all_frames_X_processed[:,idx_person,:], all_frames_Y_processed[:,idx_person,:] = all_frames_X_person_filt, all_frames_Y_person_filt
+                if calculate_angles or save_angles:
+                    all_frames_X_flipped_processed[:,idx_person,:] = all_frames_X_flipped_person
                 
 
         #%% Convert px to meters
@@ -2040,9 +2046,11 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             out_vid = cv2.VideoWriter(str(vid_output_path.absolute()), fourcc, fps, (cam_width, cam_height))
         
         # Reorder persons
-        all_frames_X_processed, all_frames_X_flipped_processed, all_frames_Y_processed = all_frames_X_processed[:,selected_persons,:], all_frames_X_flipped_processed[:,selected_persons,:], all_frames_Y_processed[:,selected_persons,:]
+        all_frames_X_processed, all_frames_Y_processed = all_frames_X_processed[:,selected_persons,:], all_frames_Y_processed[:,selected_persons,:]
         all_frames_scores_processed = all_frames_scores_processed[:,selected_persons,:]
-        all_frames_angles_processed = all_frames_angles_processed[:,selected_persons,:]
+        if save_angles or calculate_angles:
+            all_frames_X_flipped_processed = all_frames_X_flipped_processed[:,selected_persons,:]
+            all_frames_angles_processed = all_frames_angles_processed[:,selected_persons,:]
 
         # Reorder keypoints ids
         pose_model_with_new_ids = copy.deepcopy(pose_model)
