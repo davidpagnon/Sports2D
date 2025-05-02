@@ -23,15 +23,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest,windows-latest,  macos-latest, macos-13]
+        os: [ubuntu-latest, windows-latest,  macos-latest, macos-13]
         python-version: ["3.10", "3.11"]
         include:
           - os: ubuntu-latest
-            path: ~/.cache/pip
-          - os: macos-latest
-            path: ~/Library/Caches/pip
+            cache-path: ~/.cache/pip
           - os: windows-latest
-            path: ~\AppData\Local\pip\Cache
+            cache-path: C:\Users\runneradmin\AppData\Local\pip\Cache
+          - os: macos-latest
+            cache-path: ~/Library/Caches/pip
+          - os: macos-13
+            cache-path: ~/Library/Caches/pip
 
     steps:
       - name: Checkout code
@@ -40,7 +42,7 @@ jobs:
       - name: Cache conda environment
         uses: actions/cache@v4
         with:
-          path: ${{ matrix.os == 'windows-latest' && 'C:\\Users\\runneradmin\\.conda' || '~/.conda' }}
+          path: ~/.conda
           key: ${{ runner.os }}-conda-${{ matrix.python-version }}-${{ hashFiles('**/environment.yml') }}
           restore-keys: ${{ runner.os }}-conda-${{ matrix.python-version }}-
 
@@ -60,13 +62,14 @@ jobs:
       - name: Cache pip dependencies
         uses: actions/cache@v4
         with:
-          path: ${{ matrix.os == 'windows-latest' && 'C:\\Users\\runneradmin\\AppData\\Local\\pip\\Cache' || '~/.cache/pip' }}
+          path: ${{ matrix.cache-path }}
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt') }}
           restore-keys: ${{ runner.os }}-pip-${{ matrix.python-version }}-
 
       - name: Install pip dependencies
         run: |
-          conda run -n sports2d python -m pip install --upgrade pip
+          conda run -n sports2d python -m ensurepip --upgrade
+          conda run -n sports2d python -m pip install --upgrade pip setuptools wheel
           conda run -n sports2d python -m pip install flake8 pytest
           conda run -n sports2d python -m pip install git+https://github.com/${{ github.repository }}.git@${{ github.sha }}
           # conda run -n sports2d python -m pip install torch torchvision
@@ -74,6 +77,8 @@ jobs:
       
       - name: Lint with flake8
         run: |
+          eval "$(conda shell.bash hook)"  # Equivalent to `conda init bash` in the shell
+          conda activate sports2d
           # stop the build if there are Python syntax errors or undefined names
           conda run -n sports2d flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
           # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
@@ -86,6 +91,7 @@ jobs:
           PYTHONUNBUFFERED: "1"
           KMP_DUPLICATE_LIB_OK: TRUE
         run: |
-          cd Sports2D/Utilities
-          conda run -n sports2d pytest -v tests.py --capture=sys
+          eval "$(conda shell.bash hook)"  # Equivalent to `conda init bash` in the shell
+          conda activate sports2d
+          pytest -v Sports2D/Utilities\tests.py --capture=sys
         timeout-minutes: 20
