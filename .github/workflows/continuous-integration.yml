@@ -95,5 +95,5 @@ jobs:
           KMP_DUPLICATE_LIB_OK: TRUE
         run: |
           conda activate sports2d
-          pytest -v Sports2D/Utilities\tests.py --capture=sys
+          pytest -v Sports2D/Utilities/tests.py --capture=sys
         timeout-minutes: 20
