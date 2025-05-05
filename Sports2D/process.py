@@ -658,7 +658,7 @@ def make_trc_with_trc_data(trc_data, trc_path, fps=30):
     header_trc = ['PathFileType\t4\t(X/Y/Z)\t' + str(trc_path), 
             'DataRate\tCameraRate\tNumFrames\tNumMarkers\tUnits\tOrigDataRate\tOrigDataStartFrame\tOrigNumFrames', 
             '\t'.join(map(str,[DataRate, CameraRate, NumFrames, NumMarkers, 'm', OrigDataRate, 0, NumFrames])),
-            'Frame#\tTime\t' + '\t\t\t'.join(keypoint_names) + '\t\t',
+            'Frame#\tTime\t' + '\t\t\t'.join(keypoint_names) + '\t\t\t',
             '\t\t'+'\t'.join([f'X{i+1}\tY{i+1}\tZ{i+1}' for i in range(len(keypoint_names))])]
 
     with open(trc_path, 'w') as trc_o:
@@ -2147,6 +2147,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 
             Pose2Sim_config_dict['project']['participant_height'] = heights_m
             Pose2Sim_config_dict['project']['participant_mass'] = masses
+            Pose2Sim_config_dict['project']['frame_range'] = []
+            Pose2Sim_config_dict['markerAugmentation']['feet_on_floor'] = False
             Pose2Sim_config_dict['pose']['pose_model'] = pose_model_name.upper()
             Pose2Sim_config_dict = to_dict(Pose2Sim_config_dict)
 
