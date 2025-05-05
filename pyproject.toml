@@ -1,11 +1,14 @@
 [build-system]
-requires = ["setuptools >= 42", "wheel"] # PEP 508 specs
+requires = ["setuptools>=45", "wheel", "setuptools-scm"] # PEP 508 specs
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "sports2d"
-version = "0.8.4"
+dynamic = ["version"] # Generate version from git tags
 authors = [
+    {name = "David Pagnon", email = "contact@david-pagnon.com"},
+]
+maintainers = [
     {name = "David Pagnon", email = "contact@david-pagnon.com"},
 ]
 description = "Compute 2D human pose and angles from a video or a webcam."
@@ -48,6 +51,8 @@ dependencies = [
     "deep-sort-realtime",
     "Pose2Sim"
 ]
+
+[tool.setuptools_scm]
 
 [tool.setuptools]
 packages = {find = {}}
