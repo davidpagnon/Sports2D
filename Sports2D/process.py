@@ -986,7 +986,6 @@ def select_persons_on_vid(frames, all_pose_coords):
                 bbox=dict(facecolor=UNSELECTED_COLOR, edgecolor=LINE_UNSELECTED_COLOR, boxstyle='square,pad=0.3', path_effects=[patheffects.withSimplePatchShadow()]), zorder=3
             )
             rects.append(rect)
-            annotations.append(annotation)
     img_plot = ax_video.imshow(frame_rgb)
 
     # Slider
@@ -1044,9 +1043,9 @@ def select_persons_on_vid(frames, all_pose_coords):
                 )
                 annotations.append(annotation)
             else:
-                rect = plt.Rectangle((np.nan, np.nan), np.nan, np.nan,) 
+                rect = plt.Rectangle((np.nan, np.nan), np.nan, np.nan)
+                ax_video.add_patch(rect)
                 rects.append(rect)
-                annotations.append([])
 
         # Update plot
         img_plot.set_data(frame_rgb)
