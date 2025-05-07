@@ -1043,6 +1043,10 @@ def select_persons_on_vid(frames, all_pose_coords):
                     bbox=dict(facecolor=UNSELECTED_COLOR, edgecolor=LINE_UNSELECTED_COLOR, boxstyle='square,pad=0.3'), path_effects=[patheffects.withSimplePatchShadow()], zorder=3
                 )
                 annotations.append(annotation)
+            else:
+                rect = plt.Rectangle((np.nan, np.nan), np.nan, np.nan,) 
+                rects.append(rect)
+                annotations.append([])
 
         # Update plot
         img_plot.set_data(frame_rgb)
@@ -2147,7 +2151,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 
             Pose2Sim_config_dict['project']['participant_height'] = heights_m
             Pose2Sim_config_dict['project']['participant_mass'] = masses
-            Pose2Sim_config_dict['project']['frame_range'] = []
+            Pose2Sim_config_dict['project']['frame_range'] = 'all'
             Pose2Sim_config_dict['markerAugmentation']['feet_on_floor'] = False
             Pose2Sim_config_dict['pose']['pose_model'] = pose_model_name.upper()
             Pose2Sim_config_dict = to_dict(Pose2Sim_config_dict)
