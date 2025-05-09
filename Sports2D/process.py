@@ -66,6 +66,7 @@ import itertools as it
 from tqdm import tqdm
 from collections import defaultdict
 from anytree import RenderTree
+from anytree.importer import DictImporter
 
 import numpy as np
 import pandas as pd
@@ -1380,6 +1381,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     use_augmentation = config_dict.get('kinematics').get('use_augmentation')
     participant_masses = config_dict.get('kinematics').get('participant_mass')
     participant_masses = participant_masses if isinstance(participant_masses, list) else [participant_masses]
+    feet_on_floor = config_dict.get('kinematics').get('feet_on_floor')
     fastest_frames_to_remove_percent = config_dict.get('kinematics').get('fastest_frames_to_remove_percent')
     large_hip_knee_angles = config_dict.get('kinematics').get('large_hip_knee_angles')
     trimmed_extrema_percent = config_dict.get('kinematics').get('trimmed_extrema_percent')
@@ -1426,15 +1428,12 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         cv2.setWindowProperty(f'{video_file} Sports2D', cv2.WND_PROP_ASPECT_RATIO, cv2.WINDOW_FULLSCREEN)
 
     # Select the appropriate model based on the model_type
+    logging.info('\nEstimating pose...')
     if pose_model.upper() in ('HALPE_26', 'BODY_WITH_FEET'):
         model_name = 'HALPE_26'
         ModelClass = BodyWithFeet # 26 keypoints(halpe26)
         logging.info(f"Using HALPE_26 model (body and feet) for pose estimation.")
-    elif pose_model.upper() == 'WHOLE_BODY_WRIST':
-        model_name = 'COCO_133_WRIST'
-        ModelClass = Wholebody
-        logging.info(f"Using COCO_133 model (body, feet, 2 hand points) for pose estimation.")
-    elif pose_model.upper() in ('COCO_133', 'WHOLE_BODY'):
+    elif pose_model.upper() in ('COCO_133', 'WHOLE_BODY', 'WHOLE_BODY_WRIST'):
         model_name = 'COCO_133'
         ModelClass = Wholebody
         logging.info(f"Using COCO_133 model (body, feet, hands, and face) for pose estimation.")
@@ -1442,10 +1441,32 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         model_name = 'COCO_17'
         ModelClass = Body
         logging.info(f"Using COCO_17 model (body) for pose estimation.")
+    elif pose_model.upper() =='HAND':
+        model_name = 'HAND_21'
+        ModelClass = Hand
+        logging.info(f"Using HAND_21 model for pose estimation.")
+    elif pose_model.upper() =='FACE':
+        model_name = 'FACE_106'
+        logging.info(f"Using FACE_106 model for pose estimation.")
+    elif pose_model.upper() =='ANIMAL':
+        model_name = 'ANIMAL2D_17'
+        logging.info(f"Using ANIMAL2D_17 model for pose estimation.")
     else:
-        raise ValueError(f"Invalid model_type: {model_name}. Must be 'HALPE_26', 'COCO_133', or 'COCO_17'. Use another network (MMPose, DeepLabCut, OpenPose, AlphaPose, BlazePose...) and convert the output files if you need another model. See documentation.")
+        model_name = pose_model.upper()
+        logging.info(f"Using model {model_name} for pose estimation.")
     pose_model_name = pose_model
-    pose_model = eval(model_name)
+    try:
+        pose_model = eval(model_name)
+    except:
+        try: # from Config.toml
+            pose_model = DictImporter().import_(config_dict.get('pose').get(pose_model))
+            if pose_model.id == 'None':
+                pose_model.id = None
+        except:
+            raise NameError(f'{pose_model} not found in skeletons.py nor in Config.toml')
+
+    # Select device and backend
+    backend, device = setup_backend_device(backend=backend, device=device)
 
     # Manually select the models if mode is a dictionary rather than 'lightweight', 'balanced', or 'performance'
     if not mode in ['lightweight', 'balanced', 'performance']:
@@ -2127,7 +2148,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
 
                 # Delete person if less than 4 valid frames
                 pose_path_person = pose_output_path.parent / (pose_output_path.stem + f'_person{i:02d}.trc')
-                all_frames_X_person = pd.DataFrame(all_frames_X_homog[:,i,:], columns=keypoints_names)
+                all_frames_X_person = pd.DataFrame(all_frames_X_homog[:,i,:], columns=new_keypoints_names)
                 pose_nan_count = len(np.where(all_frames_X_person.sum(axis=1)==0)[0])
                 if frame_count - frame_range[0] - pose_nan_count <= 4:
                     # heights_m.append(DEFAULT_HEIGHT)
@@ -2151,7 +2172,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             Pose2Sim_config_dict['project']['participant_height'] = heights_m
             Pose2Sim_config_dict['project']['participant_mass'] = masses
             Pose2Sim_config_dict['project']['frame_range'] = 'all'
-            Pose2Sim_config_dict['markerAugmentation']['feet_on_floor'] = False
+            Pose2Sim_config_dict['markerAugmentation']['feet_on_floor'] = feet_on_floor
             Pose2Sim_config_dict['pose']['pose_model'] = pose_model_name.upper()
             Pose2Sim_config_dict = to_dict(Pose2Sim_config_dict)
 

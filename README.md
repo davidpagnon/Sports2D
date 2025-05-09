@@ -430,7 +430,7 @@ sports2d --help
 'calculate_angles': ["c", "calculate joint and segment angles. true if not specified"],
 'save_angles': ["A", "save angles as mot files. true if not specified"],
 'slowmo_factor': ["", "slow-motion factor. For a video recorded at 240 fps and exported to 30 fps, it would be 240/30 = 8. 1 if not specified"],
-'pose_model': ["p", "only body_with_feet is available for now. body_with_feet if not specified"],
+'pose_model': ["p", "body_with_feet, whole_body_wrist, whole_body, or body. body_with_feet if not specified"],
 'mode': ["m", 'light, balanced, performance, or a """{dictionary within triple quote}""". balanced if not specified. Use a dictionary to specify your own detection and/or pose estimation models (more about in the documentation).'],
 'det_frequency': ["f", "run person detection only every N frames, and inbetween track previously detected bounding boxes. keypoint detection is still run on all frames.\n\
                   Equal to or greater than 1, can be as high as you want in simple uncrowded cases. Much faster, but might be less accurate. 1 if not specified: detection runs on all frames"],
@@ -444,6 +444,7 @@ sports2d --help
 'save_calib': ["", "save calibration file. true if not specified"],
 'do_ik': ["", "do inverse kinematics. false if not specified"],
 'use_augmentation': ["", "Use LSTM marker augmentation. false if not specified"],
+'feet_on_floor': ["", "offset marker augmentation results so that feet are at floor level. true if not specified"],
 'use_contacts_muscles': ["", "Use model with contact spheres and muscles. false if not specified"],
 'participant_mass': ["", "mass of the participant in kg or none. Defaults to 70 if not provided. No influence on kinematics (motion), only on kinetics (forces)"],
 'close_to_zero_speed_m': ["","Sum for all keypoints: about 50 px/frame or 0.2 m/frame"], 
