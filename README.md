@@ -381,7 +381,7 @@ sports2d --video_input demo.mp4 other_video.mp4 --time_range 1.2 2.7 0 3.5
 #### Use a custom pose estimation model:
 - Retrieve hand motion:
   ``` cmd
-  sports2d --pose_model WholeBody 
+  sports2d --pose_model whole_body 
   ```
 - Use any custom (deployed) MMPose model
   ``` cmd
