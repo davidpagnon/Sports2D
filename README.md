@@ -526,6 +526,7 @@ Will be much faster, with no impact on accuracy. However, the installation takes
 
 2. Finally, install ONNX Runtime with GPU support:
    ```
+   pip uninstall onnxruntime
    pip install onnxruntime-gpu
    ```
 
