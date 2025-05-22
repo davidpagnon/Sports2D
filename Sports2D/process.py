@@ -76,7 +76,7 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, Button
 from matplotlib import patheffects
 
-from rtmlib import PoseTracker, BodyWithFeet, Wholebody, Body, Custom
+from rtmlib import PoseTracker, BodyWithFeet, Wholebody, Body, Hand, Custom
 from deep_sort_realtime.deepsort_tracker import DeepSort
 
 from Sports2D.Utilities import filter
@@ -1524,9 +1524,14 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         # Set up pose tracker
         try:
             pose_tracker = setup_pose_tracker(ModelClass, det_frequency, mode, False, backend, device)
-        except:
-            logging.error('Error: Pose estimation failed. Check in Config.toml that pose_model and mode are valid.')
-            raise ValueError('Error: Pose estimation failed. Check in Config.toml that pose_model and mode are valid.')
+        except: # for multi-threading
+            try:
+                import time
+                time.sleep(3)
+                pose_tracker = setup_pose_tracker(ModelClass, det_frequency, mode, False, backend, device)
+            except:
+                logging.error('Error: Pose estimation failed. Check in Config.toml that pose_model and mode are valid.')
+                raise ValueError('Error: Pose estimation failed. Check in Config.toml that pose_model and mode are valid.')
         
         if tracking_mode not in ['deepsort', 'sports2d']:
             logging.warning(f"Tracking mode {tracking_mode} not recognized. Using sports2d method.")

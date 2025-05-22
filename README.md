@@ -120,7 +120,8 @@ pip install .
 
 #### Full install
 
-> Only needed if you want to run inverse kinematics (`--do_ik True`).
+> **N.B.:** Only needed if you want to run inverse kinematics (`--do_ik True`).\
+> **N.B.:** If you already have a Pose2Sim conda environment, you can skip this step. Just run `conda activate Pose2Sim` and `pip install sports2d`.
 
 - Install Anaconda or [Miniconda](https://docs.conda.io/en/latest/miniconda.html):\
   Open an Anaconda prompt and create a virtual environment:
