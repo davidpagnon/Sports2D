@@ -59,14 +59,13 @@ import ast
 import copy
 import shutil
 import os
+import re
 from importlib.metadata import version
-from functools import partial
 from datetime import datetime
 import itertools as it
 from tqdm import tqdm
 from collections import defaultdict
 from anytree import RenderTree
-from anytree.importer import DictImporter
 
 import numpy as np
 import pandas as pd
@@ -191,6 +190,79 @@ def setup_video(video_file_path, save_vid, vid_output_path):
             # logging.info("Failed to open video writer with 'avc1' (h264). Using 'mp4v' instead.")
     
     return cap, out_vid, cam_width, cam_height, fps
+
+
+def setup_model_class_mode(pose_model, mode, config_dict={}):
+    '''
+    
+    '''
+
+    if pose_model.upper() in ('HALPE_26', 'BODY_WITH_FEET'):
+        model_name = 'HALPE_26'
+        ModelClass = BodyWithFeet # 26 keypoints(halpe26)
+        logging.info(f"Using HALPE_26 model (body and feet) for pose estimation in {mode} mode.")
+    elif pose_model.upper() in ('COCO_133', 'WHOLE_BODY', 'WHOLE_BODY_WRIST'):
+        model_name = 'COCO_133'
+        ModelClass = Wholebody
+        logging.info(f"Using COCO_133 model (body, feet, hands, and face) for pose estimation in {mode} mode.")
+    elif pose_model.upper() in ('COCO_17', 'BODY'):
+        model_name = 'COCO_17'
+        ModelClass = Body
+        logging.info(f"Using COCO_17 model (body) for pose estimation in {mode} mode.")
+    elif pose_model.upper() =='HAND':
+        model_name = 'HAND_21'
+        ModelClass = Hand
+        logging.info(f"Using HAND_21 model for pose estimation in {mode} mode.")
+    elif pose_model.upper() =='FACE':
+        model_name = 'FACE_106'
+        logging.info(f"Using FACE_106 model for pose estimation in {mode} mode.")
+    elif pose_model.upper() =='ANIMAL':
+        model_name = 'ANIMAL2D_17'
+        logging.info(f"Using ANIMAL2D_17 model for pose estimation in {mode} mode.")
+    else:
+        model_name = pose_model.upper()
+        logging.info(f"Using model {model_name} for pose estimation in {mode} mode.")
+    try:
+        pose_model = eval(model_name)
+    except:
+        try: # from Config.toml
+            from anytree.importer import DictImporter
+            model_name = pose_model.upper()
+            pose_model = DictImporter().import_(config_dict.get('pose').get(pose_model))
+            if pose_model.id == 'None':
+                pose_model.id = None
+            logging.info(f"Using model {model_name} for pose estimation.")
+        except:
+            raise NameError(f'{pose_model} not found in skeletons.py nor in Config.toml')
+
+    # Manually select the models if mode is a dictionary rather than 'lightweight', 'balanced', or 'performance'
+    if not mode in ['lightweight', 'balanced', 'performance'] or 'ModelClass' not in locals():
+        try:
+            from functools import partial
+            try:
+                mode = ast.literal_eval(mode)
+            except: # if within single quotes instead of double quotes when run with sports2d --mode """{dictionary}"""
+                mode = mode.strip("'").replace('\n', '').replace(" ", "").replace(",", '", "').replace(":", '":"').replace("{", '{"').replace("}", '"}').replace('":"/',':/').replace('":"\\',':\\')
+                mode = re.sub(r'"\[([^"]+)",\s?"([^"]+)\]"', r'[\1,\2]', mode) # changes "[640", "640]" to [640,640]
+                mode = json.loads(mode)
+            det_class = mode.get('det_class')
+            det = mode.get('det_model')
+            det_input_size = mode.get('det_input_size')
+            pose_class = mode.get('pose_class')
+            pose = mode.get('pose_model')
+            pose_input_size = mode.get('pose_input_size')
+
+            ModelClass = partial(Custom,
+                        det_class=det_class, det=det, det_input_size=det_input_size,
+                        pose_class=pose_class, pose=pose, pose_input_size=pose_input_size)
+            logging.info(f"Using model {model_name} with the following custom parameters: {mode}.")
+            
+        except (json.JSONDecodeError, TypeError):
+            logging.warning("Invalid mode. Must be 'lightweight', 'balanced', 'performance', or '''{dictionary}''' of parameters within triple quotes. Make sure input_sizes are within square brackets.")
+            logging.warning('Using the default "balanced" mode.')
+            mode = 'balanced'
+
+    return pose_model, ModelClass, mode
 
 
 def setup_backend_device(backend='auto', device='auto'):
@@ -1427,73 +1499,14 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         cv2.namedWindow(f'{video_file} Sports2D', cv2.WINDOW_NORMAL + cv2.WINDOW_KEEPRATIO)
         cv2.setWindowProperty(f'{video_file} Sports2D', cv2.WND_PROP_ASPECT_RATIO, cv2.WINDOW_FULLSCREEN)
 
+
     # Select the appropriate model based on the model_type
     logging.info('\nEstimating pose...')
-    if pose_model.upper() in ('HALPE_26', 'BODY_WITH_FEET'):
-        model_name = 'HALPE_26'
-        ModelClass = BodyWithFeet # 26 keypoints(halpe26)
-        logging.info(f"Using HALPE_26 model (body and feet) for pose estimation.")
-    elif pose_model.upper() in ('COCO_133', 'WHOLE_BODY', 'WHOLE_BODY_WRIST'):
-        model_name = 'COCO_133'
-        ModelClass = Wholebody
-        logging.info(f"Using COCO_133 model (body, feet, hands, and face) for pose estimation.")
-    elif pose_model.upper() in ('COCO_17', 'BODY'):
-        model_name = 'COCO_17'
-        ModelClass = Body
-        logging.info(f"Using COCO_17 model (body) for pose estimation.")
-    elif pose_model.upper() =='HAND':
-        model_name = 'HAND_21'
-        ModelClass = Hand
-        logging.info(f"Using HAND_21 model for pose estimation.")
-    elif pose_model.upper() =='FACE':
-        model_name = 'FACE_106'
-        logging.info(f"Using FACE_106 model for pose estimation.")
-    elif pose_model.upper() =='ANIMAL':
-        model_name = 'ANIMAL2D_17'
-        logging.info(f"Using ANIMAL2D_17 model for pose estimation.")
-    else:
-        model_name = pose_model.upper()
-        logging.info(f"Using model {model_name} for pose estimation.")
     pose_model_name = pose_model
-    try:
-        pose_model = eval(model_name)
-    except:
-        try: # from Config.toml
-            pose_model = DictImporter().import_(config_dict.get('pose').get(pose_model))
-            if pose_model.id == 'None':
-                pose_model.id = None
-        except:
-            raise NameError(f'{pose_model} not found in skeletons.py nor in Config.toml')
-
+    pose_model, ModelClass, mode = setup_model_class_mode(pose_model, mode, config_dict)
+    
     # Select device and backend
     backend, device = setup_backend_device(backend=backend, device=device)
-
-    # Manually select the models if mode is a dictionary rather than 'lightweight', 'balanced', or 'performance'
-    if not mode in ['lightweight', 'balanced', 'performance']:
-        try:
-            try:
-                mode = ast.literal_eval(mode)
-            except: # if within single quotes instead of double quotes when run with sports2d --mode """{dictionary}"""
-                mode = mode.strip("'").replace('\n', '').replace(" ", "").replace(",", '", "').replace(":", '":"').replace("{", '{"').replace("}", '"}').replace('":"/',':/').replace('":"\\',':\\')
-                mode = re.sub(r'"\[([^"]+)",\s?"([^"]+)\]"', r'[\1,\2]', mode) # changes "[640", "640]" to [640,640]
-                mode = json.loads(mode)
-            det_class = mode.get('det_class')
-            det = mode.get('det_model')
-            det_input_size = mode.get('det_input_size')
-            pose_class = mode.get('pose_class')
-            pose = mode.get('pose_model')
-            pose_input_size = mode.get('pose_input_size')
-
-            ModelClass = partial(Custom,
-                        det_class=det_class, det=det, det_input_size=det_input_size,
-                        pose_class=pose_class, pose=pose, pose_input_size=pose_input_size,
-                        backend=backend, device=device)
-            
-        except (json.JSONDecodeError, TypeError):
-            logging.warning("Invalid mode. Must be 'lightweight', 'balanced', 'performance', or '''{dictionary}''' of parameters within triple quotes. Make sure input_sizes are within square brackets.")
-            logging.warning('Using the default "balanced" mode.')
-            mode = 'balanced'
-    
 
     # Skip pose estimation or set it up:
     if load_trc_px:
@@ -1722,6 +1735,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     all_frames_scores_homog = all_frames_scores_homog[...,new_keypoints_ids]
 
     frame_range = [0,frame_count] if video_file == 'webcam' else frame_range
+    print(frame_range)
     all_frames_time = pd.Series(np.linspace(frame_range[0]/fps, frame_range[1]/fps, frame_count-frame_range[0]), name='time')
     if load_trc_px:
         selected_persons = [0]
