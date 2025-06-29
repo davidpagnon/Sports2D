@@ -446,7 +446,7 @@ sports2d --help
 'do_ik': ["", "do inverse kinematics. false if not specified"],
 'use_augmentation': ["", "Use LSTM marker augmentation. false if not specified"],
 'feet_on_floor': ["", "offset marker augmentation results so that feet are at floor level. true if not specified"],
-'use_contacts_muscles': ["", "Use model with contact spheres and muscles. false if not specified"],
+'use_simple_model': ["", "IK 10+ times faster, but no muscles or flexible spine. false if not specified"],
 'participant_mass': ["", "mass of the participant in kg or none. Defaults to 70 if not provided. No influence on kinematics (motion), only on kinetics (forces)"],
 'close_to_zero_speed_m': ["","Sum for all keypoints: about 50 px/frame or 0.2 m/frame"], 
 'tracking_mode': ["", "'sports2d' or 'deepsort'. 'deepsort' is slower, harder to parametrize but can be more robust if correctly tuned"],

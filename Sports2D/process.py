@@ -1735,7 +1735,6 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     all_frames_scores_homog = all_frames_scores_homog[...,new_keypoints_ids]
 
     frame_range = [0,frame_count] if video_file == 'webcam' else frame_range
-    print(frame_range)
     all_frames_time = pd.Series(np.linspace(frame_range[0]/fps, frame_range[1]/fps, frame_count-frame_range[0]), name='time')
     if load_trc_px:
         selected_persons = [0]
