@@ -97,8 +97,8 @@ def test_workflow():
     config_dict.get("base").update({"video_dir": str(video_dir)})
     config_dict.get("base").update({"person_ordering_method": "highest_likelihood"})
     with open(config_path, 'w') as f: toml.dump(config_dict, f)
-    demo_cmd4 = ["sports2d", "--config", str(config_path), "--show_realtime_results", "False", "--show_graphs", "False"]
-    subprocess.run(demo_cmd4, check=True, capture_output=True, text=True, encoding='utf-8')
+    demo_cmd5 = ["sports2d", "--config", str(config_path), "--show_realtime_results", "False", "--show_graphs", "False"]
+    subprocess.run(demo_cmd5, check=True, capture_output=True, text=True, encoding='utf-8')
 
 
 if __name__ == "__main__":
