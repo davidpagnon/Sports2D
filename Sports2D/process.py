@@ -60,6 +60,7 @@ import copy
 import shutil
 import os
 import re
+import platform
 from importlib.metadata import version
 from datetime import datetime
 import itertools as it
@@ -788,18 +789,23 @@ def pose_plots(trc_data_unfiltered, trc_data, person_id):
     OUTPUT:
     - matplotlib window with tabbed figures for each keypoint
     '''
-    
-    mpl.use('qt5agg')
+    os_name = platform.system()
+
+    if os_name == 'Windows':
+        mpl.use('qt5agg') # windows
     mpl.rc('figure', max_open_warning=0)
 
     keypoints_names = trc_data.columns[1::3]
-    
+
     pw = plotWindow()
     pw.MainWindow.setWindowTitle('Person'+ str(person_id) + ' coordinates') # Main title
 
     for id, keypoint in enumerate(keypoints_names):
         f = plt.figure()
-        f.canvas.manager.window.setWindowTitle(keypoint + ' Plot')
+        if os_name == 'Windows':
+            f.canvas.manager.window.setWindowTitle(keypoint + ' Plot') # windows
+        elif os_name == 'Darwin':  # macOS
+            f.canvas.manager.set_window_title(keypoint + ' Plot') # mac
 
         axX = plt.subplot(211)
         plt.plot(trc_data_unfiltered.iloc[:,0], trc_data_unfiltered.iloc[:,id*3+1], label='unfiltered')
