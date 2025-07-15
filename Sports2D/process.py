@@ -809,7 +809,7 @@ def pose_plots(trc_data_unfiltered, trc_data, person_id):
             f.canvas.manager.window.setWindowTitle(keypoint + ' Plot') # windows
         elif os_name == 'Darwin':  # macOS
             f.canvas.manager.set_window_title(keypoint + ' Plot') # mac
-            
+
         axX = plt.subplot(211)
         plt.plot(trc_data_unfiltered.iloc[:,0], trc_data_unfiltered.iloc[:,id*3+1], label='unfiltered')
         plt.plot(trc_data.iloc[:,0], trc_data.iloc[:,id*3+1], label='filtered')
@@ -841,16 +841,22 @@ def angle_plots(angle_data_unfiltered, angle_data, person_id):
     - matplotlib window with tabbed figures for each angle
     '''
 
-    mpl.use('qt5agg')
+    os_name = platform.system()
+    if os_name == 'Windows':
+        mpl.use('qt5agg') # windows
     mpl.rc('figure', max_open_warning=0)
 
     angles_names = angle_data.columns[1:]
-
+    
     pw = plotWindow()
     pw.MainWindow.setWindowTitle('Person'+ str(person_id) + ' angles') # Main title
 
     for id, angle in enumerate(angles_names):
         f = plt.figure()
+        if os_name == 'Windows':
+            f.canvas.manager.window.setWindowTitle(angle + ' Plot') # windows
+        elif os_name == 'Darwin':  # macOS
+            f.canvas.manager.set_window_title(angle + ' Plot') # mac
         
         ax = plt.subplot(111)
         plt.plot(angle_data_unfiltered.iloc[:,0], angle_data_unfiltered.iloc[:,id+1], label='unfiltered')
