@@ -82,6 +82,7 @@ from Sports2D.Utilities import filter
 from Sports2D.Utilities.common import *
 from Pose2Sim.common import *
 from Pose2Sim.skeletons import *
+from Pose2Sim.triangulation import indices_of_first_last_non_nan_chunks
 
 DEFAULT_MASS = 70
 DEFAULT_HEIGHT = 1.7
@@ -494,24 +495,25 @@ def draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_
                             right_angle = True if ang_params[2]==90 else False
                             
                             # Draw angle
-                            if len(ang_coords) == 2: # segment angle
-                                app_point, vec = draw_segment_angle(img, ang_coords, flip)
-                            else: # joint angle
-                                app_point, vec1, vec2 = draw_joint_angle(img, ang_coords, flip, right_angle)
-        
-                            # Write angle on body
-                            if 'body' in display_angle_values_on:
+                            if not np.any(np.isnan(ang_coords)):
                                 if len(ang_coords) == 2: # segment angle
-                                    write_angle_on_body(img, ang, app_point, vec, np.array([1,0]), dist=20, color=(255,255,255), fontSize=fontSize, thickness=thickness)
+                                    app_point, vec = draw_segment_angle(img, ang_coords, flip)
                                 else: # joint angle
-                                    write_angle_on_body(img, ang, app_point, vec1, vec2, dist=40, color=(0,255,0), fontSize=fontSize, thickness=thickness)
+                                    app_point, vec1, vec2 = draw_joint_angle(img, ang_coords, flip, right_angle)
+        
+                                # Write angle on body
+                                if 'body' in display_angle_values_on:
+                                    if len(ang_coords) == 2: # segment angle
+                                        write_angle_on_body(img, ang, app_point, vec, np.array([1,0]), dist=20, color=(255,255,255), fontSize=fontSize, thickness=thickness)
+                                    else: # joint angle
+                                        write_angle_on_body(img, ang, app_point, vec1, vec2, dist=40, color=(0,255,0), fontSize=fontSize, thickness=thickness)
 
-                            # Write angle as a list on image with progress bar
-                            if 'list' in display_angle_values_on:
-                                if len(ang_coords) == 2: # segment angle
-                                    ang_label_line = write_angle_as_list(img, ang, ang_name, person_label_position, ang_label_line, color = (255,255,255), fontSize=fontSize, thickness=thickness)
-                                else:
-                                    ang_label_line = write_angle_as_list(img, ang, ang_name, person_label_position, ang_label_line, color = (0,255,0), fontSize=fontSize, thickness=thickness)
+                                # Write angle as a list on image with progress bar
+                                if 'list' in display_angle_values_on:
+                                    if len(ang_coords) == 2: # segment angle
+                                        ang_label_line = write_angle_as_list(img, ang, ang_name, person_label_position, ang_label_line, color = (255,255,255), fontSize=fontSize, thickness=thickness)
+                                    else:
+                                        ang_label_line = write_angle_as_list(img, ang, ang_name, person_label_position, ang_label_line, color = (0,255,0), fontSize=fontSize, thickness=thickness)
 
     return img
 
@@ -1811,9 +1813,15 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     logging.info(f'- Person {i}: Interpolating missing sequences if they are smaller than {interp_gap_smaller_than} frames. Large gaps filled with {fill_large_gaps_with}.')
                     all_frames_X_person_interp = all_frames_X_person.apply(interpolate_zeros_nans, axis=0, args = [interp_gap_smaller_than, 'linear'])
                     all_frames_Y_person_interp = all_frames_Y_person.apply(interpolate_zeros_nans, axis=0, args = [interp_gap_smaller_than, 'linear'])
+
                     if fill_large_gaps_with.lower() == 'last_value':
-                        all_frames_X_person_interp = all_frames_X_person_interp.ffill(axis=0).bfill(axis=0)
-                        all_frames_Y_person_interp = all_frames_Y_person_interp.ffill(axis=0).bfill(axis=0)
+                        for col in all_frames_X_person_interp.columns:
+                            first_run_start, last_run_end = indices_of_first_last_non_nan_chunks(all_frames_Y_person_interp[col])
+                            for coord_df in [all_frames_X_person_interp, all_frames_Y_person_interp]:
+                                coord_df.loc[:first_run_start, col] = np.nan
+                                coord_df.loc[last_run_end:, col] = np.nan
+                                coord_df.loc[first_run_start:last_run_end, col] = coord_df.loc[first_run_start:last_run_end, col].ffill().bfill()
+
                     elif fill_large_gaps_with.lower() == 'zeros':
                         all_frames_X_person_interp.replace(np.nan, 0, inplace=True)
                         all_frames_Y_person_interp.replace(np.nan, 0, inplace=True)
