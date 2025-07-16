@@ -1830,7 +1830,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     if fill_large_gaps_with.lower() == 'last_value':
                         for col in all_frames_X_person_interp.columns:
                             first_run_start, last_run_end = indices_of_first_last_non_nan_chunks(all_frames_Y_person_interp[col])
-                            for coord_df in [all_frames_X_person_interp, all_frames_Y_person_interp]:
+                            for coord_df in [all_frames_X_person_interp, all_frames_Y_person_interp, all_frames_Z_homog]:
                                 coord_df.loc[:first_run_start, col] = np.nan
                                 coord_df.loc[last_run_end:, col] = np.nan
                                 coord_df.loc[first_run_start:last_run_end, col] = coord_df.loc[first_run_start:last_run_end, col].ffill().bfill()
@@ -1956,7 +1956,13 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     # Convert to meters
                     px_to_m_i = [convert_px_to_meters(trc_data[i][kpt_name], first_person_height, height_px, cx, cy, -floor_angle_estim, visible_side=visible_side_i) for kpt_name in new_keypoints_names]
                     trc_data_m_i = pd.concat([all_frames_time.rename('time')]+px_to_m_i, axis=1)
-                    trc_data_m_i = trc_data_m_i.ffill(axis=0).bfill(axis=0)
+                    for c in 3*np.arange(len(trc_data_m_i.columns[3::3]))+1: # only X coordinates
+                        first_run_start, last_run_end = indices_of_first_last_non_nan_chunks(trc_data_m_i.iloc[:,c])
+                        trc_data_m_i.iloc[:first_run_start,c+2] = np.nan
+                        trc_data_m_i.iloc[last_run_end:,c+2] = np.nan
+                        trc_data_m_i.iloc[first_run_start:last_run_end,c+2] = trc_data_m_i.iloc[first_run_start:last_run_end,c+2].ffill().bfill()
+                    first_trim, last_trim = trc_data_m_i.isnull().any(axis=1).idxmin(), trc_data_m_i[::-1].isnull().any(axis=1).idxmin()
+                    trc_data_m_i = trc_data_m_i.iloc[first_trim:last_trim+1,:]
                     px_to_m_unfiltered_i = [convert_px_to_meters(trc_data_unfiltered[i][kpt_name], first_person_height, height_px, cx, cy, -floor_angle_estim) for kpt_name in new_keypoints_names]
                     trc_data_unfiltered_m_i = pd.concat([all_frames_time.rename('time')]+px_to_m_unfiltered_i, axis=1)
 
@@ -2048,7 +2054,11 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     logging.info(f'- Person {i}: Interpolating missing sequences if they are smaller than {interp_gap_smaller_than} frames. Large gaps filled with {fill_large_gaps_with}.')
                     all_frames_angles_person_interp = all_frames_angles_person.apply(interpolate_zeros_nans, axis=0, args = [interp_gap_smaller_than, 'linear'])
                     if fill_large_gaps_with == 'last_value':
-                        all_frames_angles_person_interp = all_frames_angles_person_interp.ffill(axis=0).bfill(axis=0)
+                        for col in all_frames_angles_person_interp.columns:
+                            first_run_start, last_run_end = indices_of_first_last_non_nan_chunks(all_frames_angles_person_interp[col])
+                            all_frames_angles_person_interp.loc[:first_run_start, col] = np.nan
+                            all_frames_angles_person_interp.loc[last_run_end:, col] = np.nan
+                            all_frames_angles_person_interp.loc[first_run_start:last_run_end, col] = all_frames_angles_person_interp.loc[first_run_start:last_run_end, col].ffill().bfill()
                     elif fill_large_gaps_with == 'zeros':
                         all_frames_angles_person_interp.replace(np.nan, 0, inplace=True)
                 
