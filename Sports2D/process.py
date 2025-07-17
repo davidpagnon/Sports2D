@@ -1074,6 +1074,7 @@ def select_persons_on_vid(frames, all_pose_coords):
                 bbox=dict(facecolor=UNSELECTED_COLOR, edgecolor=LINE_UNSELECTED_COLOR, boxstyle='square,pad=0.3', path_effects=[patheffects.withSimplePatchShadow()]), zorder=3
             )
             rects.append(rect)
+            annotations.append(annotation)
     img_plot = ax_video.imshow(frame_rgb)
 
     # Slider
@@ -1561,9 +1562,9 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 logging.error('Error: Pose estimation failed. Check in Config.toml that pose_model and mode are valid.')
                 raise ValueError('Error: Pose estimation failed. Check in Config.toml that pose_model and mode are valid.')
         
-        if tracking_mode not in ['deepsort', 'sports2d']:
-            logging.warning(f"Tracking mode {tracking_mode} not recognized. Using sports2d method.")
-            tracking_mode = 'sports2d'
+        # if tracking_mode not in ['deepsort', 'sports2d']:
+        #     logging.warning(f"Tracking mode {tracking_mode} not recognized. Using sports2d method.")
+        #     tracking_mode = 'sports2d'
         logging.info(f'Pose tracking set up for "{pose_model_name}" model.')
         logging.info(f'Mode: {mode}.\n')
         logging.info(f'Persons are detected every {det_frequency} frames and tracked inbetween. Tracking is done with {tracking_mode}.')
@@ -1641,6 +1642,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 if tracking_mode == 'sports2d': 
                     if 'prev_keypoints' not in locals(): prev_keypoints = keypoints
                     prev_keypoints, keypoints, scores = sort_people_sports2d(prev_keypoints, keypoints, scores=scores)
+                else:
+                    pass
 
             
             # Process coordinates and compute angles
@@ -2152,7 +2155,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             if save_vid:
                 out_vid.write(img)
             if save_img:
-                cv2.imwrite(str((img_output_dir / f'{output_dir_name}_{(frame_count-1):06d}.png')), img)
+                cv2.imwrite(str((img_output_dir / f'{output_dir_name}_{(frame_count):06d}.png')), img)
 
         if save_vid:
             out_vid.release()
