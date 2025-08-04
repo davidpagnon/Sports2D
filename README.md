@@ -359,6 +359,12 @@ sports2d --video_input demo.mp4 other_video.mp4 --time_range 1.2 2.7 0 3.5
   ```cmd
   sports2d --calculate_angles false
   ```
+- Flip angles when the person faces the other side.\
+  **N.B.:** *We consider that the person looks to the right if their toe keypoint is to the right of their heel. This is not always true when the person is sprinting, especially in the swing phase. Set it to false if you want timeseries to be continuous even when the participant switches their stance.*
+  ```cmd
+  sports2d --flip_left_right true # Default
+  ```
+
 - To run **inverse kinematics with OpenSim**, check [this section](#run-inverse-kinematics)
 
 <br>
@@ -462,7 +468,7 @@ sports2d --help
 'large_hip_knee_angles': ["", "Hip and knee angles below this value are considered as imprecise. Defaults to 45"],
 'trimmed_extrema_percent': ["", "Proportion of the most extreme segment values to remove before calculating their mean. Defaults to 50"],
 'fontSize': ["", "font size for angle values. 0.3 if not specified"],
-'flip_left_right': ["", "true or false. Flips angles when the person faces the other side. The person looks to the right if their toe keypoint is to the right of their heel. Set it to false if the person is sprinting or if you want timeseries to be continuous even when the participent switches their stance. true if not specified"],
+'flip_left_right': ["", "true or false. Flips angles when the person faces the other side. The person looks to the right if their toe keypoint is to the right of their heel. Set it to false if the person is sprinting or if you want timeseries to be continuous even when the participant switches their stance. true if not specified"],
 'correct_segment_angles_with_floor_angle': ["", "true or false. If the camera is tilted, corrects segment angles as regards to the floor angle. Set to false is the floor is tilted instead. True if not specified"],
 'interpolate': ["", "interpolate missing data. true if not specified"],
 'interp_gap_smaller_than': ["", "interpolate sequences of missing data if they are less than N frames long. 10 if not specified"],
