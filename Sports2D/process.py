@@ -1999,6 +1999,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 else:
                     visible_side_i = 'none'
                 new_visible_side += [visible_side_i]
+        else:
+            new_visible_side = visible_side.copy()
                 
             
 
@@ -2063,7 +2065,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         for i, idx_person in enumerate(selected_persons):
             angles_path_person = angles_output_path.parent / (angles_output_path.stem + f'_person{i:02d}.mot')
             all_frames_angles_person = pd.DataFrame(all_frames_angles_homog[:,idx_person,:], columns=angle_names)
-            
+
             # Flip angles for left side when flip_left_right false
             if new_visible_side[i] == 'left' and not flip_left_right: 
                 all_frames_angles_homog[:, idx_person, :] = -all_frames_angles_homog[:, idx_person, :]
