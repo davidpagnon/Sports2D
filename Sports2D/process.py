@@ -1653,7 +1653,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             
             # Process coordinates and compute angles
             valid_X, valid_Y, valid_scores = [], [], []
-            valid_X_flipped, valid_angles = [], []
+            valid_X_flipped, valid_angles_flipped, valid_angles = [], [], []
             for person_idx in range(len(keypoints)):
                 if load_trc_px:
                     person_X = keypoints[person_idx][:,0]
@@ -1699,7 +1699,17 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                         else:
                             ang = np.nan
                         person_angles.append(ang)
+                    
+                    # flip angles on the left side if flip_left_right false
+                    if len(visible_side) <= person_idx:
+                        visible_side += ['auto'] # set to 'auto' if list too short
+                    if visible_side[person_idx] == 'left' and not flip_left_right:
+                        person_angles_flipped = list(-np.array(person_angles))
+                    else:
+                        person_angles_flipped = person_angles.copy()
+
                     valid_angles.append(person_angles)
+                    valid_angles_flipped.append(person_angles_flipped)
                     valid_X_flipped.append(person_X_flipped)
                 valid_X.append(person_X)
                 valid_Y.append(person_Y)
@@ -1714,7 +1724,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 img = draw_keypts(img, valid_X, valid_Y, valid_scores, cmap_str='RdYlGn')
                 img = draw_skel(img, valid_X, valid_Y, pose_model)
                 if calculate_angles:
-                    img = draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, new_keypoints_ids, new_keypoints_names, angle_names, display_angle_values_on=display_angle_values_on, colors=colors, fontSize=fontSize, thickness=thickness)
+
+                    img = draw_angles(img, valid_X, valid_Y, valid_angles_flipped, valid_X_flipped, new_keypoints_ids, new_keypoints_names, angle_names, display_angle_values_on=display_angle_values_on, colors=colors, fontSize=fontSize, thickness=thickness)
                 cv2.imshow(f'{video_file} Sports2D', img)
                 if (cv2.waitKey(1) & 0xFF) == ord('q') or (cv2.waitKey(1) & 0xFF) == 27:
                     break
@@ -1936,6 +1947,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                              f'xy_origin: {xy_origin if not xy_origin=="auto" else f"auto (estimation: {[round(c) for c in xy_origin_estim]})"} px.')
 
             # Coordinates in m
+            new_visible_side = []
             for i in range(len(trc_data)):
                 if not np.array(trc_data[i].iloc[:,1:] ==0).all():
                     # Automatically determine visible side
@@ -1984,7 +1996,9 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     if make_c3d:
                         c3d_path = convert_to_c3d(str(pose_path_person_m_i))
                     logging.info(f'Pose in meters saved to {pose_path_person_m_i.resolve()}. {"Also saved in c3d format." if make_c3d else ""}')
-                    
+                else:
+                    visible_side_i = 'none'
+                new_visible_side += [visible_side_i]
                 
             
 
@@ -2050,6 +2064,10 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             angles_path_person = angles_output_path.parent / (angles_output_path.stem + f'_person{i:02d}.mot')
             all_frames_angles_person = pd.DataFrame(all_frames_angles_homog[:,idx_person,:], columns=angle_names)
             
+            # Flip angles for left side when flip_left_right false
+            if new_visible_side[i] == 'left' and not flip_left_right: 
+                all_frames_angles_homog[:, idx_person, :] = -all_frames_angles_homog[:, idx_person, :]
+
             # Delete person if less than 4 valid frames
             angle_nan_count = len(np.where(all_frames_angles_person.sum(axis=1)==0)[0])
             if frame_count - frame_range[0] - angle_nan_count <= 4:
@@ -2215,7 +2233,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     # masses.append(DEFAULT_MASS)
                     logging.info(f'Less than 4 valid frames. Deleting person.')
                 else:
-                    if visible_side[i] == 'none':
+                    if new_visible_side[i] == 'none':
                         logging.info(f'Skipping marker augmentation and inverse kinematics because visible_side is "none".')
                         # heights_m.append(DEFAULT_HEIGHT)
                         # masses.append(DEFAULT_MASS)
