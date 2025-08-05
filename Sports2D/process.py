@@ -1433,6 +1433,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     interpolate = config_dict.get('post-processing').get('interpolate')    
     interp_gap_smaller_than = config_dict.get('post-processing').get('interp_gap_smaller_than')
     fill_large_gaps_with = config_dict.get('post-processing').get('fill_large_gaps_with')
+    sections_to_keep = config_dict.get('post-processing').get('sections_to_keep')
 
     do_filter = config_dict.get('post-processing').get('filter')
     show_plots = config_dict.get('post-processing').get('show_graphs')
@@ -1514,7 +1515,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     if show_realtime_results:
         try: 
             screen_width, screen_height = get_screen_size()
-            display_width, display_height = calculate_display_size(cam_width, cam_height, screen_width, screen_height)
+            display_width, display_height = calculate_display_size(cam_width, cam_height, screen_width, screen_height, margin=50)
             cv2.namedWindow(f'{video_file} Sports2D', cv2.WINDOW_NORMAL)
             cv2.resizeWindow(f'{video_file} Sports2D', display_width, display_height)
         except: # if Pose2Sim < v0.10.29
@@ -1836,7 +1837,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
 
                     if fill_large_gaps_with.lower() == 'last_value':
                         for col in all_frames_X_person_interp.columns:
-                            first_run_start, last_run_end = indices_of_first_last_non_nan_chunks(all_frames_Y_person_interp[col])
+                            first_run_start, last_run_end = indices_of_first_last_non_nan_chunks(all_frames_Y_person_interp[col], min_chunk_size=interp_gap_smaller_than, chunk_choice_method=sections_to_keep)
                             for coord_df in [all_frames_X_person_interp, all_frames_Y_person_interp, all_frames_Z_homog]:
                                 coord_df.loc[:first_run_start, col] = np.nan
                                 coord_df.loc[last_run_end:, col] = np.nan
@@ -1964,7 +1965,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     px_to_m_i = [convert_px_to_meters(trc_data[i][kpt_name], first_person_height, height_px, cx, cy, -floor_angle_estim, visible_side=visible_side_i) for kpt_name in new_keypoints_names]
                     trc_data_m_i = pd.concat([all_frames_time.rename('time')]+px_to_m_i, axis=1)
                     for c in 3*np.arange(len(trc_data_m_i.columns[3::3]))+1: # only X coordinates
-                        first_run_start, last_run_end = indices_of_first_last_non_nan_chunks(trc_data_m_i.iloc[:,c])
+                        first_run_start, last_run_end = indices_of_first_last_non_nan_chunks(trc_data_m_i.iloc[:,c], min_chunk_size=interp_gap_smaller_than, chunk_choice_method=sections_to_keep)
                         trc_data_m_i.iloc[:first_run_start,c+2] = np.nan
                         trc_data_m_i.iloc[last_run_end:,c+2] = np.nan
                         trc_data_m_i.iloc[first_run_start:last_run_end,c+2] = trc_data_m_i.iloc[first_run_start:last_run_end,c+2].ffill().bfill()
@@ -2065,7 +2066,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     all_frames_angles_person_interp = all_frames_angles_person.apply(interpolate_zeros_nans, axis=0, args = [interp_gap_smaller_than, 'linear'])
                     if fill_large_gaps_with == 'last_value':
                         for col in all_frames_angles_person_interp.columns:
-                            first_run_start, last_run_end = indices_of_first_last_non_nan_chunks(all_frames_angles_person_interp[col])
+                            first_run_start, last_run_end = indices_of_first_last_non_nan_chunks(all_frames_angles_person_interp[col], min_chunk_size=interp_gap_smaller_than, chunk_choice_method=sections_to_keep)
                             all_frames_angles_person_interp.loc[:first_run_start, col] = np.nan
                             all_frames_angles_person_interp.loc[last_run_end:, col] = np.nan
                             all_frames_angles_person_interp.loc[first_run_start:last_run_end, col] = all_frames_angles_person_interp.loc[first_run_start:last_run_end, col].ffill().bfill()
