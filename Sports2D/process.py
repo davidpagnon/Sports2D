@@ -1515,7 +1515,6 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         cv2.namedWindow(f'{video_file} Sports2D', cv2.WINDOW_NORMAL + cv2.WINDOW_KEEPRATIO)
         cv2.setWindowProperty(f'{video_file} Sports2D', cv2.WND_PROP_ASPECT_RATIO, cv2.WINDOW_FULLSCREEN)
 
-
     # Select the appropriate model based on the model_type
     logging.info('\nEstimating pose...')
     pose_model_name = pose_model
@@ -2035,8 +2034,11 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         for i in range(all_frames_angles_homog.shape[1]):  # for each person
             for j in range(all_frames_angles_homog.shape[2]):  # for each angle
                 valid_mask = ~np.isnan(all_frames_angles_homog[:, i, j])
-                all_frames_angles_homog[valid_mask, i, j] = np.unwrap(all_frames_angles_homog[valid_mask, i, j], period=180)
-
+                ang = np.unwrap(all_frames_angles_homog[valid_mask, i, j], period=180)
+                ang = ang-360 if ang.mean()> 180 else ang
+                ang = ang+360 if ang.mean()<-180 else ang
+                all_frames_angles_homog[valid_mask, i, j] = ang
+                
         # Process angles for each person
         for i, idx_person in enumerate(selected_persons):
             angles_path_person = angles_output_path.parent / (angles_output_path.stem + f'_person{i:02d}.mot')
