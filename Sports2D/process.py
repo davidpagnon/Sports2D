@@ -1512,8 +1512,13 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         frame_range = [int((time_range[0]-start_time) * frame_rate), int((time_range[1]-start_time) * frame_rate)] if time_range else [0, int(cap.get(cv2.CAP_PROP_FRAME_COUNT))]
         frame_iterator = tqdm(range(*frame_range)) # use a progress bar
     if show_realtime_results:
-        cv2.namedWindow(f'{video_file} Sports2D', cv2.WINDOW_NORMAL + cv2.WINDOW_KEEPRATIO)
-        cv2.setWindowProperty(f'{video_file} Sports2D', cv2.WND_PROP_ASPECT_RATIO, cv2.WINDOW_FULLSCREEN)
+        try: 
+            screen_width, screen_height = get_screen_size()
+            display_width, display_height = calculate_display_size(cam_width, cam_height, screen_width, screen_height)
+            cv2.namedWindow(f'{video_file} Sports2D', cv2.WINDOW_NORMAL)
+            cv2.resizeWindow(f'{video_file} Sports2D', display_width, display_height)
+        except: # if Pose2Sim < v0.10.29
+            cv2.namedWindow(f'{video_file} Sports2D', cv2.WINDOW_NORMAL + cv2.WINDOW_KEEPRATIO)
 
     # Select the appropriate model based on the model_type
     logging.info('\nEstimating pose...')
