@@ -2171,19 +2171,22 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         new_keypoints_ids = list(range(len(new_keypoints_ids)))
 
         # Draw pose and angles
+        if 'first_trim' not in locals():
+            first_trim, last_trim = 0, frame_count-1
         for frame_count, (frame, valid_X, valid_X_flipped, valid_Y, valid_scores, valid_angles) in enumerate(zip(frames, all_frames_X_processed, all_frames_X_flipped_processed, all_frames_Y_processed, all_frames_scores_processed, all_frames_angles_processed)):
-            img = frame.copy()
-            img = draw_bounding_box(img, valid_X, valid_Y, colors=colors, fontSize=fontSize, thickness=thickness)
-            img = draw_keypts(img, valid_X, valid_Y, valid_scores, cmap_str='RdYlGn')
-            img = draw_skel(img, valid_X, valid_Y, pose_model_with_new_ids)
-            if calculate_angles:
-                img = draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, new_keypoints_ids, new_keypoints_names, angle_names, display_angle_values_on=display_angle_values_on, colors=colors, fontSize=fontSize, thickness=thickness)
+            if frame_count >= first_trim and frame_count <= last_trim:
+                img = frame.copy()
+                img = draw_bounding_box(img, valid_X, valid_Y, colors=colors, fontSize=fontSize, thickness=thickness)
+                img = draw_keypts(img, valid_X, valid_Y, valid_scores, cmap_str='RdYlGn')
+                img = draw_skel(img, valid_X, valid_Y, pose_model_with_new_ids)
+                if calculate_angles:
+                    img = draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, new_keypoints_ids, new_keypoints_names, angle_names, display_angle_values_on=display_angle_values_on, colors=colors, fontSize=fontSize, thickness=thickness)
 
-            # Save video or images
-            if save_vid:
-                out_vid.write(img)
-            if save_img:
-                cv2.imwrite(str((img_output_dir / f'{output_dir_name}_{(frame_count):06d}.png')), img)
+                # Save video or images
+                if save_vid:
+                    out_vid.write(img)
+                if save_img:
+                    cv2.imwrite(str((img_output_dir / f'{output_dir_name}_{(frame_count+frame_range[0]):06d}.png')), img)
 
         if save_vid:
             out_vid.release()
