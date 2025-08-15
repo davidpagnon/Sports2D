@@ -1511,6 +1511,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         kinematics_dir.mkdir(parents=True, exist_ok=True)
     
     if do_filter:
+        print(filter_type)
         Pose2Sim_config_dict['filtering']['reject_outliers'] = reject_outliers
         Pose2Sim_config_dict['filtering']['filter'] = do_filter
         Pose2Sim_config_dict['filtering']['type'] = filter_type
@@ -1895,7 +1896,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     all_frames_X_person_filt = all_frames_X_person_interp
                     all_frames_Y_person_filt = all_frames_Y_person_interp
                 else:
-                    if filter_type == 'butterworth' or 'butterworth_on_speed':
+                    if filter_type == ('butterworth' or 'butterworth_on_speed'):
                         cutoff = butterworth_filter_cutoff
                         if video_file == 'webcam':
                             if cutoff / (fps / 2) >= 1:
@@ -2142,7 +2143,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     logging.info(f'No filtering.')
                     all_frames_angles_person_filt = all_frames_angles_person_interp
                 else:
-                    if filter_type == 'butterworth' or 'butterworth_on_speed':
+                    if filter_type == ('butterworth' or 'butterworth_on_speed'):
                         cutoff = butterworth_filter_cutoff
                         if video_file == 'webcam':
                             if cutoff / (fps / 2) >= 1:
