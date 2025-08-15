@@ -79,11 +79,12 @@ from matplotlib import patheffects
 from rtmlib import PoseTracker, BodyWithFeet, Wholebody, Body, Hand, Custom
 from deep_sort_realtime.deepsort_tracker import DeepSort
 
-from Sports2D.Utilities import filter
 from Sports2D.Utilities.common import *
 from Pose2Sim.common import *
 from Pose2Sim.skeletons import *
 from Pose2Sim.triangulation import indices_of_first_last_non_nan_chunks
+from Pose2Sim.filtering import *
+
 
 DEFAULT_MASS = 70
 DEFAULT_HEIGHT = 1.7
@@ -196,7 +197,7 @@ def setup_video(video_file_path, save_vid, vid_output_path):
 
 def setup_model_class_mode(pose_model, mode, config_dict={}):
     '''
-    
+    Set up the pose model class and mode for the pose tracker.
     '''
 
     if pose_model.upper() in ('HALPE_26', 'BODY_WITH_FEET'):
@@ -258,6 +259,10 @@ def setup_model_class_mode(pose_model, mode, config_dict={}):
                         det_class=det_class, det=det, det_input_size=det_input_size,
                         pose_class=pose_class, pose=pose, pose_input_size=pose_input_size)
             logging.info(f"Using model {model_name} with the following custom parameters: {mode}.")
+
+            if pose_class == 'RTMO' and model_name != 'COCO_17':
+                logging.warning("RTMO currently only supports 'Body' pose_model. Switching to 'Body'.")
+                pose_model = eval('COCO_17')
             
         except (json.JSONDecodeError, TypeError):
             logging.warning("Invalid mode. Must be 'lightweight', 'balanced', 'performance', or '''{dictionary}''' of parameters within triple quotes. Make sure input_sizes are within square brackets.")
@@ -1436,16 +1441,20 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     sections_to_keep = config_dict.get('post-processing').get('sections_to_keep')
 
     do_filter = config_dict.get('post-processing').get('filter')
+    reject_outliers = config_dict.get('post-processing').get('reject_outliers', False)
     show_plots = config_dict.get('post-processing').get('show_graphs')
     filter_type = config_dict.get('post-processing').get('filter_type')
     butterworth_filter_order = config_dict.get('post-processing').get('butterworth').get('order')
     butterworth_filter_cutoff = config_dict.get('post-processing').get('butterworth').get('cut_off_frequency')
+    gcv_filter_cutoff = config_dict.get('post-processing').get('gcv_spline').get('cut_off_frequency')
+    gcv_filter_smoothingfactor = config_dict.get('post-processing').get('gcv_spline').get('smoothing_factor')
+    kalman_filter_trust_ratio = config_dict.get('post-processing').get('kalman').get('trust_ratio')
+    kalman_filter_smooth = config_dict.get('post-processing').get('kalman').get('smooth')
     gaussian_filter_kernel = config_dict.get('post-processing').get('gaussian').get('sigma_kernel')
     loess_filter_kernel = config_dict.get('post-processing').get('loess').get('nb_values_used')
     median_filter_kernel = config_dict.get('post-processing').get('median').get('kernel_size')
-    filter_options = [do_filter, filter_type,
-                           butterworth_filter_order, butterworth_filter_cutoff, frame_rate,
-                           gaussian_filter_kernel, loess_filter_kernel, median_filter_kernel]
+    butterworthspeed_filter_order = config_dict.get('post-processing').get('butterworth_on_speed').get('order')
+    butterworthspeed_filter_cutoff = config_dict.get('post-processing').get('butterworth_on_speed').get('cut_off_frequency')
 
     # Create output directories
     if video_file == "webcam":
@@ -1476,12 +1485,14 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     trimmed_extrema_percent = config_dict.get('kinematics').get('trimmed_extrema_percent')
     close_to_zero_speed_px = config_dict.get('kinematics').get('close_to_zero_speed_px')
     close_to_zero_speed_m = config_dict.get('kinematics').get('close_to_zero_speed_m')
-    if do_ik or use_augmentation:
+    if do_ik or use_augmentation or do_filter:
         try:
             if use_augmentation:
                 from Pose2Sim.markerAugmentation import augment_markers_all
             if do_ik:
                 from Pose2Sim.kinematics import kinematics_all
+            if do_filter:
+                from Pose2Sim.filtering import filter_all
         except ImportError:
             logging.error("OpenSim package is not installed. Please install it to use inverse kinematics or marker augmentation features (see 'Full install' section of the documentation).")
             raise ImportError("OpenSim package is not installed. Please install it to use inverse kinematics or marker augmentation features (see 'Full install' section of the documentation).")
@@ -1498,6 +1509,22 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         pose3d_dir.mkdir(parents=True, exist_ok=True)
         kinematics_dir = Path(output_dir) / 'kinematics'
         kinematics_dir.mkdir(parents=True, exist_ok=True)
+    
+    if do_filter:
+        Pose2Sim_config_dict['filtering']['reject_outliers'] = reject_outliers
+        Pose2Sim_config_dict['filtering']['filter'] = do_filter
+        Pose2Sim_config_dict['filtering']['type'] = filter_type
+        Pose2Sim_config_dict['filtering']['butterworth']['order'] = butterworth_filter_order
+        Pose2Sim_config_dict['filtering']['butterworth']['cut_off_frequency'] = butterworth_filter_cutoff
+        Pose2Sim_config_dict['filtering']['gcv_spline']['cut_off_frequency'] = gcv_filter_cutoff
+        Pose2Sim_config_dict['filtering']['gcv_spline']['smoothing_factor'] = gcv_filter_smoothingfactor
+        Pose2Sim_config_dict['filtering']['kalman']['trust_ratio'] = kalman_filter_trust_ratio
+        Pose2Sim_config_dict['filtering']['kalman']['smooth'] = kalman_filter_smooth
+        Pose2Sim_config_dict['filtering']['gaussian']['sigma_kernel'] = gaussian_filter_kernel
+        Pose2Sim_config_dict['filtering']['loess']['nb_values_used'] = loess_filter_kernel
+        Pose2Sim_config_dict['filtering']['median']['kernel_size'] = median_filter_kernel
+        Pose2Sim_config_dict['filtering']['butterworth_on_speed']['order'] = butterworthspeed_filter_order
+        Pose2Sim_config_dict['filtering']['butterworth_on_speed']['cut_off_frequency'] = butterworthspeed_filter_cutoff
 
 
     # Set up video capture
@@ -1570,8 +1597,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         # if tracking_mode not in ['deepsort', 'sports2d']:
         #     logging.warning(f"Tracking mode {tracking_mode} not recognized. Using sports2d method.")
         #     tracking_mode = 'sports2d'
-        logging.info(f'Pose tracking set up for "{pose_model_name}" model.')
-        logging.info(f'Mode: {mode}.\n')
+        # logging.info(f'Pose tracking set up for "{pose_model_name}" model.')
+        # logging.info(f'Mode: {mode}.\n')
         logging.info(f'Persons are detected every {det_frequency} frames and tracked inbetween. Tracking is done with {tracking_mode}.')
         if tracking_mode == 'deepsort': logging.info(f'Deepsort parameters: {deepsort_params}.')
         logging.info(f'{"All persons are" if nb_persons_to_detect=="all" else f"{nb_persons_to_detect} persons are" if nb_persons_to_detect>1 else "1 person is"} analyzed. Person ordering method is {person_ordering_method}.')
@@ -1593,7 +1620,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             ang_params = angle_dict.get(ang_name)
             kpts = ang_params[0]
             if any(item not in keypoints_names+['Neck', 'Hip'] for item in kpts):
-                logging.warning(f"Skipping {ang_name} angle computation because at least one of the following keypoints is not provided by the model: {ang_params[0]}.")
+                logging.warning(f"Skipping {ang_name} angle computation because at least one of the following keypoints is not provided by the pose estimation model: {ang_params[0]}.")
 
 
     #%% ==================================================
@@ -1724,7 +1751,6 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 img = draw_keypts(img, valid_X, valid_Y, valid_scores, cmap_str='RdYlGn')
                 img = draw_skel(img, valid_X, valid_Y, pose_model)
                 if calculate_angles:
-
                     img = draw_angles(img, valid_X, valid_Y, valid_angles_flipped, valid_X_flipped, new_keypoints_ids, new_keypoints_names, angle_names, display_angle_values_on=display_angle_values_on, colors=colors, fontSize=fontSize, thickness=thickness)
                 cv2.imshow(f'{video_file} Sports2D', img)
                 if (cv2.waitKey(1) & 0xFF) == ord('q') or (cv2.waitKey(1) & 0xFF) == 27:
@@ -1859,31 +1885,45 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                         all_frames_Y_person_interp.replace(np.nan, 0, inplace=True)
 
                 # Filter
-                if not filter_options[0]:
+                if reject_outliers:
+                    logging.info('Rejecting outliers with Hampel filter.')
+                    all_frames_X_person_interp = all_frames_X_person_interp.apply(hampel_filter, axis=0, args = [round(7*frame_rate/30), 2])
+                    all_frames_Y_person_interp = all_frames_Y_person_interp.apply(hampel_filter, axis=0, args = [round(7*frame_rate/30), 2])
+
+                if not do_filter:
                     logging.info(f'No filtering.')
                     all_frames_X_person_filt = all_frames_X_person_interp
                     all_frames_Y_person_filt = all_frames_Y_person_interp
                 else:
-                    filter_type = filter_options[1]
-                    if filter_type == 'butterworth':
-                        cutoff = filter_options[3]
+                    if filter_type == 'butterworth' or 'butterworth_on_speed':
+                        cutoff = butterworth_filter_cutoff
                         if video_file == 'webcam':
                             if cutoff / (fps / 2) >= 1:
                                 cutoff_old = cutoff
                                 cutoff = fps/(2+0.001)
                                 args = f'\n{cutoff_old:.1f} Hz cut-off framerate too large for a real-time framerate of {fps:.1f} Hz. Using a cut-off framerate of {cutoff:.1f} Hz instead.'
-                                filter_options[3] = cutoff
-                        args = f'Butterworth filter, {filter_options[2]}th order, {filter_options[3]} Hz.'
-                        filter_options[4] = fps
-                    if filter_type == 'gaussian':
-                        args = f'Gaussian filter, Sigma kernel {filter_options[5]}.'
-                    if filter_type == 'loess':
-                        args = f'LOESS filter, window size of {filter_options[6]} frames.'
-                    if filter_type == 'median':
-                        args = f'Median filter, kernel of {filter_options[7]}.'
+                                butterworth_filter_cutoff = cutoff
+                        filt_type = 'Butterworth' if filter_type == 'butterworth' else 'Butterworth on speed'
+                        args = f'{filt_type} filter, {butterworth_filter_order}th order, {butterworth_filter_cutoff} Hz.'
+                        frame_rate = fps
+                    elif filter_type == 'gcv_spline':
+                        args = f'GVC Spline filter, which automatically evaluates the best trade-off between smoothness and fidelity to data.'
+                    elif filter_type == 'kalman':
+                        args = f'Kalman filter, trusting measurement {kalman_filter_trust_ratio} times more than the process matrix.'
+                    elif filter_type == 'gaussian':
+                        args = f'Gaussian filter, Sigma kernel {gaussian_filter_kernel}.'
+                    elif filter_type == 'loess':
+                        args = f'LOESS filter, window size of {loess_filter_kernel} frames.'
+                    elif filter_type == 'median':
+                        args = f'Median filter, kernel of {median_filter_kernel}.'
+                    else:
+                        logging.error(f"Invalid filter_type: {filter_type}. Must be 'butterworth', 'gcv_spline', 'kalman', 'gaussian', 'loess', or 'median'.")
+                        raise ValueError(f"Invalid filter_type: {filter_type}. Must be 'butterworth', 'gcv_spline', 'kalman', 'gaussian', 'loess', or 'median'.")
+
                     logging.info(f'Filtering with {args}')
-                    all_frames_X_person_filt = all_frames_X_person_interp.apply(filter.filter1d, axis=0, args=filter_options)
-                    all_frames_Y_person_filt = all_frames_Y_person_interp.apply(filter.filter1d, axis=0, args=filter_options)
+                    all_frames_X_person_filt = all_frames_X_person_interp.apply(filter1d, axis=0, args = [Pose2Sim_config_dict, filter_type, frame_rate])
+                    all_frames_Y_person_filt = all_frames_Y_person_interp.apply(filter1d, axis=0, args = [Pose2Sim_config_dict, filter_type, frame_rate])
+
 
                 # Build TRC file
                 trc_data_i = trc_data_from_XYZtime(all_frames_X_person_filt, all_frames_Y_person_filt, all_frames_Z_homog, all_frames_time)
@@ -2094,29 +2134,41 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                         all_frames_angles_person_interp.replace(np.nan, 0, inplace=True)
                 
                 # Filter
-                if not filter_options[0]:
+                if reject_outliers:
+                    logging.info(f'Rejecting outliers with Hampel filter.')
+                    all_frames_angles_person_interp = all_frames_angles_person_interp.apply(hampel_filter, axis=0)
+
+                if not do_filter:
                     logging.info(f'No filtering.')
                     all_frames_angles_person_filt = all_frames_angles_person_interp
                 else:
-                    filter_type = filter_options[1]
-                    if filter_type == 'butterworth':
-                        cutoff = filter_options[3]
+                    if filter_type == 'butterworth' or 'butterworth_on_speed':
+                        cutoff = butterworth_filter_cutoff
                         if video_file == 'webcam':
                             if cutoff / (fps / 2) >= 1:
                                 cutoff_old = cutoff
                                 cutoff = fps/(2+0.001)
                                 args = f'\n{cutoff_old:.1f} Hz cut-off framerate too large for a real-time framerate of {fps:.1f} Hz. Using a cut-off framerate of {cutoff:.1f} Hz instead.'
-                                filter_options[3] = cutoff
-                        args = f'Butterworth filter, {filter_options[2]}th order, {filter_options[3]} Hz.'
-                        filter_options[4] = fps
-                    if filter_type == 'gaussian':
-                        args = f'Gaussian filter, Sigma kernel {filter_options[5]}.'
-                    if filter_type == 'loess':
-                        args = f'LOESS filter, window size of {filter_options[6]} frames.'
-                    if filter_type == 'median':
-                        args = f'Median filter, kernel of {filter_options[7]}.'
-                    logging.info(f'Filtering with {args}')
-                    all_frames_angles_person_filt = all_frames_angles_person_interp.apply(filter.filter1d, axis=0, args=filter_options)
+                                butterworth_filter_cutoff = cutoff
+                        filt_type = 'Butterworth' if filter_type == 'butterworth' else 'Butterworth on speed'
+                        args = f'{filt_type} filter, {butterworth_filter_order}th order, {butterworth_filter_cutoff} Hz.'
+                        frame_rate = fps
+                    elif filter_type == 'gcv_spline':
+                        args = f'GVC Spline filter, which automatically evaluates the best trade-off between smoothness and fidelity to data.'
+                    elif filter_type == 'kalman':
+                        args = f'Kalman filter, trusting measurement {kalman_filter_trust_ratio} times more than the process matrix.'
+                    elif filter_type == 'gaussian':
+                        args = f'Gaussian filter, Sigma kernel {gaussian_filter_kernel}.'
+                    elif filter_type == 'loess':
+                        args = f'LOESS filter, window size of {loess_filter_kernel} frames.'
+                    elif filter_type == 'median':
+                        args = f'Median filter, kernel of {median_filter_kernel}.'
+                    else:
+                        logging.error(f"Invalid filter_type: {filter_type}. Must be 'butterworth', 'gcv_spline', 'kalman', 'gaussian', 'loess', or 'median'.")
+                        raise ValueError(f"Invalid filter_type: {filter_type}. Must be 'butterworth', 'gcv_spline', 'kalman', 'gaussian', 'loess', or 'median'.")
+
+                    logging.info(f'Filtering with {args}.')
+                    all_frames_angles_person_filt = all_frames_angles_person_interp.apply(filter1d, axis=0, args = [Pose2Sim_config_dict, filter_type, frame_rate])
 
                 # Add floor_angle_estim to segment angles
                 if correct_segment_angles_with_floor_angle and to_meters:

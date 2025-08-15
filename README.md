@@ -478,13 +478,21 @@ sports2d --help
 'interpolate': ["", "interpolate missing data. true if not specified"],
 'interp_gap_smaller_than': ["", "interpolate sequences of missing data if they are less than N frames long. 10 if not specified"],
 'fill_large_gaps_with': ["", "last_value, nan, or zeros. last_value if not specified"],
+'sections_to_keep': ["", "all, largest, first, or last.  Keep 'all' valid sections even when they are interspersed with undetected chunks, or the 'largest' valid section, or the 'first' one, or the 'last' one"],
+'reject_outliers': ["", "reject outliers with Hampel filter before other filtering methods. true if not specified"],
 'filter': ["", "filter results. true if not specified"],
-'filter_type': ["", "butterworth, gaussian, median, or loess. butterworth if not specified"],
+'filter_type': ["", "butterworth, kalman, gcv_spline, gaussian, median, or loess. butterworth if not specified"],
 'order': ["", "order of the Butterworth filter. 4 if not specified"],
 'cut_off_frequency': ["", "cut-off frequency of the Butterworth filter. 3 if not specified"],
+'trust_ratio': ["", "trust ratio of the Kalman filter: How much more do you trust triangulation results (measurements), than the assumption of constant acceleration(process)? 500 if not specified"],
+'smooth': ["", "dual Kalman smoothing. true if not specified"],
+'gcv_cut_off_frequency': ["", "cut-off frequency of the GCV spline filter. 'auto' if not specified"],
+'smoothing_factor': ["", "smoothing factor of the GCV spline filter (>=0). Ignored if cut_off_frequency != 'auto'. Biases results towards more smoothing (>1) or more fidelity to data (<1). 0.1 if not specified"],
 'sigma_kernel': ["", "sigma of the gaussian filter. 1 if not specified"],
 'nb_values_used': ["", "number of values used for the loess filter. 5 if not specified"],
 'kernel_size': ["", "kernel size of the median filter. 3 if not specified"],
+'butterspeed_order': ["", "order of the Butterworth filter on speed. 4 if not specified"],
+'butterspeed_cut_off_frequency': ["", "cut-off frequency of the Butterworth filter on speed. 6 if not specified"],
 'osim_setup_path': ["", "path to OpenSim setup. '../OpenSim_setup' if not specified"],
 'right_left_symmetry': ["", "right left symmetry. true if not specified"],
 'default_height': ["", "default height for scaling. 1.70 if not specified"],
@@ -601,7 +609,7 @@ Sports2D:
   Draws the skeleton and the keypoints, with a green to red color scale to account for their confidence\
   Draws joint and segment angles on the body, and writes the values either near the joint/segment, or on the upper-left of the image with a progress bar
 
-6. **Interpolates and filters results:** Missing pose and angle sequences are interpolated unless gaps are too large. Results are filtered according to the selected filter (among `Butterworth`, `Gaussian`, `LOESS`, or `Median`) and their parameters
+6. **Interpolates and filters results:** Missing pose and angle sequences are interpolated unless gaps are too large. You can reject outliers with a Hampel filter): `--reject_outliers True`. Results are filtered according to the selected filter (among `Butterworth`, `Kalman`, `GCV_spline`, `Gaussian`, `LOESS`, `Median`, or `Butterworth_on_speed`) and their parameters, or not filtered at all if `--filter False`.\
 
 7. **Optionally show** processed images, saves them, or saves them as a video\
   **Optionally plots** pose and angle data before and after processing for comparison\

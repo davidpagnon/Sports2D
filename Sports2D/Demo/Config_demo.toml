@@ -125,8 +125,8 @@ joint_angles = ['Right ankle', 'Left ankle', 'Right knee', 'Left knee', 'Right h
 segment_angles = ['Right foot', 'Left foot', 'Right shank', 'Left shank', 'Right thigh', 'Left thigh', 'Pelvis', 'Trunk', 'Shoulders', 'Head', 'Right arm', 'Left arm', 'Right forearm', 'Left forearm']
 
 # Processing parameters
-flip_left_right = true  # Same angles whether the participant faces left/right. Set it to false if you want timeseries to be continuous even when the participent switches their stance.
-correct_segment_angles_with_floor_angle = true # If the camera is tilted, corrects segment angles as regards to the floor angle. Set to false is the floor is tilted instead
+flip_left_right = true  # Same angles whether the participant faces left/right. Set it to false if you want timeseries to be continuous even when the participant switches their stance.
+correct_segment_angles_with_floor_angle = true # If the camera is tilted, corrects segment angles as regards to the floor angle. Set to false if it is the floor which is actually tilted
 
 
 [post-processing]
@@ -135,25 +135,43 @@ interp_gap_smaller_than = 10        # do not interpolate bigger gaps
 fill_large_gaps_with = 'last_value' # 'last_value', 'nan', or 'zeros' 
 sections_to_keep = 'all' # 'all', 'largest', 'first', 'last'
                         # keep 'all' valid sections even when they are interspersed with undetected chunks, or the 'largest' valid section, or the 'first' one, or the 'last' one
+reject_outliers = true      # Hampel filter for outlier rejection before other filtering methods. Rejects outliers that are outside of a 95% confidence interal from the median in a sliding window of size 7.
+
 filter = true
-show_graphs = true            # Show plots of raw and processed results
-filter_type = 'butterworth'   # butterworth, gaussian, LOESS, median
+show_graphs = true         # Show plots of raw and processed results
+filter_type = 'butterworth'     # butterworth, gcv_spline, kalman, gaussian, loess, median, butterworth_on_speed
+   # Most intuitive and standard filter in biomechanics
    [post-processing.butterworth]
    order = 4 
    cut_off_frequency = 6 # Hz # Will be divided by slowmo_factor to be equivalent to non slowed-down video
-   [post-processing.gaussian]
-   sigma_kernel = 1 #px
+
+   # Used in countless applications, this one is a simplified Kalman filter 
+   [post-processing.kalman]
+   # How much more do you trust triangulation results (measurements), than the assumption of constant acceleration(process)?
+   trust_ratio = 500 # = measurement_trust/process_trust ~= process_noise/measurement_noise
+   smooth = true # should be true, unless you need real-time filtering
+
+   # Automatically determines optimal parameters for each point, which is good when some move faster than others (eg fingers vs hips).
+   [post-processing.gcv_spline]
+   cut_off_frequency = 'auto' # 'auto' or int # If int, behaves like a Butterworth filter. 'auto' is sometimes unstable
+   smoothing_factor = 0.1 # >=0, ignored if cut_off_frequency != 'auto'. Biases results towards more smoothing (>1) or more fidelity to data (<1) 
+
    [post-processing.loess]
    nb_values_used = 5 # = fraction of data used * nb frames
+   [post-processing.gaussian]
+   sigma_kernel = 1 #px
    [post-processing.median]
    kernel_size = 3
+   [post-processing.butterworth_on_speed]
+   order = 4 
+   cut_off_frequency = 10 # Hz
 
 
 [kinematics]
 do_ik = false # Do scaling and inverse kinematics?
 use_augmentation = false  # true or false (lowercase) # Set to true if you want to use the model with augmented markers
 feet_on_floor = false # true or false (lowercase) # Set to false if you want to use the model with feet not on the floor (e.g. running, jumping, etc.)
-use_simple_model = false # true or false # >10 times faster IK if true. No muscles, no constraints (eg stiff spine and shoulders, no patella)
+use_simple_model = false # true or false # IK 10+ times faster, but no muscles or flexible spine, no patella
 participant_mass = [55.0, 67.0] # kg # defaults to 70 if not provided. No influence on kinematics (motion), only on kinetics (forces)
 right_left_symmetry = true # true or false (lowercase) # Set to false only if you have good reasons to think the participant is not symmetrical (e.g. prosthetic limb)
 
