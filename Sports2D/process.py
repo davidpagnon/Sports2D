@@ -85,6 +85,11 @@ from Pose2Sim.skeletons import *
 from Pose2Sim.triangulation import indices_of_first_last_non_nan_chunks
 from Pose2Sim.filtering import *
 
+# Not safe, but to be used until OpenMMLab/RTMlib's SSL certificates are updated
+import ssl
+ssl._create_default_https_context = ssl._create_unverified_context
+
+
 
 DEFAULT_MASS = 70
 DEFAULT_HEIGHT = 1.7
