@@ -1446,20 +1446,21 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     sections_to_keep = config_dict.get('post-processing').get('sections_to_keep')
 
     do_filter = config_dict.get('post-processing').get('filter')
+    handle_LR_swap = config_dict.get('post-processing').get('handle_LR_swap', False)
     reject_outliers = config_dict.get('post-processing').get('reject_outliers', False)
     show_plots = config_dict.get('post-processing').get('show_graphs')
     filter_type = config_dict.get('post-processing').get('filter_type')
-    butterworth_filter_order = config_dict.get('post-processing').get('butterworth').get('order')
-    butterworth_filter_cutoff = config_dict.get('post-processing').get('butterworth').get('cut_off_frequency')
-    gcv_filter_cutoff = config_dict.get('post-processing').get('gcv_spline').get('cut_off_frequency')
-    gcv_filter_smoothingfactor = config_dict.get('post-processing').get('gcv_spline').get('smoothing_factor')
-    kalman_filter_trust_ratio = config_dict.get('post-processing').get('kalman').get('trust_ratio')
-    kalman_filter_smooth = config_dict.get('post-processing').get('kalman').get('smooth')
-    gaussian_filter_kernel = config_dict.get('post-processing').get('gaussian').get('sigma_kernel')
-    loess_filter_kernel = config_dict.get('post-processing').get('loess').get('nb_values_used')
-    median_filter_kernel = config_dict.get('post-processing').get('median').get('kernel_size')
-    butterworthspeed_filter_order = config_dict.get('post-processing').get('butterworth_on_speed').get('order')
-    butterworthspeed_filter_cutoff = config_dict.get('post-processing').get('butterworth_on_speed').get('cut_off_frequency')
+    butterworth_filter_order = config_dict.get('post-processing').get('butterworth', {}).get('order')
+    butterworth_filter_cutoff = config_dict.get('post-processing').get('butterworth', {}).get('cut_off_frequency')
+    gcv_filter_cutoff = config_dict.get('post-processing').get('gcv_spline', {}).get('gcv_cut_off_frequency')
+    gcv_smoothing_factor = config_dict.get('post-processing').get('gcv_spline', {}).get('gcv_smoothing_factor')
+    kalman_filter_trust_ratio = config_dict.get('post-processing').get('kalman', {}).get('trust_ratio')
+    kalman_filter_smooth = config_dict.get('post-processing').get('kalman', {}).get('smooth')
+    gaussian_filter_kernel = config_dict.get('post-processing').get('gaussian', {}).get('sigma_kernel')
+    loess_filter_kernel = config_dict.get('post-processing').get('loess', {}).get('nb_values_used')
+    median_filter_kernel = config_dict.get('post-processing').get('median', {}).get('kernel_size')
+    butterworthspeed_filter_order = config_dict.get('post-processing').get('butterworth_on_speed', {}).get('order')
+    butterworthspeed_filter_cutoff = config_dict.get('post-processing').get('butterworth_on_speed', {}).get('cut_off_frequency')
 
     # Create output directories
     if video_file == "webcam":
@@ -1496,8 +1497,6 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 from Pose2Sim.markerAugmentation import augment_markers_all
             if do_ik:
                 from Pose2Sim.kinematics import kinematics_all
-            if do_filter:
-                from Pose2Sim.filtering import filter_all
         except ImportError:
             logging.error("OpenSim package is not installed. Please install it to use inverse kinematics or marker augmentation features (see 'Full install' section of the documentation).")
             raise ImportError("OpenSim package is not installed. Please install it to use inverse kinematics or marker augmentation features (see 'Full install' section of the documentation).")
@@ -1516,14 +1515,14 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         kinematics_dir.mkdir(parents=True, exist_ok=True)
     
     if do_filter:
-        print(filter_type)
+        Pose2Sim_config_dict['personAssociation']['handle_LR_swap'] = handle_LR_swap
         Pose2Sim_config_dict['filtering']['reject_outliers'] = reject_outliers
         Pose2Sim_config_dict['filtering']['filter'] = do_filter
         Pose2Sim_config_dict['filtering']['type'] = filter_type
-        Pose2Sim_config_dict['filtering']['butterworth']['order'] = butterworth_filter_order
-        Pose2Sim_config_dict['filtering']['butterworth']['cut_off_frequency'] = butterworth_filter_cutoff
         Pose2Sim_config_dict['filtering']['gcv_spline']['cut_off_frequency'] = gcv_filter_cutoff
-        Pose2Sim_config_dict['filtering']['gcv_spline']['smoothing_factor'] = gcv_filter_smoothingfactor
+        Pose2Sim_config_dict['filtering']['gcv_spline']['smoothing_factor'] = gcv_smoothing_factor
+        Pose2Sim_config_dict['filtering']['butterworth']['cut_off_frequency'] = butterworth_filter_cutoff
+        Pose2Sim_config_dict['filtering']['butterworth']['order'] = butterworth_filter_order
         Pose2Sim_config_dict['filtering']['kalman']['trust_ratio'] = kalman_filter_trust_ratio
         Pose2Sim_config_dict['filtering']['kalman']['smooth'] = kalman_filter_smooth
         Pose2Sim_config_dict['filtering']['gaussian']['sigma_kernel'] = gaussian_filter_kernel

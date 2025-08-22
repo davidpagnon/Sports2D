@@ -139,11 +139,12 @@ reject_outliers = true      # Hampel filter for outlier rejection before other f
 
 filter = true
 show_graphs = true         # Show plots of raw and processed results
-filter_type = 'butterworth'     # butterworth, gcv_spline, kalman, gaussian, loess, median, butterworth_on_speed
+filter_type = 'butterworth'     # butterworth, kalman, gcv_spline, gaussian, loess, median, butterworth_on_speed
+   
    # Most intuitive and standard filter in biomechanics
    [post-processing.butterworth]
-   order = 4 
    cut_off_frequency = 6 # Hz # Will be divided by slowmo_factor to be equivalent to non slowed-down video
+   order = 4 
 
    # Used in countless applications, this one is a simplified Kalman filter 
    [post-processing.kalman]
@@ -153,7 +154,7 @@ filter_type = 'butterworth'     # butterworth, gcv_spline, kalman, gaussian, loe
 
    # Automatically determines optimal parameters for each point, which is good when some move faster than others (eg fingers vs hips).
    [post-processing.gcv_spline]
-   cut_off_frequency = 'auto' # 'auto' or int # If int, behaves like a Butterworth filter. 'auto' is sometimes unstable
+   cut_off_frequency = 'auto' # 'auto' or int # If int, behaves like a Butterworth filter. 'auto' is usually better, unless the signal is too short (noise can then be considered as signal -> trajectories not filtered)
    smoothing_factor = 0.1 # >=0, ignored if cut_off_frequency != 'auto'. Biases results towards more smoothing (>1) or more fidelity to data (<1) 
 
    [post-processing.loess]

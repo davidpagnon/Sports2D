@@ -609,7 +609,7 @@ Sports2D:
   Draws the skeleton and the keypoints, with a green to red color scale to account for their confidence\
   Draws joint and segment angles on the body, and writes the values either near the joint/segment, or on the upper-left of the image with a progress bar
 
-6. **Interpolates and filters results:** Missing pose and angle sequences are interpolated unless gaps are too large. You can reject outliers with a Hampel filter): `--reject_outliers True`. Results are filtered according to the selected filter (among `Butterworth`, `Kalman`, `GCV_spline`, `Gaussian`, `LOESS`, `Median`, or `Butterworth_on_speed`) and their parameters, or not filtered at all if `--filter False`.\
+6. **Interpolates and filters results:** Missing pose and angle sequences are interpolated unless gaps are too large. Outliers are rejected with a Hampel filter. Results are filtered with a 6 Hz Butterworth filter. Many other filters are available, and all of the above can be configured or deactivated (see [Config_Demo.toml](https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Demo/Config_demo.toml))
 
 7. **Optionally show** processed images, saves them, or saves them as a video\
   **Optionally plots** pose and angle data before and after processing for comparison\
