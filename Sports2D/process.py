@@ -2289,7 +2289,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             first_trim, last_trim = first_frame, last_frame
         cap = cv2.VideoCapture(video_file_path)
         cap.set(cv2.CAP_PROP_POS_FRAMES, first_frame+first_trim)
-        for i in range(first_trim, last_trim+1):
+        for i in range(first_trim, last_trim):
             success, frame = cap.read()
             if not success:
                 raise ValueError(f"Could not read frame {i}")
