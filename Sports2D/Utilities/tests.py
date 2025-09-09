@@ -63,14 +63,14 @@ def test_workflow():
 
     # Default
     demo_cmd = ["sports2d", "--person_ordering_method", "highest_likelihood", "--show_realtime_results", "False", "--show_graphs", "False"]
-    subprocess.run(demo_cmd, check=True, capture_output=True, text=True, encoding='utf-8')
+    subprocess.run(demo_cmd, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace')
 
     # With loading a trc file, visible_side 'front', first_person_height '1.76", floor_angle 0, xy_origin [0, 928]
     demo_cmd2 = ["sports2d", "--show_realtime_results", "False", "--show_graphs", "False",
                  "--load_trc_px", os.path.join(root_dir, "demo_Sports2D", "demo_Sports2D_px_person01.trc"),
                  "--visible_side", "front", "--first_person_height", "1.76", "--time_range", "1.2", "2.7",
                  "--floor_angle", "0", "--xy_origin", "0", "928"]
-    subprocess.run(demo_cmd2, check=True, capture_output=True, text=True, encoding='utf-8')
+    subprocess.run(demo_cmd2, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace')
 
     # With no pixels to meters conversion, one person to select, lightweight mode, detection frequency, slowmo factor, gaussian filter, RTMO body pose model
     demo_cmd3 = ["sports2d", "--show_realtime_results", "False", "--show_graphs", "False", 
@@ -80,7 +80,7 @@ def test_workflow():
                  "--slowmo_factor", "4",
                  "--filter_type", "gaussian",
                  "--pose_model", "body", "--mode", """{'pose_class':'RTMO', 'pose_model':'https://download.openmmlab.com/mmpose/v1/projects/rtmo/onnx_sdk/rtmo-m_16xb16-600e_body7-640x640-39e78cc4_20231211.zip', 'pose_input_size':[640, 640]}"""]
-    subprocess.run(demo_cmd3, check=True, capture_output=True, text=True, encoding='utf-8')
+    subprocess.run(demo_cmd3, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace')
     
     # With a time range, inverse kinematics, marker augmentation
     demo_cmd4 = ["sports2d", "--person_ordering_method", "greatest_displacement", "--show_realtime_results", "False", "--show_graphs", "False",
@@ -88,7 +88,7 @@ def test_workflow():
                  "--do_ik", "True", "--use_augmentation", "True", 
                  "--nb_persons_to_detect", "all", "--first_person_height", "1.65",
                  "--visible_side", "auto", "front", "--participant_mass", "55.0", "67.0"]
-    subprocess.run(demo_cmd4, check=True, capture_output=True, text=True, encoding='utf-8')
+    subprocess.run(demo_cmd4, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace')
     
     # From config file
     config_path = Path(__file__).resolve().parent.parent / 'Demo' / 'Config_demo.toml'
@@ -98,7 +98,7 @@ def test_workflow():
     config_dict.get("base").update({"person_ordering_method": "highest_likelihood"})
     with open(config_path, 'w') as f: toml.dump(config_dict, f)
     demo_cmd5 = ["sports2d", "--config", str(config_path), "--show_realtime_results", "False", "--show_graphs", "False"]
-    subprocess.run(demo_cmd5, check=True, capture_output=True, text=True, encoding='utf-8')
+    subprocess.run(demo_cmd5, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace')
 
 
 if __name__ == "__main__":
