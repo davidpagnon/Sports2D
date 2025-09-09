@@ -525,7 +525,7 @@ Note that any detection and pose models can be used (first [deploy them with MMP
           'pose_model':'https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/onnx_sdk/rtmpose-t_simcc-body7_pt-body7_420e-256x192-026a1439_20230504.zip',
           'pose_input_size':[192,256]}"""
   ```
-- Use `--det_frequency 50`: Will detect poses only every 50 frames, and track keypoints in between, which is faster.
+- Use `--det_frequency 50`: Rtmlib is (by default) a top-down method: detects bounding boxes for every person in the frame, and then detects keypoints inside of each box. The person detection stage is much slower. You can choose to detect persons only every 50 frames (for example), and track bounding boxes inbetween, which is much faster.
 - Use `--load_trc_px <path_to_file_px.trc>`: Will use pose estimation results from a file. Useful if you want to use different parameters for pixel to meter conversion or angle calculation without running detection and pose estimation all over.
 - Make sure you use `--tracking_mode sports2d`: Will use the default Sports2D tracker. Unlike DeepSort, it is faster, does not require any parametrization, and is as good in non-crowded scenes. 
 
@@ -594,13 +594,13 @@ Sports2D:
 
 1. **Reads stream from a webcam, from one video, or from a list of videos**. Selects the specified time range to process.
 
-2. **Sets up pose estimation with RTMLib.** It can be run in lightweight, balanced, or performance mode, and for faster inference, keypoints can be tracked instead of detected for a certain number of frames. Any RTMPose model can be used. 
+2. **Sets up pose estimation with RTMLib.** It can be run in lightweight, balanced, or performance mode, and for faster inference, the person bounding boxes can be tracked instead of detected every frame. Any RTMPose model can be used. 
 
 3. **Tracks people** so that their IDs are consistent across frames. A person is associated to another in the next frame when they are at a small distance. IDs remain consistent even if the person disappears from a few frames. We crafted a 'sports2D' tracker which gives good results and runs in real time, but it is also possible to use `deepsort` in particularly challenging situations. 
 
-4. **Chooses the right persons to keep.** In single-person mode, only keeps the person with the highest average scores over the sequence. In multi-person mode, only retrieves the keypoints with high enough confidence, and only keeps the persons with high enough average confidence over each frame.
+4. **Chooses which persons to analyze.** In single-person mode, only keeps the person with the highest average scores over the sequence. In multi-person mode, you can choose the number of persons to analyze (`nb_persons_to_detect`), and how to order them (`person_ordering_method`). The ordering method can be 'on_click', 'highest_likelihood', 'largest_size', 'smallest_size', 'greatest_displacement', 'least_displacement', 'first_detected', or 'last_detected'. `on_click` is default and lets the user click on the persons they are interested in, in the desired order.
 
-4. **Converts the pixel coordinates to meters.** The user can provide a calibration file, or simply the size of a specified person. The floor angle and the coordinate origin can either be detected automatically from the gait sequence, or be manually specified. The depth coordinates are set to normative values, depending on whether the person is going left, right, facing the camera, or looking away.
+4. **Converts the pixel coordinates to meters.** The user can provide the size of a specified person to scale results accordingly. The floor angle and the coordinate origin can either be detected automatically from the gait sequence, or be manually specified. The depth coordinates are set to normative values, depending on whether the person is going left, right, facing the camera, or looking away.
 
 5. **Computes the selected joint and segment angles**, and flips them on the left/right side if the respective foot is pointing to the left/right. 
 
@@ -609,11 +609,13 @@ Sports2D:
   Draws the skeleton and the keypoints, with a green to red color scale to account for their confidence\
   Draws joint and segment angles on the body, and writes the values either near the joint/segment, or on the upper-left of the image with a progress bar
 
-6. **Interpolates and filters results:** Missing pose and angle sequences are interpolated unless gaps are too large. Outliers are rejected with a Hampel filter. Results are filtered with a 6 Hz Butterworth filter. Many other filters are available, and all of the above can be configured or deactivated (see [Config_Demo.toml](https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Demo/Config_demo.toml))
+6. **Interpolates and filters results:** (1) Swaps between right and left limbs are corrected, (2) Missing pose and angle sequences are interpolated unless gaps are too large, (3) Outliers are rejected with a Hampel filter, and finally (4) Results are filtered, by default with a 6 Hz Butterworth filter. All of the above can be configured or deactivated, and other filters such as Kalman, GCV, Gaussian, LOESS, Median, and Butterworth on speeds are also available (see [Config_Demo.toml](https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Demo/Config_demo.toml))
 
 7. **Optionally show** processed images, saves them, or saves them as a video\
   **Optionally plots** pose and angle data before and after processing for comparison\
   **Optionally saves** poses for each person as a TRC file in pixels and meters, angles as a MOT file, and calibration data as a [Pose2Sim](https://github.com/perfanalytics/pose2sim) TOML file 
+
+8. **Optionally runs scaling and inverse kinematics** with OpenSim via [Pose2Sim](https://github.com/perfanalytics/pose2sim).
 
 <br>
 

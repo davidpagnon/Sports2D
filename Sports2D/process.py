@@ -83,6 +83,7 @@ from Sports2D.Utilities.common import *
 from Pose2Sim.common import *
 from Pose2Sim.skeletons import *
 from Pose2Sim.triangulation import indices_of_first_last_non_nan_chunks
+from Pose2Sim.personAssociation import *
 from Pose2Sim.filtering import *
 
 # Not safe, but to be used until OpenMMLab/RTMlib's SSL certificates are updated
@@ -106,7 +107,7 @@ __status__ = "Development"
 
 
 # FUNCTIONS
-def setup_webcam(webcam_id, save_vid, vid_output_path, input_size):
+def setup_webcam(webcam_id, vid_output_path, input_size):
     '''
     Set up webcam capture with OpenCV.
 
@@ -132,29 +133,28 @@ def setup_webcam(webcam_id, save_vid, vid_output_path, input_size):
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, input_size[1])
     cam_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     cam_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
     fps = round(cap.get(cv2.CAP_PROP_FPS))
     if fps == 0: fps = 30
     
     if cam_width != input_size[0] or cam_height != input_size[1]:
         logging.warning(f"Warning: Your webcam does not support {input_size[0]}x{input_size[1]} resolution. Resolution set to the closest supported one: {cam_width}x{cam_height}.")
     
-    out_vid = None
-    if save_vid:
-        # fourcc MJPG produces very large files but is faster. If it is too slow, consider using it and then converting the video to h264
-        # try:
-        #     fourcc = cv2.VideoWriter_fourcc(*'avc1') # =h264. better compression and quality but may fail on some systems
-        #     out_vid = cv2.VideoWriter(vid_output_path, fourcc, fps, (cam_width, cam_height))
-        #     if not out_vid.isOpened():
-        #         raise ValueError("Failed to open video writer with 'avc1' (h264)")
-        # except Exception:
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        out_vid = cv2.VideoWriter(vid_output_path, fourcc, fps, (cam_width, cam_height))
-            # logging.info("Failed to open video writer with 'avc1' (h264). Using 'mp4v' instead.")
+    # fourcc MJPG produces very large files but is faster. If it is too slow, consider using it and then converting the video to h264
+    # try:
+    #     fourcc = cv2.VideoWriter_fourcc(*'avc1') # =h264. better compression and quality but may fail on some systems
+    #     out_vid = cv2.VideoWriter(vid_output_path, fourcc, fps, (cam_width, cam_height))
+    #     if not out_vid.isOpened():
+    #         raise ValueError("Failed to open video writer with 'avc1' (h264)")
+    # except Exception:
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    out_vid = cv2.VideoWriter(vid_output_path, fourcc, fps, (cam_width, cam_height))
+        # logging.info("Failed to open video writer with 'avc1' (h264). Using 'mp4v' instead.")
 
     return cap, out_vid, cam_width, cam_height, fps
 
 
-def setup_video(video_file_path, save_vid, vid_output_path):
+def setup_video(video_file_path, vid_output_path, save_vid):
     '''
     Set up video capture with OpenCV.
 
@@ -985,12 +985,13 @@ def get_personIDs_with_greatest_displacement(all_frames_X_homog, all_frames_Y_ho
     return selected_persons
 
 
-def get_personIDs_on_click(frames, all_frames_X_homog, all_frames_Y_homog):
+def get_personIDs_on_click(video_file_path, frame_range, all_frames_X_homog, all_frames_Y_homog):
     '''
     Get the person IDs on click in the image
 
     INPUTS:
-    - frames: list of images read by cv2.imread. shape (Nframes, H, W, 3)
+    - video_file_path: path to video file
+    - frame_range: tuple (start_frame, end_frame)
     - all_frames_X_homog: shape (Nframes, Npersons, Nkpts)
     - all_frames_Y_homog: shape (Nframes, Npersons, Nkpts)
 
@@ -1001,23 +1002,19 @@ def get_personIDs_on_click(frames, all_frames_X_homog, all_frames_Y_homog):
     # Reorganize the coordinates to shape (Nframes, Npersons, Nkpts, Ndims)
     all_pose_coords = np.stack((all_frames_X_homog, all_frames_Y_homog), axis=-1)
 
-    # Trim all_pose_coords and frames to the same size
-    min_frames = min(all_pose_coords.shape[0], len(frames))
-    all_pose_coords = all_pose_coords[:min_frames]
-    frames = frames[:min_frames]
-    
     # Select person IDs on click on video/image
-    selected_persons = select_persons_on_vid(frames, all_pose_coords)
+    selected_persons = select_persons_on_vid(video_file_path, frame_range, all_pose_coords)
 
     return selected_persons
 
 
-def select_persons_on_vid(frames, all_pose_coords):
+def select_persons_on_vid(video_file_path, frame_range, all_pose_coords):
     '''
     Interactive UI to select persons from a video by clicking on their bounding boxes.
     
     INPUTS:
-    - frames: list of images read by cv2.imread. shape (Nframes, H, W, 3)
+    - video_file_path: path to video file
+    - frame_range: tuple (start_frame, end_frame)
     - all_pose_coords: keypoints coordinates. shape (Nframes, Npersons, Nkpts, Ndims)
         
     OUTPUT:
@@ -1031,93 +1028,42 @@ def select_persons_on_vid(frames, all_pose_coords):
     LINE_UNSELECTED_COLOR = 'white'
     LINE_SELECTED_COLOR = 'darkorange'
 
-    selected_persons = []
 
-    # Calculate bounding boxes for each person in each frame
-    n_frames, n_persons = all_pose_coords.shape[0], all_pose_coords.shape[1]
-    all_bboxes = []
-    for frame_idx in range(n_frames):
-        frame_bboxes = []
-        for person_idx in range(n_persons):
-            # Get keypoints for current person
-            keypoints = all_pose_coords[frame_idx, person_idx]
-            valid_keypoints = keypoints[~np.isnan(keypoints).all(axis=1)]
-            if len(valid_keypoints) > 0:
-                # Calculate bounding box
-                x_min, y_min = np.min(valid_keypoints, axis=0)
-                x_max, y_max = np.max(valid_keypoints, axis=0)
-                frame_bboxes.append((x_min, y_min, x_max, y_max))
-            else:
-                frame_bboxes.append((np.nan, np.nan, np.nan, np.nan))  # No valid bounding box for this person
-        all_bboxes.append(frame_bboxes)
-    all_bboxes = np.array(all_bboxes)  # Shape: (Nframes, Npersons, 4)
-    
-    # Create figure, axes, and slider
-    frame_height, frame_width = frames[0].shape[:2]
-    is_vertical = frame_height > frame_width
-    if is_vertical:
-        fig_height = frame_height / 250  # For vertical videos
-    else:
-        fig_height = max(frame_height / 300, 6)  # For horizontal videos
-    fig = plt.figure(figsize=(8, fig_height), num=f'Select the persons to analyze in the desired order')
-    fig.patch.set_facecolor(BACKGROUND_COLOR)
-
-    video_axes_height = 0.7 if is_vertical else 0.6
-    ax_video = plt.axes([0.1, 0.2, 0.8, video_axes_height])
-    ax_video.axis('off')
-    ax_video.set_facecolor(BACKGROUND_COLOR)    
-
-    # First image
-    frame_rgb = cv2.cvtColor(frames[0], cv2.COLOR_BGR2RGB)
-    rects, annotations = [], []
-    for person_idx, bbox in enumerate(all_bboxes[0]):
-        if ~np.isnan(bbox).any():
-            x_min, y_min, x_max, y_max = bbox.astype(int)
-            rect = plt.Rectangle(
-                (x_min, y_min), x_max - x_min, y_max - y_min,
-                linewidth=1, edgecolor=LINE_UNSELECTED_COLOR, facecolor=UNSELECTED_COLOR,
-                linestyle='-', path_effects=[patheffects.withSimplePatchShadow()], zorder=2
-            ) 
-            ax_video.add_patch(rect)
-            annotation = ax_video.text(
-                x_min, y_min - 10, f'{person_idx}', color=LINE_UNSELECTED_COLOR, fontsize=7, fontweight='normal',
-                bbox=dict(facecolor=UNSELECTED_COLOR, edgecolor=LINE_UNSELECTED_COLOR, boxstyle='square,pad=0.3', path_effects=[patheffects.withSimplePatchShadow()]), zorder=3
-            )
-            rects.append(rect)
-            annotations.append(annotation)
-    img_plot = ax_video.imshow(frame_rgb)
-
-    # Slider
-    ax_slider = plt.axes([ax_video.get_position().x0, ax_video.get_position().y0-0.05, ax_video.get_position().width, 0.04])
-    ax_slider.set_facecolor(BACKGROUND_COLOR)
-    frame_slider = Slider(
-        ax=ax_slider,
-        label='',
-        valmin=0,
-        valmax=len(all_pose_coords)-1,
-        valinit=0,
-        valstep=1,
-        valfmt=None 
-    )
-    frame_slider.poly.set_edgecolor(SLIDER_EDGE_COLOR)
-    frame_slider.poly.set_facecolor(SLIDER_COLOR)
-    frame_slider.poly.set_linewidth(1)
-    frame_slider.valtext.set_visible(False)
-
-
-    # Status text and OK button
-    ax_status = plt.axes([ax_video.get_position().x0, ax_video.get_position().y0-0.1, 2*ax_video.get_position().width/3, 0.04])
-    ax_status.axis('off')
-    status_text = ax_status.text(0.0, 0.5, f"Selected: None", color='black', fontsize=10)
-
-    ax_button = plt.axes([ax_video.get_position().x0 + 3*ax_video.get_position().width/4, ax_video.get_position().y0-0.1, ax_video.get_position().width/4, 0.04])
-    ok_button = Button(ax_button, 'OK', color=BACKGROUND_COLOR)
+    def get_frame(frame_idx):
+        """Get frame with caching"""
+        actual_frame_idx = start_frame + frame_idx
+        
+        # Check cache first
+        if actual_frame_idx in frame_cache:
+            # Move to end of cache order (recently used)
+            cache_order.remove(actual_frame_idx)
+            cache_order.append(actual_frame_idx)
+            return frame_cache[actual_frame_idx]
+        
+        # Load from video
+        cap.set(cv2.CAP_PROP_POS_FRAMES, actual_frame_idx)
+        success, frame = cap.read()
+        if not success:
+            raise ValueError(f"Could not read frame {actual_frame_idx}")
+        
+        # Add to cache
+        frame_cache[actual_frame_idx] = frame.copy()
+        cache_order.append(actual_frame_idx)
+        
+        # Remove old frames if cache too large
+        while len(frame_cache) > cache_size:
+            oldest_frame = cache_order.pop(0)
+            if oldest_frame in frame_cache:
+                del frame_cache[oldest_frame]
+        
+        return frame
     
 
     def update_frame(val):
         # Update image
         frame_idx = int(frame_slider.val)
-        frame_rgb = cv2.cvtColor(frames[frame_idx], cv2.COLOR_BGR2RGB)
+        frame = get_frame(frame_idx)
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
         # Update bboxes and annotations
         for items in [rects, annotations]:
@@ -1209,6 +1155,101 @@ def select_persons_on_vid(frames, all_pose_coords):
     def on_ok(event):
         plt.close(fig)
 
+
+    # Open video
+    cap = cv2.VideoCapture(video_file_path)
+    if not cap.isOpened():
+        raise ValueError(f"Could not open video: {video_file_path}")
+    start_frame, end_frame = frame_range
+    
+
+    # Frame cache for efficiency - only keep recently accessed frames
+    frame_cache = {}
+    cache_size = 20  # Keep last 20 frames in memory
+    cache_order = []
+
+    # Calculate bounding boxes for each person in each frame
+    selected_persons = []
+    n_frames, n_persons = all_pose_coords.shape[0], all_pose_coords.shape[1]
+    all_bboxes = []
+    for frame_idx in range(n_frames):
+        frame_bboxes = []
+        for person_idx in range(n_persons):
+            # Get keypoints for current person
+            keypoints = all_pose_coords[frame_idx, person_idx]
+            valid_keypoints = keypoints[~np.isnan(keypoints).all(axis=1)]
+            if len(valid_keypoints) > 0:
+                # Calculate bounding box
+                x_min, y_min = np.min(valid_keypoints, axis=0)
+                x_max, y_max = np.max(valid_keypoints, axis=0)
+                frame_bboxes.append((x_min, y_min, x_max, y_max))
+            else:
+                frame_bboxes.append((np.nan, np.nan, np.nan, np.nan))  # No valid bounding box for this person
+        all_bboxes.append(frame_bboxes)
+    all_bboxes = np.array(all_bboxes)  # Shape: (Nframes, Npersons, 4)
+    
+    # Create figure, axes, and slider
+    first_frame = get_frame(0)
+    frame_height, frame_width = first_frame.shape[:2]
+    is_vertical = frame_height > frame_width
+    if is_vertical:
+        fig_height = frame_height / 250  # For vertical videos
+    else:
+        fig_height = max(frame_height / 300, 6)  # For horizontal videos
+    fig = plt.figure(figsize=(8, fig_height), num=f'Select the persons to analyze in the desired order')
+    fig.patch.set_facecolor(BACKGROUND_COLOR)
+
+    video_axes_height = 0.7 if is_vertical else 0.6
+    ax_video = plt.axes([0.1, 0.2, 0.8, video_axes_height])
+    ax_video.axis('off')
+    ax_video.set_facecolor(BACKGROUND_COLOR)    
+
+    # First image
+    frame_rgb = cv2.cvtColor(first_frame, cv2.COLOR_BGR2RGB)
+    rects, annotations = [], []
+    for person_idx, bbox in enumerate(all_bboxes[0]):
+        if ~np.isnan(bbox).any():
+            x_min, y_min, x_max, y_max = bbox.astype(int)
+            rect = plt.Rectangle(
+                (x_min, y_min), x_max - x_min, y_max - y_min,
+                linewidth=1, edgecolor=LINE_UNSELECTED_COLOR, facecolor=UNSELECTED_COLOR,
+                linestyle='-', path_effects=[patheffects.withSimplePatchShadow()], zorder=2
+            ) 
+            ax_video.add_patch(rect)
+            annotation = ax_video.text(
+                x_min, y_min - 10, f'{person_idx}', color=LINE_UNSELECTED_COLOR, fontsize=7, fontweight='normal',
+                bbox=dict(facecolor=UNSELECTED_COLOR, edgecolor=LINE_UNSELECTED_COLOR, boxstyle='square,pad=0.3', path_effects=[patheffects.withSimplePatchShadow()]), zorder=3
+            )
+            rects.append(rect)
+            annotations.append(annotation)
+    img_plot = ax_video.imshow(frame_rgb)
+
+    # Slider
+    ax_slider = plt.axes([ax_video.get_position().x0, ax_video.get_position().y0-0.05, ax_video.get_position().width, 0.04])
+    ax_slider.set_facecolor(BACKGROUND_COLOR)
+    frame_slider = Slider(
+        ax=ax_slider,
+        label='',
+        valmin=0,
+        valmax=len(all_pose_coords)-1,
+        valinit=0,
+        valstep=1,
+        valfmt=None 
+    )
+    frame_slider.poly.set_edgecolor(SLIDER_EDGE_COLOR)
+    frame_slider.poly.set_facecolor(SLIDER_COLOR)
+    frame_slider.poly.set_linewidth(1)
+    frame_slider.valtext.set_visible(False)
+
+
+    # Status text and OK button
+    ax_status = plt.axes([ax_video.get_position().x0, ax_video.get_position().y0-0.1, 2*ax_video.get_position().width/3, 0.04])
+    ax_status.axis('off')
+    status_text = ax_status.text(0.0, 0.5, f"Selected: None", color='black', fontsize=10)
+
+    ax_button = plt.axes([ax_video.get_position().x0 + 3*ax_video.get_position().width/4, ax_video.get_position().y0-0.1, ax_video.get_position().width/4, 0.04])
+    ok_button = Button(ax_button, 'OK', color=BACKGROUND_COLOR)
+    
 
     # Connect events
     frame_slider.on_changed(update_frame)
@@ -1465,11 +1506,12 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     # Create output directories
     if video_file == "webcam":
         current_date = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_dir_name = f'webcam_{current_date}'
+        output_dir_name = f'webcam_{current_date}_Sports2D'
+        video_file_path = result_dir / output_dir_name / f'webcam_{current_date}_raw.mp4'
     else:
-        video_file_path = video_dir / video_file
         video_file_stem = video_file.stem
         output_dir_name = f'{video_file_stem}_Sports2D'    
+        video_file_path = video_dir / video_file
     output_dir = result_dir / output_dir_name
     img_output_dir = output_dir / f'{output_dir_name}_img'
     vid_output_path = output_dir / f'{output_dir_name}.mp4'
@@ -1491,7 +1533,10 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     trimmed_extrema_percent = config_dict.get('kinematics').get('trimmed_extrema_percent')
     close_to_zero_speed_px = config_dict.get('kinematics').get('close_to_zero_speed_px')
     close_to_zero_speed_m = config_dict.get('kinematics').get('close_to_zero_speed_m')
-    if do_ik or use_augmentation or do_filter:
+    # Create a Pose2Sim dictionary and fill in missing keys
+    recursivedict = lambda: defaultdict(recursivedict)
+    Pose2Sim_config_dict = recursivedict()
+    if do_ik or use_augmentation:
         try:
             if use_augmentation:
                 from Pose2Sim.markerAugmentation import augment_markers_all
@@ -1501,9 +1546,6 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             logging.error("OpenSim package is not installed. Please install it to use inverse kinematics or marker augmentation features (see 'Full install' section of the documentation).")
             raise ImportError("OpenSim package is not installed. Please install it to use inverse kinematics or marker augmentation features (see 'Full install' section of the documentation).")
         
-        # Create a Pose2Sim dictionary and fill in missing keys
-        recursivedict = lambda: defaultdict(recursivedict)
-        Pose2Sim_config_dict = recursivedict()
         # Fill Pose2Sim dictionary (height and mass will be filled later)
         Pose2Sim_config_dict['project']['project_dir'] = str(output_dir)
         Pose2Sim_config_dict['markerAugmentation']['make_c3d'] = make_c3d
@@ -1534,12 +1576,13 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
 
     # Set up video capture
     if video_file == "webcam":
-        cap, out_vid, cam_width, cam_height, fps = setup_webcam(webcam_id, save_vid, vid_output_path, input_size)
+        cap, out_vid, cam_width, cam_height, fps = setup_webcam(webcam_id, vid_output_path, input_size)
+        frame_rate = fps
         frame_range = [0,sys.maxsize]
         frame_iterator = range(*frame_range)
         logging.warning('Webcam input: the framerate may vary. If results are filtered, Sports2D will use the average framerate as input.')
     else:
-        cap, out_vid, cam_width, cam_height, fps = setup_video(video_file_path, save_vid, vid_output_path)
+        cap, out_vid, cam_width, cam_height, fps = setup_video(video_file_path, vid_output_path, save_vid)
         fps *= slowmo_factor
         start_time = get_start_time_ffmpeg(video_file_path)
         frame_range = [int((time_range[0]-start_time) * frame_rate), int((time_range[1]-start_time) * frame_rate)] if time_range else [0, int(cap.get(cv2.CAP_PROP_FRAME_COUNT))]
@@ -1636,10 +1679,11 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     all_frames_X, all_frames_X_flipped, all_frames_Y, all_frames_scores, all_frames_angles = [], [], [], [], []
     frame_processing_times = []
     frame_count = 0
-    frames = []
+    first_frame = max(int(t0 * fps), frame_range[0])
+    # frames = []
     while cap.isOpened():
         # Skip to the starting frame
-        if frame_count <= int(t0 * fps) or frame_count < frame_range[0]:
+        if frame_count < first_frame:
             cap.read()
             frame_count += 1
             continue
@@ -1659,9 +1703,9 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 if save_angles:
                     all_frames_angles.append([])
                 continue
-            else: # does not store all frames in memory if they are not saved or used for ordering
-                if save_img or save_vid or person_ordering_method == 'on_click':
-                    frames.append(frame.copy())
+            # else: # does not store all frames in memory if they are not saved or used for ordering
+            #     if save_img or save_vid or person_ordering_method == 'on_click':
+            #         frames.append(frame.copy())
 
             # Retrieve pose or Estimate pose and track people
             if load_trc_px: 
@@ -1670,6 +1714,10 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 keypoints = keypoints_all[frame_nb]
                 scores = scores_all[frame_nb]
             else: 
+                # Save video on the fly if the input is a webcam
+                if video_file == "webcam":
+                    out_vid.write(frame)
+
                 # Detect poses
                 keypoints, scores = pose_tracker(frame)
 
@@ -1775,8 +1823,11 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         # End of the video is reached
         cap.release()
         logging.info(f"Video processing completed.")
-        if save_vid:
+        if save_vid or video_file == "webcam":
             out_vid.release()
+            if video_file == "webcam":
+                vid_output_path.absolute().rename(video_file_path)
+
         if show_realtime_results:
             cv2.destroyAllWindows()
 
@@ -1813,7 +1864,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             nb_persons_to_detect = nb_detected_persons
 
         if person_ordering_method == 'on_click':
-            selected_persons = get_personIDs_on_click(frames, all_frames_X_homog, all_frames_Y_homog)
+            selected_persons = get_personIDs_on_click(video_file_path, frame_range, all_frames_X_homog, all_frames_Y_homog)
             if len(selected_persons) == 0:
                 logging.warning('No persons selected. Analyzing all detected persons.')
                 selected_persons = list(range(nb_detected_persons))
@@ -1890,8 +1941,13 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                         all_frames_Y_person_interp.replace(np.nan, 0, inplace=True)
 
                 # Filter
+                # if handle_LR_swap:
+                #     logging.info(f'Handling left-right swaps.')
+                #     all_frames_X_person_interp = all_frames_X_person_interp.apply(LR_unswap, axis=0)
+                #     all_frames_Y_person_interp = all_frames_Y_person_interp.apply(LR_unswap, axis=0)
+
                 if reject_outliers:
-                    logging.info('Rejecting outliers with Hampel filter.')
+                    logging.info('Rejecting outliers with a Hampel filter.')
                     all_frames_X_person_interp = all_frames_X_person_interp.apply(hampel_filter, axis=0, args = [round(7*frame_rate/30), 2])
                     all_frames_Y_person_interp = all_frames_Y_person_interp.apply(hampel_filter, axis=0, args = [round(7*frame_rate/30), 2])
 
@@ -2140,7 +2196,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 
                 # Filter
                 if reject_outliers:
-                    logging.info(f'Rejecting outliers with Hampel filter.')
+                    logging.info(f'Rejecting outliers with a Hampel filter.')
                     all_frames_angles_person_interp = all_frames_angles_person_interp.apply(hampel_filter, axis=0)
 
                 if not do_filter:
@@ -2172,7 +2228,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                         logging.error(f"Invalid filter_type: {filter_type}. Must be 'butterworth', 'gcv_spline', 'kalman', 'gaussian', 'loess', or 'median'.")
                         raise ValueError(f"Invalid filter_type: {filter_type}. Must be 'butterworth', 'gcv_spline', 'kalman', 'gaussian', 'loess', or 'median'.")
 
-                    logging.info(f'Filtering with {args}.')
+                    logging.info(f'Filtering with {args}')
                     all_frames_angles_person_filt = all_frames_angles_person_interp.apply(filter1d, axis=0, args = [Pose2Sim_config_dict, filter_type, frame_rate])
 
                 # Add floor_angle_estim to segment angles
@@ -2228,22 +2284,28 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         new_keypoints_ids = list(range(len(new_keypoints_ids)))
 
         # Draw pose and angles
+        first_frame, last_frame = frame_range
         if 'first_trim' not in locals():
-            first_trim, last_trim = 0, frame_count-1
-        for frame_count, (frame, valid_X, valid_X_flipped, valid_Y, valid_scores, valid_angles) in enumerate(zip(frames, all_frames_X_processed, all_frames_X_flipped_processed, all_frames_Y_processed, all_frames_scores_processed, all_frames_angles_processed)):
-            if frame_count >= first_trim and frame_count <= last_trim:
-                img = frame.copy()
-                img = draw_bounding_box(img, valid_X, valid_Y, colors=colors, fontSize=fontSize, thickness=thickness)
-                img = draw_keypts(img, valid_X, valid_Y, valid_scores, cmap_str='RdYlGn')
-                img = draw_skel(img, valid_X, valid_Y, pose_model_with_new_ids)
-                if calculate_angles:
-                    img = draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, new_keypoints_ids, new_keypoints_names, angle_names, display_angle_values_on=display_angle_values_on, colors=colors, fontSize=fontSize, thickness=thickness)
+            first_trim, last_trim = first_frame, last_frame
+        cap = cv2.VideoCapture(video_file_path)
+        cap.set(cv2.CAP_PROP_POS_FRAMES, first_frame+first_trim)
+        for i in range(first_trim, last_trim+1):
+            success, frame = cap.read()
+            if not success:
+                raise ValueError(f"Could not read frame {i}")
+            img = frame.copy()
+            img = draw_bounding_box(img, all_frames_X_processed[i], all_frames_Y_processed[i], colors=colors, fontSize=fontSize, thickness=thickness)
+            img = draw_keypts(img, all_frames_X_processed[i], all_frames_Y_processed[i], all_frames_scores_processed[i], cmap_str='RdYlGn')
+            img = draw_skel(img, all_frames_X_processed[i], all_frames_Y_processed[i], pose_model_with_new_ids)
+            if calculate_angles:
+                img = draw_angles(img, all_frames_X_processed[i], all_frames_Y_processed[i], all_frames_angles_processed[i], all_frames_X_flipped_processed[i], new_keypoints_ids, new_keypoints_names, angle_names, display_angle_values_on=display_angle_values_on, colors=colors, fontSize=fontSize, thickness=thickness)
 
-                # Save video or images
-                if save_vid:
-                    out_vid.write(img)
-                if save_img:
-                    cv2.imwrite(str((img_output_dir / f'{output_dir_name}_{(frame_count+frame_range[0]):06d}.png')), img)
+            # Save video or images
+            if save_vid:
+                out_vid.write(img)
+            if save_img:
+                cv2.imwrite(str((img_output_dir / f'{output_dir_name}_{(i+frame_range[0]):06d}.png')), img)
+        cap.release()
 
         if save_vid:
             out_vid.release()
