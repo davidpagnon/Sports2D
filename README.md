@@ -102,7 +102,7 @@ If you need 3D research-grade markerless joint kinematics, consider using severa
 
 > N.B.: Full install is required for OpenSim inverse kinematics.
 
-Open a terminal. Type `python -V` to make sure python >=3.10 <=3.11 is installed. If not, install it [from there](https://www.python.org/downloads/). 
+Open a terminal. Type `python -V` to make sure python >=3.10 <=3.12 is installed. If not, install it [from there](https://www.python.org/downloads/). 
 
 Run:
 ``` cmd
@@ -126,7 +126,7 @@ pip install .
 - Install Anaconda or [Miniconda](https://docs.conda.io/en/latest/miniconda.html):\
   Open an Anaconda prompt and create a virtual environment:
   ``` cmd
-  conda create -n Sports2D python=3.10 -y
+  conda create -n Sports2D python=3.12 -y
   conda activate Sports2D
   ```
 - **Install OpenSim**:\
