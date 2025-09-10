@@ -60,8 +60,8 @@ pose_model = 'Body_with_feet'  #With RTMLib:
                          # - Hand (HAND_21, only lightweight mode. Potentially better results with Whole_body), 
                          # - Face (FACE_106), 
                          # - Animal (ANIMAL2D_17)
-                         # /!\ Only RTMPose is natively embeded in Pose2Sim. For all other pose estimation methods, you will have to run them yourself, and then refer to the documentation to convert the output files if needed
-                         # /!\ For Face and Animal, use mode="""{dictionary}""", and find the corresponding .onnx model there https://github.com/open-mmlab/mmpose/tree/main/projects/rtmpose
+                         # ⚠ Only RTMPose is natively embeded in Pose2Sim. For all other pose estimation methods, you will have to run them yourself, and then refer to the documentation to convert the output files if needed
+                         # ⚠ For Face and Animal, use mode="""{dictionary}""", and find the corresponding .onnx model there https://github.com/open-mmlab/mmpose/tree/main/projects/rtmpose
 mode = 'balanced' # 'lightweight', 'balanced', 'performance', or """{dictionary}""" (see below)
 
 # A dictionary (WITHIN THREE DOUBLE QUOTES) allows you to manually select the person detection (if top_down approach) and/or pose estimation models (see https://github.com/Tau-J/rtmlib). 
@@ -139,6 +139,7 @@ reject_outliers = true      # Hampel filter for outlier rejection before other f
 
 filter = true
 show_graphs = true         # Show plots of raw and processed results
+save_graphs = false        # Save position and angle plots of raw and processed results
 filter_type = 'butterworth'     # butterworth, kalman, gcv_spline, gaussian, loess, median, butterworth_on_speed
    
    # Most intuitive and standard filter in biomechanics

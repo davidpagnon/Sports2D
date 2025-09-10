@@ -28,7 +28,7 @@
     - Run on webcam with default parameters: 
         sports2d --video_input webcam
     - Run with custom parameters (all non specified are set to default): 
-        sports2d --show_plots False --time_range 0 2.1 --result_dir path_to_result_dir
+        sports2d --show_graphs False --time_range 0 2.1 --result_dir path_to_result_dir
         sports2d --person_detection_method highest_likelihood --mode lightweight --det_frequency 50
     - Run with a toml configuration file: 
         sports2d --config path_to_config.toml
@@ -44,7 +44,7 @@
     pip install .
     
     -----
-    /!\ Warning /!\
+    ⚠ Warning ⚠
     -----
     - The angle estimation is only as good as the pose estimation algorithm, i.e., it is not perfect.
     - It will only lead to acceptable results if the persons move in the 2D plane (sagittal plane).
@@ -236,6 +236,7 @@ DEFAULT_CONFIG =   {'base': {'video_input': ['demo.mp4'],
                                         'reject_outliers': True,
                                         'filter': True,
                                         'show_graphs': True,
+                                        'save_graphs': False,
                                         'filter_type': 'butterworth',
                                         'butterworth': {'order': 4, 'cut_off_frequency': 6.0},
                                         'kalman': {'trust_ratio': 500.0, 'smooth':True},
@@ -279,6 +280,7 @@ CONFIG_HELP =   {'config': ["C", "path to a toml configuration file"],
                 'show_realtime_results': ["R", "show results in real-time. true if not specified"],
                 'display_angle_values_on': ["a", '"body", "list", "body" "list", or "none". body list if not specified'],
                 'show_graphs': ["G", "show plots of raw and processed results. true if not specified"],
+                'save_graphs': ["", "save position and angle plots of raw and processed results. false if not specified"],
                 'joint_angles': ["j", '"Right ankle" "Left ankle" "Right knee" "Left knee" "Right hip" "Left hip" "Right shoulder" "Left shoulder" "Right elbow" "Left elbow" if not specified'],
                 'segment_angles': ["s", '"Right foot" "Left foot" "Right shank" "Left shank" "Right thigh" "Left thigh" "Pelvis" "Trunk" "Shoulders" "Head" "Right arm" "Left arm" "Right forearm" "Left forearm" if not specified'],
                 'save_vid': ["V", "save processed video. true if not specified"],
@@ -546,7 +548,7 @@ def main():
     - Run on webcam with default parameters: 
         sports2d --video_input webcam
     - Run with custom parameters (all non specified are set to default): 
-        sports2d --show_plots False --time_range 0 2.1 --result_dir path_to_result_dir
+        sports2d --show_graphs False --time_range 0 2.1 --result_dir path_to_result_dir
         sports2d --mode lightweight --det_frequency 50
     - Run with a toml configuration file: 
         sports2d --config path_to_config.toml

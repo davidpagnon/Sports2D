@@ -29,7 +29,7 @@
     - optionally plots pose and angle data before and after processing for comparison
     - optionally saves poses for each person as a trc file, and angles as a mot file
         
-    /!\ Warning /!\
+    ⚠ Warning ⚠ 
     - The pose detection is only as good as the pose estimation algorithm, i.e., it is not perfect.
     - It will lead to reliable results only if the persons move in the 2D plane (sagittal or frontal plane).
     - The persons need to be filmed as perpendicularly as possible from their side.
@@ -792,7 +792,7 @@ def make_mot_with_angles(angles, time, mot_path):
 def pose_plots(trc_data_unfiltered, trc_data, person_id):
     '''
     Displays trc filtered and unfiltered data for comparison
-    /!\ Often crashes on the third window...
+    ⚠ Often crashes on the third window...
 
     INPUTS:
     - trc_data_unfiltered: pd.DataFrame. The unfiltered trc data
@@ -837,11 +837,13 @@ def pose_plots(trc_data_unfiltered, trc_data, person_id):
     
     pw.show()
 
+    return pw
+
 
 def angle_plots(angle_data_unfiltered, angle_data, person_id):
     '''
     Displays angle filtered and unfiltered data for comparison
-    /!\ Often crashes on the third window...
+    ⚠ Often crashes on the third window...
 
     INPUTS:
     - angle_data_unfiltered: pd.DataFrame. The unfiltered angle data
@@ -879,6 +881,8 @@ def angle_plots(angle_data_unfiltered, angle_data, person_id):
         pw.addPlot(angle, f)
 
     pw.show()
+
+    return pw
 
 
 def get_personIDs_with_highest_scores(all_frames_scores, nb_persons_to_detect):
@@ -1374,7 +1378,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     - optionally plots pose and angle data before and after processing for comparison
     - optionally saves poses for each person as a trc file, and angles as a mot file
         
-    /!\ Warning /!\d
+    ⚠ Warning ⚠ 
     - The pose detection is only as good as the pose estimation algorithm, i.e., it is not perfect.
     - It will lead to reliable results only if the persons move in the 2D plane (sagittal or frontal plane).
     - The persons need to be filmed as perpendicularly as possible from their side.
@@ -1490,6 +1494,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     handle_LR_swap = config_dict.get('post-processing').get('handle_LR_swap', False)
     reject_outliers = config_dict.get('post-processing').get('reject_outliers', False)
     show_plots = config_dict.get('post-processing').get('show_graphs')
+    save_plots = config_dict.get('post-processing').get('save_graphs')
     filter_type = config_dict.get('post-processing').get('filter_type')
     butterworth_filter_order = config_dict.get('post-processing').get('butterworth', {}).get('order')
     butterworth_filter_cutoff = config_dict.get('post-processing').get('butterworth', {}).get('cut_off_frequency')
@@ -1513,6 +1518,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         output_dir_name = f'{video_file_stem}_Sports2D'    
         video_file_path = video_dir / video_file
     output_dir = result_dir / output_dir_name
+    plots_output_dir = output_dir / f'{output_dir_name}_graphs'
     img_output_dir = output_dir / f'{output_dir_name}_img'
     vid_output_path = output_dir / f'{output_dir_name}.mp4'
     pose_output_path = output_dir / f'{output_dir_name}_px.trc'
@@ -1521,6 +1527,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     output_dir.mkdir(parents=True, exist_ok=True)
     if save_img:
         img_output_dir.mkdir(parents=True, exist_ok=True)
+    if save_plots:
+        plots_output_dir.mkdir(parents=True, exist_ok=True)
 
     # Inverse kinematics settings
     do_ik = config_dict.get('kinematics').get('do_ik')
@@ -2000,8 +2008,16 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 trc_data_unfiltered_i = pd.concat([all_frames_time] + columns_to_concat, axis=1)
                 trc_data_unfiltered.append(trc_data_unfiltered_i)
                 if show_plots and not to_meters:
-                    pose_plots(trc_data_unfiltered_i, trc_data_i, i)
-                
+                    pw = pose_plots(trc_data_unfiltered_i, trc_data_i, i)
+                    if save_plots:
+                        for n, f in enumerate(pw.figure_handles):
+                            dpi = pw.canvases[i].figure.dpi
+                            f.set_size_inches(1280/dpi, 720/dpi)
+                            title = pw.tabs.tabText(n)
+                            plot_path = plots_output_dir / (pose_output_path.stem + f'_person{i:02d}_px_{title.replace(" ","_").replace("/","_")}.png')
+                            f.savefig(plot_path, dpi=dpi, bbox_inches='tight')
+                        logging.info(f'Pose plots (px) saved in {plots_output_dir}.')
+                        
                 all_frames_X_processed[:,idx_person,:], all_frames_Y_processed[:,idx_person,:] = all_frames_X_person_filt, all_frames_Y_person_filt
                 if calculate_angles or save_angles:
                     all_frames_X_flipped_processed[:,idx_person,:] = all_frames_X_flipped_person
@@ -2088,7 +2104,15 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     trc_data_unfiltered_m_i = pd.concat([all_frames_time.rename('time')]+px_to_m_unfiltered_i, axis=1)
 
                     if to_meters and show_plots:
-                        pose_plots(trc_data_unfiltered_m_i, trc_data_m_i, i)
+                        pw = pose_plots(trc_data_unfiltered_m_i, trc_data_m_i, i)
+                        if save_plots:
+                            for n, f in enumerate(pw.figure_handles):
+                                dpi = pw.canvases[i].figure.dpi
+                                f.set_size_inches(1280/dpi, 720/dpi)
+                                title = pw.tabs.tabText(n)
+                                plot_path = plots_output_dir / (pose_output_path_m.stem + f'_person{i:02d}_m_{title.replace(" ","_").replace("/","_")}.png')
+                                f.savefig(plot_path, dpi=dpi, bbox_inches='tight')
+                            logging.info(f'Pose plots (m) saved in {plots_output_dir}.')
                     
                     # Write to trc file
                     trc_data_m.append(trc_data_m_i)
@@ -2250,7 +2274,15 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 # Plotting angles before and after interpolation and filtering
                 if show_plots:
                     all_frames_angles_person.insert(0, 'time', all_frames_time)
-                    angle_plots(all_frames_angles_person, angle_data, i) # i = current person
+                    pw = angle_plots(all_frames_angles_person, angle_data, i) # i = current person
+                    if save_plots:
+                        for n, f in enumerate(pw.figure_handles):
+                            dpi = pw.canvases[i].figure.dpi
+                            f.set_size_inches(1280/dpi, 720/dpi)
+                            title = pw.tabs.tabText(n)
+                            plot_path = plots_output_dir / (pose_output_path_m.stem + f'_person{i:02d}_ang_{title.replace(" ","_").replace("/","_")}.png')
+                            f.savefig(plot_path, dpi=dpi, bbox_inches='tight')
+                        logging.info(f'Pose plots (m) saved in {plots_output_dir}.')
 
 
     #%% ==================================================
