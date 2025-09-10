@@ -789,7 +789,7 @@ def make_mot_with_angles(angles, time, mot_path):
     return angles
 
 
-def pose_plots(trc_data_unfiltered, trc_data, person_id):
+def pose_plots(trc_data_unfiltered, trc_data, person_id, show=True):
     '''
     Displays trc filtered and unfiltered data for comparison
     ⚠ Often crashes on the third window...
@@ -835,12 +835,13 @@ def pose_plots(trc_data_unfiltered, trc_data, person_id):
 
         pw.addPlot(keypoint, f)
     
-    pw.show()
+    if show:
+        pw.show()
 
     return pw
 
 
-def angle_plots(angle_data_unfiltered, angle_data, person_id):
+def angle_plots(angle_data_unfiltered, angle_data, person_id, show=True):
     '''
     Displays angle filtered and unfiltered data for comparison
     ⚠ Often crashes on the third window...
@@ -880,7 +881,8 @@ def angle_plots(angle_data_unfiltered, angle_data, person_id):
 
         pw.addPlot(angle, f)
 
-    pw.show()
+    if show:
+        pw.show()
 
     return pw
 
@@ -2007,8 +2009,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     columns_to_concat.extend([all_frames_X_person.iloc[:,kpt], all_frames_Y_person.iloc[:,kpt], all_frames_Z_homog.iloc[:,kpt]])
                 trc_data_unfiltered_i = pd.concat([all_frames_time] + columns_to_concat, axis=1)
                 trc_data_unfiltered.append(trc_data_unfiltered_i)
-                if show_plots and not to_meters:
-                    pw = pose_plots(trc_data_unfiltered_i, trc_data_i, i)
+                if not to_meters and (show_plots or save_plots):
+                    pw = pose_plots(trc_data_unfiltered_i, trc_data_i, i, show=show_plots)
                     if save_plots:
                         for n, f in enumerate(pw.figure_handles):
                             dpi = pw.canvases[i].figure.dpi
@@ -2103,8 +2105,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     px_to_m_unfiltered_i = [convert_px_to_meters(trc_data_unfiltered[i][kpt_name], first_person_height, height_px, cx, cy, -floor_angle_estim) for kpt_name in new_keypoints_names]
                     trc_data_unfiltered_m_i = pd.concat([all_frames_time.rename('time')]+px_to_m_unfiltered_i, axis=1)
 
-                    if to_meters and show_plots:
-                        pw = pose_plots(trc_data_unfiltered_m_i, trc_data_m_i, i)
+                    if to_meters and (show_plots or save_plots):
+                        pw = pose_plots(trc_data_unfiltered_m_i, trc_data_m_i, i, show=show_plots)
                         if save_plots:
                             for n, f in enumerate(pw.figure_handles):
                                 dpi = pw.canvases[i].figure.dpi
@@ -2113,7 +2115,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                                 plot_path = plots_output_dir / (pose_output_path_m.stem + f'_person{i:02d}_m_{title.replace(" ","_").replace("/","_")}.png')
                                 f.savefig(plot_path, dpi=dpi, bbox_inches='tight')
                             logging.info(f'Pose plots (m) saved in {plots_output_dir}.')
-                    
+
                     # Write to trc file
                     trc_data_m.append(trc_data_m_i)
                     pose_path_person_m_i = (pose_output_path.parent / (pose_output_path_m.stem + f'_person{i:02d}.trc'))
@@ -2272,17 +2274,16 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 logging.info(f'Angles saved to {angles_path_person.resolve()}.')
 
                 # Plotting angles before and after interpolation and filtering
-                if show_plots:
-                    all_frames_angles_person.insert(0, 'time', all_frames_time)
-                    pw = angle_plots(all_frames_angles_person, angle_data, i) # i = current person
-                    if save_plots:
-                        for n, f in enumerate(pw.figure_handles):
-                            dpi = pw.canvases[i].figure.dpi
-                            f.set_size_inches(1280/dpi, 720/dpi)
-                            title = pw.tabs.tabText(n)
-                            plot_path = plots_output_dir / (pose_output_path_m.stem + f'_person{i:02d}_ang_{title.replace(" ","_").replace("/","_")}.png')
-                            f.savefig(plot_path, dpi=dpi, bbox_inches='tight')
-                        logging.info(f'Pose plots (m) saved in {plots_output_dir}.')
+                all_frames_angles_person.insert(0, 'time', all_frames_time)
+                if save_plots and (show_plots or save_plots):
+                    pw = angle_plots(all_frames_angles_person, angle_data, i, show=show_plots) # i = current person
+                    for n, f in enumerate(pw.figure_handles):
+                        dpi = pw.canvases[i].figure.dpi
+                        f.set_size_inches(1280/dpi, 720/dpi)
+                        title = pw.tabs.tabText(n)
+                        plot_path = plots_output_dir / (pose_output_path_m.stem + f'_person{i:02d}_ang_{title.replace(" ","_").replace("/","_")}.png')
+                        f.savefig(plot_path, dpi=dpi, bbox_inches='tight')
+                    logging.info(f'Pose plots (m) saved in {plots_output_dir}.')
 
 
     #%% ==================================================
