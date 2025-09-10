@@ -46,7 +46,7 @@ dependencies = [
     "c3d",
     "rtmlib",
     "openvino",
-    "opencv-python",
+    "opencv-python<4.12", # or forces numpy>=2.0, which is incompatible with some opensim/python combinations
     "imageio_ffmpeg",
     "deep-sort-realtime",
     "Pose2Sim>=0.10.33"
