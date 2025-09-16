@@ -77,6 +77,7 @@ from matplotlib.widgets import Slider, Button
 from matplotlib import patheffects
 
 from rtmlib import PoseTracker, BodyWithFeet, Wholebody, Body, Hand, Custom
+from rtmlib.tools.object_detection.post_processings import nms
 from deep_sort_realtime.deepsort_tracker import DeepSort
 
 from Sports2D.Utilities.common import *
@@ -1731,6 +1732,13 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 # Detect poses
                 keypoints, scores = pose_tracker(frame)
 
+                # Non maximum suppression (at pose level, not detection)
+                frame_shape = frame.shape
+                bboxes = bbox_xyxy_compute(frame_shape, keypoints, padding=0)
+                score_bboxes = np.array([np.mean(s) for s in scores])
+                keep = nms(bboxes, score_bboxes, nms_thr=0.45)
+                keypoints, scores = keypoints[keep], scores[keep]
+                
                 # Track poses across frames
                 if tracking_mode == 'deepsort':
                     keypoints, scores = sort_people_deepsort(keypoints, scores, deepsort_tracker, frame, frame_count)
