@@ -45,7 +45,7 @@ def test_workflow():
     ## From Python             ##
     #############################
 
-    # Default
+    # Default from the demo config file
     config_path = Path(__file__).resolve().parent.parent / 'Demo' / 'Config_demo.toml'
     config_dict = toml.load(config_path)
     video_dir = Path(__file__).resolve().parent.parent / 'Demo'
@@ -53,6 +53,26 @@ def test_workflow():
     config_dict.get("base").update({"person_ordering_method": "highest_likelihood"})
     config_dict.get("base").update({"show_realtime_results":False})
     config_dict.get("post-processing").update({"show_graphs":False})
+    
+    Sports2D.process(config_dict)
+
+
+    # Only passing the updated values
+    video_dir = Path(__file__).resolve().parent.parent / 'Demo'
+    config_dict = {
+      'base': {
+        'nb_persons_to_detect': 1,
+        'person_ordering_method': 'greatest_displacement',
+        "show_realtime_results":False
+        },
+      'pose': {
+        'mode': 'lightweight', 
+        'det_frequency': 50
+        },
+      'post-processing': {
+        'show_graphs':False
+        }
+    }
     
     Sports2D.process(config_dict)
 
@@ -74,7 +94,7 @@ def test_workflow():
 
     # With no pixels to meters conversion, one person to select, lightweight mode, detection frequency, slowmo factor, gaussian filter, RTMO body pose model
     demo_cmd3 = ["sports2d", "--show_realtime_results", "False", "--show_graphs", "False", 
-                 "--to_meters", "False", 
+                 "--calib_file", "calib_demo.toml", 
                  "--nb_persons_to_detect", "1", "--person_ordering_method", "greatest_displacement", 
                  "--mode", "lightweight", "--det_frequency", "50", 
                  "--slowmo_factor", "4",

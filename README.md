@@ -24,6 +24,7 @@
 </br>
 
 > **`Announcements:`**
+> - Generate or import a calibration file, OpenSim skeleton overlay **New in v0.9!** 
 > - Select only the persons you want to analyze **New in v0.8!** 
 > - MarkerAugmentation and Inverse Kinematics for accurate 3D motion with OpenSim. **New in v0.7!** 
 > - Any detector and pose estimation model can be used. **New in v0.6!**
@@ -175,16 +176,19 @@ The Demo video is voluntarily challenging to demonstrate the robustness of the p
 
 1. **Install the Pose2Sim_Blender add-on.**\
    Follow instructions on the [Pose2Sim_Blender](https://github.com/davidpagnon/Pose2Sim_Blender) add-on page.
+2. **Import the camera and video.**
+    - **Cameras -> Import**: Open your `demo_calib.toml` file from your `result_dir` folder.
+    - **Images/Videos -> Show**: open your video file (e.g., `demo_Sports2D.mp4`).\
+    -> **Other tools -> See through camera**
 2. **Open your point coordinates.**\
-   **Add Markers**: open your trc file(e.g., `coords_m.trc`) from your `result_dir` folder.
-   
+   **OpenSim data -> Markers**: Open your trc file(e.g., `demo_Sports2D_m_person00.trc`) from your `result_dir` folder.\
    This will optionally create **an animated rig** based on the motion of the captured person.
 3. **Open your animated skeleton:**\
    Make sure you first set `--do_ik True` ([full install](#full-install) required). See [inverse kinematics](#run-inverse-kinematics) section for more details.
-   - **Add Model**: Open your scaled model (e.g., `Model_Pose2Sim_LSTM.osim`). 
-   - **Add Motion**: Open your motion file (e.g., `angles.mot`). Make sure the skeleton is selected in the outliner.
+   - **OpenSim data -> Model**: Open your scaled model (e.g., `demo_Sports2D_m_person00_LSTM.osim`). 
+   - **OpenSim data -> Motion**: Open your motion file (e.g., `demo_Sports2D_m_person00_LSTM_ik.mot`). 
 
-   The OpenSim skeleton is not rigged yet. **[Feel free to contribute!](https://github.com/perfanalytics/pose2sim/issues/40)**
+   The OpenSim skeleton is not rigged yet. **[Feel free to contribute!](https://github.com/perfanalytics/pose2sim/issues/40)** [![Discord](https://img.shields.io/discord/1183750225471492206?logo=Discord&label=Discord%20community)](https://discord.com/invite/4mXUdSFjmt)
 
 <img src="Content/sports2d_blender.gif" width="760">
 
@@ -241,7 +245,7 @@ If you only want to analyze a subset of the detected persons, you can use the `-
 sports2d --nb_persons_to_detect 2 --person_ordering_method highest_likelihood
 ```
 
-We recommend to use the `on_click` method if you can afford a manual input. This lets the user handle both the person number and their order in the same stage. When prompted, select the persons you are interested in in the desired order. In our case, lets slide to a frame where both people are visible, and select the woman first, then the man.
+We recommend using the `on_click` method if you can afford a manual input. This lets the user handle both the person number and their order in the same stage. When prompted, select the persons you are interested in in the desired order. In our case, lets slide to a frame where both people are visible, and select the woman first, then the man.
 
 Otherwise, if you want to run Sports2D automatically for example, you can choose other ordering methods such as 'highest_likelihood', 'largest_size', 'smallest_size',  'greatest_displacement', 'least_displacement', 'first_detected', or 'last_detected'.
 
@@ -258,28 +262,32 @@ sports2d --person_ordering_method on_click
 
 
 #### Get coordinates in meters: 
-> **N.B.:** Depth is estimated from a neutral pose. 
+> **N.B.:** The Z coordinate (depth) should not be overly trusted. 
 
-<!-- You either need to provide a calibration file, or simply the height of a person (Note that the latter will not take distortions into account, and that it will be less accurate for motion in the frontal plane).\-->
-You may need to convert pixel coordinates to meters.\
-Just provide the height of the reference person (and their ID in case of multiple person detection).
+You may want coordinates in meters rather than pixels. 2 options to do so:
 
-You can also specify whether the visible side of the person is left, right, front, or back. Set it to 'auto' if you do not want to find it automatically (only works for motion in the sagittal plane), or to 'none' if you want to keep 2D instead of 3D coordinates (if the person goes right, and then left for example).
+1. **Just provide the height of a reference person**:
+   - Their height in meters is be compared with their height in pixels to get a pixel-to-meter conversion factor.
+   - To estimate the depth coordinates, specify which side of the person is visible: `left`, `right`, `front`, or `back`. Use `auto` if you want it to be automatically determined (only works for motions in the sagittal plane), or `none` if you want to keep 2D coordinates instead of 3D (if the person turns around, for example).
+   - The floor angle is automatically estimated from gait, as well as the origin of the xy axis. The person trajectory is corrected accordingly. You can use the `--floor_angle` and `--xy_origin` parameters to manually specify them if your subject is not travelling horizontally or if you want the origin not to be under their feet (note that the `y` axis points down).
+   
+   **N.B.: A calibration file will be generated.** By convention, the camera-to-subject distance is set to 10 meters.
 
-The floor angle and the origin of the xy axis are computed automatically from gait. If you analyze another type of motion, you can manually specify them. Note that `y` points down.\
-Also note that distortions are not taken into account, and that results will be less accurate for motions in the frontal plane.
+   ``` cmd
+   sports2d --first_person_height 1.65 --visible_side auto front none
+   ```
+   ``` cmd
+   sports2d --first_person_height 1.65 --visible_side auto front none `
+            --person_ordering_method on_click `
+            --floor_angle 0 --xy_origin 0 940
+   ```
 
-<!-- ``` cmd
-sports2d --to_meters True --calib_file calib_demo.toml
-``` -->
-``` cmd
-sports2d --to_meters True --first_person_height 1.65 --visible_side auto front none
-```
-``` cmd
-sports2d --to_meters True --first_person_height 1.65 --visible_side auto front none `
-         --person_ordering_method on_click `
-         --floor_angle 0 --xy_origin 0 940
-```
+2. **Or use a calibration file**:\
+  It can either be a `.toml` calibration file previously generated by Sports2D, or a more accurate one coming from another system. For example, [Pose2Sim](https://github.com/perfanalytics/pose2sim) can be used to accurately calculate calibration, or to convert calibration files from Qualisys, Vicon, OpenCap, FreeMoCap, etc.
+
+   ``` cmd
+   sports2d --calib_file Calib_demo.toml --visible_side auto front none
+   ```
 
 <br>
 
@@ -294,18 +302,22 @@ OpenSim inverse kinematics allows you to set joint constraints, joint angle limi
 This is done via [Pose2Sim](https://github.com/perfanalytics/pose2sim).\
 Model scaling is done according to the mean of the segment lengths, across a subset of frames. We remove the 10% fastest frames (potential outliers), the frames where the speed is 0 (person probably out of frame), the frames where the average knee and hip flexion angles are above 45° (pose estimation is not precise when the person is crouching) and the 20% most extreme segment values after the previous operations (potential outliers). All these parameters can be edited in your Config.toml file.
 
+**N.B.: This will not work on sections where the person is not moving in a single plane. You can split your video into several time ranges if needed.**
+
 ```cmd
 sports2d --time_range 1.2 2.7 `
          --do_ik true --first_person_height 1.65 --visible_side auto front
 ```
 
 You can optionally use the LSTM marker augmentation to improve the quality of the output motion.\
-You can also optionally give the participants proper masses. Mass has no influence on motion, only on forces (if you decide to further pursue kinetics analysis).
+You can also optionally give the participants proper masses. Mass has no influence on motion, only on forces (if you decide to further pursue kinetics analysis).\
+Optionally again, you can [visualize the overlaid results in Blender](#visualize-in-blender). The automatic calibration won't be accurate with such a small time range, so you need to use the provided calibration file (or one that has been generated from the full walk).
 
 ```cmd
 sports2d --time_range 1.2 2.7 `
          --do_ik true --first_person_height 1.65 --visible_side left front `
-         --use_augmentation True --participant_mass 55.0 67.0
+         --use_augmentation True --participant_mass 55.0 67.0 `
+         --calib_file Calib_demo.toml
 ```
 
 <br>
@@ -333,14 +345,31 @@ sports2d --video_input demo.mp4 other_video.mp4 --time_range 1.2 2.7 0 3.5
   ``` cmd
   sports2d --config Config_demo.toml
   ```
-- Run within Python: 
-  ``` python
-  from Sports2D import Sports2D; Sports2D.process('Config_demo.toml')
-  ```
-- Run within Python with a dictionary (for example, `config_dict = toml.load('Config_demo.toml')`):
-  ``` python
-  from Sports2D import Sports2D; Sports2D.process(config_dict)
-  ```
+- Run within Python, for example:\
+  - Edit `Demo/Config_demo.toml` and run:
+    ```python
+    from Sports2D import Sports2D
+    from pathlib import Path
+    import toml
+
+    config_path = Path(Sports2D.__file__).parent / 'Demo'/'Config_demo.toml'
+    config_dict = toml.load(config_path)
+    Sports2D.process(config_dict)
+    ```
+  - Or you can pass the non default values only: 
+    ```python
+    from Sports2D import Sports2D
+    config_dict = {
+      'base': {
+        'nb_persons_to_detect': 1,
+        'person_ordering_method': 'greatest_displacement'
+        },
+      'pose': {
+        'mode': 'lightweight', 
+        'det_frequency': 50
+        }}
+    Sports2D.process(config_dict)
+    ```
 
 <br>
 
@@ -364,7 +393,7 @@ sports2d --video_input demo.mp4 other_video.mp4 --time_range 1.2 2.7 0 3.5
   ```cmd
   sports2d --flip_left_right true # Default
   ```
-- Correct segment angles according to the estimated camera tild angle.\
+- Correct segment angles according to the estimated camera tilt angle.\
   **N.B.:** *The camera tilt angle is automatically estimated. Set to false if it is actually the floor which is tilted rather than the camera.*
   ```cmd
   sports2d --correct_segment_angles_with_floor_angle true # Default
@@ -434,6 +463,7 @@ sports2d --help
 'show_realtime_results': ["R", "show results in real-time. true if not specified"],
 'display_angle_values_on': ["a", '"body", "list", "body" "list", or "none". body list if not specified'],
 'show_graphs': ["G", "show plots of raw and processed results. true if not specified"],
+'save_graphs': ["", "save position and angle plots of raw and processed results. false if not specified"],
 'joint_angles': ["j", '"Right ankle" "Left ankle" "Right knee" "Left knee" "Right hip" "Left hip" "Right shoulder" "Left shoulder" "Right elbow" "Left elbow" if not specified'],
 'segment_angles': ["s", '"Right foot" "Left foot" "Right shank" "Left shank" "Right thigh" "Left thigh" "Pelvis" "Trunk" "Shoulders" "Head" "Right arm" "Left arm" "Right forearm" "Left forearm" if not specified'],
 'save_vid': ["V", "save processed video. true if not specified"],

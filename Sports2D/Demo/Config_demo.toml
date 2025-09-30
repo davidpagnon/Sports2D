@@ -103,7 +103,7 @@ keypoint_number_threshold = 0.3     # Person will be ignored if the number of go
 # Pixel to meters conversion
 to_meters = true
 make_c3d = true
-save_calib = true # Coming soon!
+save_calib = false
 
 # If conversion from first_person_height
 floor_angle = 'auto'    # 'auto' or a value in degrees, eg 2.3. If 'auto', estimated from the line formed by the toes when they are on the ground (where speed = 0)
@@ -139,7 +139,7 @@ reject_outliers = true      # Hampel filter for outlier rejection before other f
 
 filter = true
 show_graphs = true         # Show plots of raw and processed results
-save_graphs = false        # Save position and angle plots of raw and processed results
+save_graphs = true         # Save position and angle plots of raw and processed results
 filter_type = 'butterworth'     # butterworth, kalman, gcv_spline, gaussian, loess, median, butterworth_on_speed
    
    # Most intuitive and standard filter in biomechanics
@@ -171,7 +171,7 @@ filter_type = 'butterworth'     # butterworth, kalman, gcv_spline, gaussian, loe
 
 [kinematics]
 do_ik = false # Do scaling and inverse kinematics?
-use_augmentation = false  # true or false (lowercase) # Set to true if you want to use the model with augmented markers
+use_augmentation = true  # true or false (lowercase) # Set to true if you want to use the model with augmented markers
 feet_on_floor = false # true or false (lowercase) # Set to false if you want to use the model with feet not on the floor (e.g. running, jumping, etc.)
 use_simple_model = false # true or false # IK 10+ times faster, but no muscles or flexible spine, no patella
 participant_mass = [55.0, 67.0] # kg # defaults to 70 if not provided. No influence on kinematics (motion), only on kinetics (forces)

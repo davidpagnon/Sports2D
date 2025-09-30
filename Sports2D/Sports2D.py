@@ -236,7 +236,7 @@ DEFAULT_CONFIG =   {'base': {'video_input': ['demo.mp4'],
                                         'reject_outliers': True,
                                         'filter': True,
                                         'show_graphs': True,
-                                        'save_graphs': False,
+                                        'save_graphs': True,
                                         'filter_type': 'butterworth',
                                         'butterworth': {'order': 4, 'cut_off_frequency': 6.0},
                                         'kalman': {'trust_ratio': 500.0, 'smooth':True},
@@ -247,7 +247,7 @@ DEFAULT_CONFIG =   {'base': {'video_input': ['demo.mp4'],
                                         'butterworth_on_speed': {'butterspeed_order': 4, 'butterspeed_cut_off_frequency': 6.0},
                                         },
                     'kinematics':{'do_ik': False,
-                                          'use_augmentation': False,
+                                          'use_augmentation': True,
                                           'feet_on_floor': False,
                                           'use_simple_model': False,
                                           'participant_mass': [55.0, 67.0], 
@@ -280,7 +280,7 @@ CONFIG_HELP =   {'config': ["C", "path to a toml configuration file"],
                 'show_realtime_results': ["R", "show results in real-time. true if not specified"],
                 'display_angle_values_on': ["a", '"body", "list", "body" "list", or "none". body list if not specified'],
                 'show_graphs': ["G", "show plots of raw and processed results. true if not specified"],
-                'save_graphs': ["", "save position and angle plots of raw and processed results. false if not specified"],
+                'save_graphs': ["", "save position and angle plots of raw and processed results. true if not specified"],
                 'joint_angles': ["j", '"Right ankle" "Left ankle" "Right knee" "Left knee" "Right hip" "Left hip" "Right shoulder" "Left shoulder" "Right elbow" "Left elbow" if not specified'],
                 'segment_angles': ["s", '"Right foot" "Left foot" "Right shank" "Left shank" "Right thigh" "Left thigh" "Pelvis" "Trunk" "Shoulders" "Head" "Right arm" "Left arm" "Right forearm" "Left forearm" if not specified'],
                 'save_vid': ["V", "save processed video. true if not specified"],
@@ -473,6 +473,14 @@ def set_nested_value(config, flat_key, value):
     d[keys[-1]] = value
 
 
+def merge_dicts(original, overrides):
+    for key, value in overrides.items():
+        if isinstance(value, dict) and isinstance(original.get(key), dict):
+            merge_dicts(original[key], value)
+        else:
+            original[key] = value
+            
+
 def str2bool(v):
     '''
     Convert a string to a boolean value.
@@ -500,7 +508,8 @@ def process(config='Config_demo.toml'):
     from Sports2D.process import process_fun
     
     if type(config) == dict:
-        config_dict = config
+        config_dict = DEFAULT_CONFIG.copy()
+        merge_dicts(config_dict, config)
     else:
         config_dict = read_config_file(config)
     video_dir, video_files, frame_rates, time_ranges, result_dir = base_params(config_dict)
