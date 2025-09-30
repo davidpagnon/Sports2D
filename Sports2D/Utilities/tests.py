@@ -53,7 +53,7 @@ def test_workflow():
     config_dict.get("base").update({"person_ordering_method": "highest_likelihood"})
     config_dict.get("base").update({"show_realtime_results":False})
     config_dict.get("post-processing").update({"show_graphs":False})
-    config_dict.get("post-processing").update({"--save_graphs":False})
+    config_dict.get("post-processing").update({"save_graphs":False})
     
     Sports2D.process(config_dict)
 
