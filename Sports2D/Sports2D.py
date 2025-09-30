@@ -196,7 +196,7 @@ DEFAULT_CONFIG =   {'base': {'video_input': ['demo.mp4'],
                                 'calib_file': '',
                                 'floor_angle': 'auto',
                                 'xy_origin': ['auto'],
-                                'save_calib': True
+                                'save_calib': False
                                 },
                     'angles':   {'display_angle_values_on': ['body', 'list'],
                                 'fontSize': 0.3,
