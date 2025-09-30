@@ -53,6 +53,7 @@ def test_workflow():
     config_dict.get("base").update({"person_ordering_method": "highest_likelihood"})
     config_dict.get("base").update({"show_realtime_results":False})
     config_dict.get("post-processing").update({"show_graphs":False})
+    config_dict.get("post-processing").update({"--save_graphs":False})
     
     Sports2D.process(config_dict)
 
@@ -70,7 +71,8 @@ def test_workflow():
         'det_frequency': 50
         },
       'post-processing': {
-        'show_graphs':False
+        'show_graphs':False,
+        'save_graphs':False
         }
     }
     
@@ -86,14 +88,14 @@ def test_workflow():
     subprocess.run(demo_cmd, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace')
 
     # With loading a trc file, visible_side 'front', first_person_height '1.76", floor_angle 0, xy_origin [0, 928]
-    demo_cmd2 = ["sports2d", "--show_realtime_results", "False", "--show_graphs", "False",
+    demo_cmd2 = ["sports2d", "--show_realtime_results", "False", "--show_graphs", "False", "--save_graphs", "False",
                  "--load_trc_px", os.path.join(root_dir, "demo_Sports2D", "demo_Sports2D_px_person01.trc"),
                  "--visible_side", "front", "--first_person_height", "1.76", "--time_range", "1.2", "2.7",
                  "--floor_angle", "0", "--xy_origin", "0", "928"]
     subprocess.run(demo_cmd2, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace')
 
     # With no pixels to meters conversion, one person to select, lightweight mode, detection frequency, slowmo factor, gaussian filter, RTMO body pose model
-    demo_cmd3 = ["sports2d", "--show_realtime_results", "False", "--show_graphs", "False", 
+    demo_cmd3 = ["sports2d", "--show_realtime_results", "False", "--show_graphs", "False", "--save_graphs", "False",
                  "--calib_file", "calib_demo.toml", 
                  "--nb_persons_to_detect", "1", "--person_ordering_method", "greatest_displacement", 
                  "--mode", "lightweight", "--det_frequency", "50", 
@@ -103,7 +105,7 @@ def test_workflow():
     subprocess.run(demo_cmd3, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace')
     
     # With a time range, inverse kinematics, marker augmentation
-    demo_cmd4 = ["sports2d", "--person_ordering_method", "greatest_displacement", "--show_realtime_results", "False", "--show_graphs", "False",
+    demo_cmd4 = ["sports2d", "--person_ordering_method", "greatest_displacement", "--show_realtime_results", "False", "--show_graphs", "False", "--save_graphs", "False",
                  "--time_range", "1.2", "2.7",
                  "--do_ik", "True", "--use_augmentation", "True", 
                  "--nb_persons_to_detect", "all", "--first_person_height", "1.65",
@@ -117,7 +119,7 @@ def test_workflow():
     config_dict.get("base").update({"video_dir": str(video_dir)})
     config_dict.get("base").update({"person_ordering_method": "highest_likelihood"})
     with open(config_path, 'w') as f: toml.dump(config_dict, f)
-    demo_cmd5 = ["sports2d", "--config", str(config_path), "--show_realtime_results", "False", "--show_graphs", "False"]
+    demo_cmd5 = ["sports2d", "--config", str(config_path), "--show_realtime_results", "False", "--show_graphs", "False", "--save_graphs", "False",]
     subprocess.run(demo_cmd5, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace')
 
 
