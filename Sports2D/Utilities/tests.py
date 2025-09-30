@@ -100,7 +100,7 @@ def test_workflow():
                  "--nb_persons_to_detect", "1", "--person_ordering_method", "greatest_displacement", 
                  "--mode", "lightweight", "--det_frequency", "50", 
                  "--slowmo_factor", "4",
-                 "--filter_type", "gaussian",
+                 "--filter_type", "gaussian", "--use_augmentation", "False",
                  "--pose_model", "body", "--mode", """{'pose_class':'RTMO', 'pose_model':'https://download.openmmlab.com/mmpose/v1/projects/rtmo/onnx_sdk/rtmo-m_16xb16-600e_body7-640x640-39e78cc4_20231211.zip', 'pose_input_size':[640, 640]}"""]
     subprocess.run(demo_cmd3, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace')
     
