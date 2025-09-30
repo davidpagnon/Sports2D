@@ -96,7 +96,7 @@ def test_workflow():
 
     # With no pixels to meters conversion, one person to select, lightweight mode, detection frequency, slowmo factor, gaussian filter, RTMO body pose model
     demo_cmd3 = ["sports2d", "--show_realtime_results", "False", "--show_graphs", "False", "--save_graphs", "False",
-                 "--calib_file", "calib_demo.toml", 
+                #  "--calib_file", "calib_demo.toml", 
                  "--nb_persons_to_detect", "1", "--person_ordering_method", "greatest_displacement", 
                  "--mode", "lightweight", "--det_frequency", "50", 
                  "--slowmo_factor", "4",
