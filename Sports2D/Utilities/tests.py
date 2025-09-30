@@ -84,7 +84,7 @@ def test_workflow():
     #############################
 
     # Default
-    demo_cmd = ["sports2d", "--person_ordering_method", "highest_likelihood", "--show_realtime_results", "False", "--show_graphs", "False"]
+    demo_cmd = ["sports2d", "--person_ordering_method", "highest_likelihood", "--show_realtime_results", "False", "--show_graphs", "False", "--save_graphs", "False"]
     subprocess.run(demo_cmd, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace')
 
     # With loading a trc file, visible_side 'front', first_person_height '1.76", floor_angle 0, xy_origin [0, 928]
