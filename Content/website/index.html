@@ -1,0 +1,2095 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sports2D Documentation</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Language Toggle -->
+    <div class="lang-toggle">
+        <button onclick="setLanguage('en')" id="lang-en" class="active">EN</button>
+        <button onclick="setLanguage('fr')" id="lang-fr">FR</button>
+    </div>
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+        <div class="logo">
+            <h2>Sports2D</h2>
+            <p class="lang-en">Documentation</p>
+            <p class="lang-fr" style="display:none;">Documentation</p>
+        </div>
+        <nav class="nav-menu">
+            <a href="#step-0" onclick="goToStep(0)" class="nav-item active">
+                <span class="step-num">00</span>
+                <span class="lang-en">Introduction</span>
+                <span class="lang-fr" style="display:none;">Introduction</span>
+            </a>
+            <a href="#step-1" onclick="goToStep(1)" class="nav-item">
+                <span class="step-num">01</span>
+                <span class="lang-en">Installation</span>
+                <span class="lang-fr" style="display:none;">Installation</span>
+            </a>
+            <a href="#step-2" onclick="goToStep(2)" class="nav-item">
+                <span class="step-num">02</span>
+                <span class="lang-en">Run Demo</span>
+                <span class="lang-fr" style="display:none;">Exécuter Démo</span>
+            </a>
+            <a href="#step-3" onclick="goToStep(3)" class="nav-item">
+                <span class="step-num">03</span>
+                <span class="lang-en">Custom Video</span>
+                <span class="lang-fr" style="display:none;">Vidéo Personnalisée</span>
+            </a>
+            <a href="#step-4" onclick="goToStep(4)" class="nav-item">
+                <span class="step-num">04</span>
+                <span class="lang-en">Select Persons</span>
+                <span class="lang-fr" style="display:none;">Sélectionner Personnes</span>
+            </a>
+            <a href="#step-5" onclick="goToStep(5)" class="nav-item">
+                <span class="step-num">05</span>
+                <span class="lang-en">Convert to Meters</span>
+                <span class="lang-fr" style="display:none;">Convertir en Mètres</span>
+            </a>
+            <a href="#step-6" onclick="goToStep(6)" class="nav-item">
+                <span class="step-num">06</span>
+                <span class="lang-en">Inverse Kinematics</span>
+                <span class="lang-fr" style="display:none;">Cinématique Inverse</span>
+            </a>
+            <a href="#step-7" onclick="goToStep(7)" class="nav-item">
+                <span class="step-num">07</span>
+                <span class="lang-en">Configuration File</span>
+                <span class="lang-fr" style="display:none;">Fichier Config</span>
+            </a>
+            <a href="#step-8" onclick="goToStep(8)" class="nav-item">
+                <span class="step-num">08</span>
+                <span class="lang-en">All Parameters</span>
+                <span class="lang-fr" style="display:none;">Tous Paramètres</span>
+            </a>
+            <a href="#step-9" onclick="goToStep(9)" class="nav-item">
+                <span class="step-num">09</span>
+                <span class="lang-en">Optimization</span>
+                <span class="lang-fr" style="display:none;">Optimisation</span>
+            </a>
+            <a href="#step-10" onclick="goToStep(10)" class="nav-item">
+                <span class="step-num">10</span>
+                <span class="lang-en">Angle Conventions</span>
+                <span class="lang-fr" style="display:none;">Conventions Angles</span>
+            </a>
+        </nav>
+        <button class="view-all-btn" onclick="toggleViewAll()">
+            <span class="lang-en">View All Steps</span>
+            <span class="lang-fr" style="display:none;">Voir Toutes Étapes</span>
+        </button>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="content">
+        <div class="step-container">
+            
+            <!-- Step 0: Introduction -->
+            <section class="step active" id="step-0" data-step="0">
+                <div class="step-header">
+                    <span class="step-badge">Step 0</span>
+                    <h1 class="lang-en">Welcome to Sports2D</h1>
+                    <h1 class="lang-fr" style="display:none;">Bienvenue à Sports2D</h1>
+                </div>
+                <div class="step-content">
+                    <div class="lang-en">
+                        <p class="lead">Sports2D automatically computes 2D joint positions, as well as joint and segment angles from a video or a webcam.</p>
+                        
+                        <!-- Demo Video -->
+                        <div class="video-container">
+                            <video controls poster="https://raw.githubusercontent.com/davidpagnon/Sports2D/main/Content/Demo_results.png">
+                                <source src="https://github.com/user-attachments/assets/6a444474-4df1-4134-af0c-e9746fa433ad" type="video/mp4">
+                                Your browser doesn't support video playback.
+                            </video>
+                        </div>
+                        
+                        <div class="feature-grid">
+                            <div class="feature-card">
+                                <div class="feature-icon">🎯</div>
+                                <h3>Accurate Detection</h3>
+                                <p>RTMPose technology for reliable joint tracking</p>
+                            </div>
+                            <div class="feature-card">
+                                <div class="feature-icon">📐</div>
+                                <h3>Angle Computation</h3>
+                                <p>Automatic joint and segment angle calculation</p>
+                            </div>
+                            <div class="feature-card">
+                                <div class="feature-icon">📏</div>
+                                <h3>Real Measurements</h3>
+                                <p>Convert pixels to meters for accurate analysis</p>
+                            </div>
+                            <div class="feature-card">
+                                <div class="feature-icon">🤸</div>
+                                <h3>OpenSim Ready</h3>
+                                <p>Biomechanically accurate inverse kinematics</p>
+                            </div>
+                        </div>
+
+                        <div class="warning-box">
+                            <h4>⚠️ Important Notes</h4>
+                            <ul>
+                                <li>Angle estimation is only as good as the pose estimation algorithm - it is not perfect</li>
+                                <li>Results are acceptable only if persons move in the 2D plane (sagittal or frontal plane)</li>
+                                <li>Persons need to be filmed as parallel as possible to the motion plane</li>
+                                <li>For 3D research-grade markerless joint kinematics, use <a href="https://github.com/perfanalytics/pose2sim" target="_blank">Pose2Sim</a> with multiple cameras</li>
+                            </ul>
+                        </div>
+
+                        <div class="info-box">
+                            <h4>📦 Recent Updates</h4>
+                            <ul>
+                                <li><strong>v0.9:</strong> Generate or import calibration file, OpenSim skeleton overlay</li>
+                                <li><strong>v0.8:</strong> Select only the persons you want to analyze</li>
+                                <li><strong>v0.7:</strong> MarkerAugmentation and Inverse Kinematics with OpenSim</li>
+                                <li><strong>v0.6:</strong> Any detector and pose estimation model can be used</li>
+                                <li><strong>v0.5:</strong> Results in meters rather than pixels</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="lang-fr" style="display:none;">
+                        <p class="lead">Sports2D calcule automatiquement les positions articulaires 2D ainsi que les angles articulaires et segmentaires à partir d'une vidéo ou d'une webcam.</p>
+                        
+                        <!-- Demo Video -->
+                        <div class="video-container">
+                            <video controls poster="https://raw.githubusercontent.com/davidpagnon/Sports2D/main/Content/Demo_results.png">
+                                <source src="https://github.com/user-attachments/assets/6a444474-4df1-4134-af0c-e9746fa433ad" type="video/mp4">
+                                Votre navigateur ne supporte pas la lecture vidéo.
+                            </video>
+                        </div>
+                        
+                        <div class="feature-grid">
+                            <div class="feature-card">
+                                <div class="feature-icon">🎯</div>
+                                <h3>Détection Précise</h3>
+                                <p>Technologie RTMPose pour un suivi fiable</p>
+                            </div>
+                            <div class="feature-card">
+                                <div class="feature-icon">📐</div>
+                                <h3>Calcul d'Angles</h3>
+                                <p>Calcul automatique des angles articulaires</p>
+                            </div>
+                            <div class="feature-card">
+                                <div class="feature-icon">📏</div>
+                                <h3>Mesures Réelles</h3>
+                                <p>Convertir les pixels en mètres</p>
+                            </div>
+                            <div class="feature-card">
+                                <div class="feature-icon">🤸</div>
+                                <h3>Compatible OpenSim</h3>
+                                <p>Cinématique inverse biomécaniquement précise</p>
+                            </div>
+                        </div>
+
+                        <div class="warning-box">
+                            <h4>⚠️ Notes Importantes</h4>
+                            <ul>
+                                <li>L'estimation des angles n'est aussi bonne que l'algorithme d'estimation de pose - elle n'est pas parfaite</li>
+                                <li>Les résultats ne sont acceptables que si les personnes se déplacent dans le plan 2D (plan sagittal ou frontal)</li>
+                                <li>Les personnes doivent être filmées aussi parallèlement que possible au plan de mouvement</li>
+                                <li>Pour la cinématique articulaire sans marqueur de qualité recherche en 3D, utilisez <a href="https://github.com/perfanalytics/pose2sim" target="_blank">Pose2Sim</a> avec plusieurs caméras</li>
+                            </ul>
+                        </div>
+
+                        <div class="info-box">
+                            <h4>📦 Mises à Jour Récentes</h4>
+                            <ul>
+                                <li><strong>v0.9:</strong> Générer ou importer un fichier de calibration, superposition squelette OpenSim</li>
+                                <li><strong>v0.8:</strong> Sélectionner uniquement les personnes à analyser</li>
+                                <li><strong>v0.7:</strong> Augmentation de marqueurs et cinématique inverse avec OpenSim</li>
+                                <li><strong>v0.6:</strong> N'importe quel détecteur et modèle d'estimation de pose peut être utilisé</li>
+                                <li><strong>v0.5:</strong> Résultats en mètres plutôt qu'en pixels</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Step 1: Installation -->
+            <section class="step" id="step-1" data-step="1">
+                <div class="step-header">
+                    <span class="step-badge">Step 1</span>
+                    <h1 class="lang-en">Installation</h1>
+                    <h1 class="lang-fr" style="display:none;">Installation</h1>
+                </div>
+                <div class="step-content">
+                    <div class="lang-en">
+                        <p class="lead">Two installation options: Quick install for basic use, or Full install for OpenSim inverse kinematics.</p>
+                        
+                        <div class="instruction-step">
+                            <h3>Quick Install</h3>
+                            <p>For basic pose estimation and angle calculation (no inverse kinematics):</p>
+                            
+                            <h4>1. Check Python Version</h4>
+                            <p>Make sure Python 3.10-3.12 is installed:</p>
+                            <div class="code-block">
+                                <code>python -V</code>
+                            </div>
+                            <p class="small-note">If not installed, check the next section</p>
+                            
+                            <h4>2. Install Sports2D</h4>
+                            <div class="code-block">
+                                <code>pip install sports2d</code>
+                            </div>
+                            
+                            <p><strong>Alternative - Build from source (for latest changes):</strong></p>
+                            <div class="code-block">
+                                <code>git clone https://github.com/davidpagnon/sports2d.git
+cd sports2d
+pip install .</code>
+                            </div>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>Full Install (with OpenSim)</h3>
+                            <p>Required for inverse kinematics. Skip if you already have a Pose2Sim environment.</p>
+                            
+                            <h4>1. Install Anaconda or Miniconda</h4>
+                            <p>Download <a href="https://docs.conda.io/en/latest/miniconda.html" target="_blank">Miniconda</a> (recommended - lighter version)</p>
+                            
+                            <h4>2. Create Virtual Environment</h4>
+                            <p>Open an Anaconda prompt:</p>
+                            <div class="code-block">
+                                <code>conda create -n Sports2D python=3.12 -y
+conda activate Sports2D</code>
+                            </div>
+                            
+                            <h4>3. Install OpenSim</h4>
+                            <div class="code-block">
+                                <code>conda install -c opensim-org opensim -y</code>
+                            </div>
+                            <p class="small-note">For other installation methods, see <a href="https://opensimconfluence.atlassian.net/wiki/spaces/OpenSim/pages/53085346/Scripting+in+Python" target="_blank">OpenSim documentation</a></p>
+                            
+                            <h4>4. Install Sports2D</h4>
+                            <div class="code-block">
+                                <code>pip install sports2d</code>
+                            </div>
+                        </div>
+
+                        <div class="success-box">
+                            <h4>✅ Installation Complete!</h4>
+                            <p>If you used conda, remember to activate your environment before use:</p>
+                            <div class="code-block">
+                                <code>conda activate Sports2D</code>
+                            </div>
+                        </div>
+
+                        <div class="info-box">
+                            <h4>💡 For Existing Pose2Sim Users</h4>
+                            <p>If you already have a Pose2Sim environment:</p>
+                            <div class="code-block">
+                                <code>conda activate Pose2Sim
+pip install sports2d</code>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="lang-fr" style="display:none;">
+                        <p class="lead">Deux options d'installation : Installation rapide pour usage de base, ou Installation complète pour la cinématique inverse OpenSim.</p>
+                        
+                        <div class="instruction-step">
+                            <h3>Installation Rapide</h3>
+                            <p>Pour l'estimation de pose de base et le calcul d'angles (pas de cinématique inverse) :</p>
+                            
+                            <h4>1. Vérifier la Version Python</h4>
+                            <p>Assurez-vous que Python 3.10-3.12 est installé :</p>
+                            <div class="code-block">
+                                <code>python -V</code>
+                            </div>
+                            <p class="small-note">Si non installé, téléchargez depuis <a href="https://www.python.org/downloads/" target="_blank">python.org</a></p>
+                            
+                            <h4>2. Installer Sports2D</h4>
+                            <div class="code-block">
+                                <code>pip install sports2d</code>
+                            </div>
+                            
+                            <p><strong>Alternative - Compiler depuis la source (pour les derniers changements) :</strong></p>
+                            <div class="code-block">
+                                <code>git clone https://github.com/davidpagnon/sports2d.git
+cd sports2d
+pip install .</code>
+                            </div>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>Installation Complète (avec OpenSim)</h3>
+                            <p>Requis pour la cinématique inverse. Ignorez si vous avez déjà un environnement Pose2Sim.</p>
+                            
+                            <h4>1. Installer Anaconda ou Miniconda</h4>
+                            <p>Téléchargez <a href="https://docs.conda.io/en/latest/miniconda.html" target="_blank">Miniconda</a> (recommandé - version plus légère)</p>
+                            
+                            <h4>2. Créer un Environnement Virtuel</h4>
+                            <p>Ouvrez une invite Anaconda :</p>
+                            <div class="code-block">
+                                <code>conda create -n Sports2D python=3.12 -y
+conda activate Sports2D</code>
+                            </div>
+                            
+                            <h4>3. Installer OpenSim</h4>
+                            <div class="code-block">
+                                <code>conda install -c opensim-org opensim -y</code>
+                            </div>
+                            <p class="small-note">Pour d'autres méthodes d'installation, voir <a href="https://opensimconfluence.atlassian.net/wiki/spaces/OpenSim/pages/53085346/Scripting+in+Python" target="_blank">documentation OpenSim</a></p>
+                            
+                            <h4>4. Installer Sports2D</h4>
+                            <div class="code-block">
+                                <code>pip install sports2d</code>
+                            </div>
+                        </div>
+
+                        <div class="success-box">
+                            <h4>✅ Installation Terminée !</h4>
+                            <p>Si vous avez utilisé conda, n'oubliez pas d'activer votre environnement avant utilisation :</p>
+                            <div class="code-block">
+                                <code>conda activate Sports2D</code>
+                            </div>
+                        </div>
+
+                        <div class="info-box">
+                            <h4>💡 Pour les Utilisateurs Pose2Sim Existants</h4>
+                            <p>Si vous avez déjà un environnement Pose2Sim :</p>
+                            <div class="code-block">
+                                <code>conda activate Pose2Sim
+pip install sports2d</code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Step 2: Run Demo -->
+            <section class="step" id="step-2" data-step="2">
+                <div class="step-header">
+                    <span class="step-badge">Step 2</span>
+                    <h1 class="lang-en">Run the Demo</h1>
+                    <h1 class="lang-fr" style="display:none;">Exécuter la Démo</h1>
+                </div>
+                <div class="step-content">
+                    <div class="lang-en">
+                        <p class="lead">Test your installation with the included demo video.</p>
+                        
+                        <div class="instruction-step">
+                            <h3>Run Demo Command</h3>
+                            <p>Simply type this command:</p>
+                            <div class="code-block">
+                                <code>sports2d</code>
+                            </div>
+                            <p>You should see joint positions and angles displayed in real-time.</p>
+                        </div>
+
+                        <div class="info-box">
+                            <h4>📁 Output Files Created</h4>
+                            <p>Check the folder where you ran the command to find:</p>
+                            <ul>
+                                <li><strong>Video:</strong> Processed with skeleton overlay and angle values</li>
+                                <li><strong>Images:</strong> Individual processed frames</li>
+                                <li><strong>.trc files:</strong> Pose coordinates (open with Excel or any spreadsheet software)</li>
+                                <li><strong>.mot files:</strong> Angle files (open with Excel or any spreadsheet software)</li>
+                                <li><strong>Logs:</strong> Processing details and statistics</li>
+                            </ul>
+                        </div>
+
+                        <div class="info-box">
+                            <h4>🎬 About the Demo Video</h4>
+                            <p>The demo is deliberately challenging to demonstrate robustness:</p>
+                            <ul>
+                                <li>One person walking in the sagittal plane</li>
+                                <li>One person doing jumping jacks in the frontal plane, then performing a flip while backlit</li>
+                                <li>One tiny person flickering in the background who needs to be ignored</li>
+                            </ul>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>Visualize in OpenSim (Optional)</h3>
+                            <p>If you installed OpenSim and ran with <code>--do_ik True</code>:</p>
+                            <ol>
+                                <li>Open OpenSim GUI</li>
+                                <li>File → Preview experimental data → Open your .trc file</li>
+                                <li>File → Open Model → Open the .osim file</li>
+                                <li>File → Load Motion → Open the .mot file</li>
+                            </ol>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>Visualize in Blender (Optional)</h3>
+                            <p>Install the <a href="https://github.com/davidpagnon/Pose2Sim_Blender" target="_blank">Pose2Sim_Blender add-on</a> for 3D visualization with camera overlay.</p>
+                        </div>
+
+                        <div class="warning-box">
+                            <h4>⚠️ Important</h4>
+                            <p>If you used conda, activate your environment first:</p>
+                            <div class="code-block">
+                                <code>conda activate Sports2D
+sports2d</code>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="lang-fr" style="display:none;">
+                        <p class="lead">Testez votre installation avec la vidéo de démonstration incluse.</p>
+                        
+                        <div class="instruction-step">
+                            <h3>Commande de Démo</h3>
+                            <p>Tapez simplement cette commande :</p>
+                            <div class="code-block">
+                                <code>sports2d</code>
+                            </div>
+                            <p>Vous devriez voir les positions articulaires et les angles affichés en temps réel.</p>
+                        </div>
+
+                        <div class="info-box">
+                            <h4>📁 Fichiers de Sortie Créés</h4>
+                            <p>Vérifiez le dossier où vous avez exécuté la commande pour trouver :</p>
+                            <ul>
+                                <li><strong>Vidéo :</strong> Traitée avec superposition de squelette et valeurs d'angles</li>
+                                <li><strong>Images :</strong> Images traitées individuelles</li>
+                                <li><strong>Fichiers .trc :</strong> Coordonnées de pose (ouvrir avec Excel ou tout tableur)</li>
+                                <li><strong>Fichiers .mot :</strong> Fichiers d'angles (ouvrir avec Excel ou tout tableur)</li>
+                                <li><strong>Journaux :</strong> Détails et statistiques de traitement</li>
+                            </ul>
+                        </div>
+
+                        <div class="info-box">
+                            <h4>🎬 À Propos de la Vidéo de Démo</h4>
+                            <p>La démo est délibérément difficile pour démontrer la robustesse :</p>
+                            <ul>
+                                <li>Une personne marchant dans le plan sagittal</li>
+                                <li>Une personne faisant des jumping jacks dans le plan frontal, puis effectuant un flip à contre-jour</li>
+                                <li>Une petite personne clignotant en arrière-plan qui doit être ignorée</li>
+                            </ul>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>Visualiser dans OpenSim (Optionnel)</h3>
+                            <p>Si vous avez installé OpenSim et exécuté avec <code>--do_ik True</code> :</p>
+                            <ol>
+                                <li>Ouvrez l'interface OpenSim</li>
+                                <li>Fichier → Aperçu données expérimentales → Ouvrez votre fichier .trc</li>
+                                <li>Fichier → Ouvrir Modèle → Ouvrez le fichier .osim</li>
+                                <li>Fichier → Charger Mouvement → Ouvrez le fichier .mot</li>
+                            </ol>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>Visualiser dans Blender (Optionnel)</h3>
+                            <p>Installez l'<a href="https://github.com/davidpagnon/Pose2Sim_Blender" target="_blank">add-on Pose2Sim_Blender</a> pour une visualisation 3D avec superposition de caméra.</p>
+                        </div>
+
+                        <div class="warning-box">
+                            <h4>⚠️ Important</h4>
+                            <p>Si vous avez utilisé conda, activez d'abord votre environnement :</p>
+                            <div class="code-block">
+                                <code>conda activate Sports2D
+sports2d</code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Step 3: Custom Video -->
+            <section class="step" id="step-3" data-step="3">
+                <div class="step-header">
+                    <span class="step-badge">Step 3</span>
+                    <h1 class="lang-en">Use Your Own Video or Webcam</h1>
+                    <h1 class="lang-fr" style="display:none;">Utiliser Votre Vidéo ou Webcam</h1>
+                </div>
+                <div class="step-content">
+                    <div class="lang-en">
+                        <div class="instruction-step">
+                            <h3>Process a Video File</h3>
+                            <p>Analyze any video file:</p>
+                            <div class="code-block">
+                                <code>sports2d --video_input path/to/video.mp4</code>
+                            </div>
+                            <p class="small-note">Beware that images won't be saved if paths contain non-ASCII characters</p>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>Use Webcam for Real-Time Analysis</h3>
+                            <div class="code-block">
+                                <code>sports2d --video_input webcam</code>
+                            </div>
+                            <p>If you have multiple cameras, specify which one (0 is default):</p>
+                            <div class="code-block">
+                                <code>sports2d --video_input webcam --webcam_id 1</code>
+                            </div>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>Analyze Specific Time Range</h3>
+                            <p>Focus on a particular segment (times in seconds):</p>
+                            <div class="code-block">
+                                <code>sports2d --video_input video.mp4 --time_range 1.2 2.7</code>
+                            </div>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>Batch Processing</h3>
+                            <p>Analyze multiple videos with same settings:</p>
+                            <div class="code-block">
+                                <code>sports2d --video_input video1.mp4 video2.mp4</code>
+                            </div>
+                            <p>With different time ranges per video:</p>
+                            <div class="code-block">
+                                <code>sports2d --video_input video1.mp4 video2.mp4 --time_range 1.2 2.7 0 3.5</code>
+                            </div>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>Slow-Motion Videos</h3>
+                            <p>For videos recorded at high fps but exported at normal speed, specify the slowmo factor:</p>
+                            <div class="code-block">
+                                <code>sports2d --video_input video.mp4 --slowmo_factor 8</code>
+                            </div>
+                            <p class="small-note">For a video recorded at 240 fps and exported to 30 fps, factor = 240/30 = 8</p>
+                        </div>
+                    </div>
+
+                    <div class="lang-fr" style="display:none;">
+                        <div class="instruction-step">
+                            <h3>Traiter un Fichier Vidéo</h3>
+                            <p>Analysez n'importe quel fichier vidéo :</p>
+                            <div class="code-block">
+                                <code>sports2d --video_input chemin/vers/video.mp4</code>
+                            </div>
+                            <p class="small-note">Attention, les images ne seront pas sauvegardées si les chemins contiennent des caractères non-ASCII</p>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>Utiliser la Webcam pour Analyse en Temps Réel</h3>
+                            <div class="code-block">
+                                <code>sports2d --video_input webcam</code>
+                            </div>
+                            <p>Si vous avez plusieurs caméras, spécifiez laquelle (0 par défaut) :</p>
+                            <div class="code-block">
+                                <code>sports2d --video_input webcam --webcam_id 1</code>
+                            </div>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>Analyser une Plage de Temps Spécifique</h3>
+                            <p>Concentrez-vous sur un segment particulier (temps en secondes) :</p>
+                            <div class="code-block">
+                                <code>sports2d --video_input video.mp4 --time_range 1.2 2.7</code>
+                            </div>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>Traitement par Lot</h3>
+                            <p>Analysez plusieurs vidéos avec les mêmes paramètres :</p>
+                            <div class="code-block">
+                                <code>sports2d --video_input video1.mp4 video2.mp4</code>
+                            </div>
+                            <p>Avec différentes plages de temps par vidéo :</p>
+                            <div class="code-block">
+                                <code>sports2d --video_input video1.mp4 video2.mp4 --time_range 1.2 2.7 0 3.5</code>
+                            </div>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>Vidéos au Ralenti</h3>
+                            <p>Pour les vidéos enregistrées à haute fréquence mais exportées à vitesse normale, spécifiez le facteur de ralenti :</p>
+                            <div class="code-block">
+                                <code>sports2d --video_input video.mp4 --slowmo_factor 8</code>
+                            </div>
+                            <p class="small-note">Pour une vidéo enregistrée à 240 fps et exportée à 30 fps, facteur = 240/30 = 8</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Step 4: Select Persons -->
+            <section class="step" id="step-4" data-step="4">
+                <div class="step-header">
+                    <span class="step-badge">Step 4</span>
+                    <h1 class="lang-en">Select Persons to Analyze</h1>
+                    <h1 class="lang-fr" style="display:none;">Sélectionner les Personnes</h1>
+                </div>
+                <div class="step-content">
+                    <div class="lang-en">
+                        <p class="lead">When multiple people appear in your video, choose who to track and analyze.</p>
+                        
+                        <div class="instruction-step">
+                            <h3>Interactive Selection (Recommended)</h3>
+                            <p>Click to manually select persons to analyze:</p>
+                            <div class="code-block">
+                                <code>sports2d --person_ordering_method on_click</code>
+                            </div>
+                            <p class="small-note">When prompted: slide to a frame and select the desired person</p>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>Automatic Selection</h3>
+                            <p>For unattended processing, Sports2D can automatically select persons:</p>
+                            <div class="params-table">
+                                <table>
+                                    <tr>
+                                        <th>Method</th>
+                                        <th>Description</th>
+                                    </tr>
+                                    <tr>
+                                        <td><code>highest_likelihood</code></td>
+                                        <td>Most confident detections</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>largest_size</code></td>
+                                        <td>Closest to camera</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>smallest_size</code></td>
+                                        <td>Furthest from camera</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>greatest_displacement</code></td>
+                                        <td>Most active/moving</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>least_displacement</code></td>
+                                        <td>Least active</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>first_detected</code></td>
+                                        <td>Appears first in video</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>last_detected</code></td>
+                                        <td>Appears last in video</td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="code-block">
+                                <code>sports2d --nb_persons_to_detect 2 --person_ordering_method highest_likelihood</code>
+                            </div>
+                        </div>
+
+                        <div class="warning-box">
+                            <h4>⚠️ Why Order Matters</h4>
+                            <p>Person order is important when:</p>
+                            <ul>
+                                <li>Converting to meters (first person's height used as reference)</li>
+                                <li>Running inverse kinematics (calibration based on first person)</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="lang-fr" style="display:none;">
+                        <p class="lead">Lorsque plusieurs personnes apparaissent dans votre vidéo, choisissez qui suivre et analyser.</p>
+                        
+                        <div class="instruction-step">
+                            <h3>Sélection Interactive (Recommandé)</h3>
+                            <p>Cliquez pour sélectionner manuellement les personnes à analyser :</p>
+                            <div class="code-block">
+                                <code>sports2d --person_ordering_method on_click</code>
+                            </div>
+                            <p class="small-note">Lorsque demandé : faites glisser jusqu'à une image où tout le monde est visible → cliquez sur les personnes dans l'ordre souhaité</p>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>Sélection Automatique</h3>
+                            <p>Pour le traitement automatique, Sports2D peut sélectionner automatiquement les personnes :</p>
+                            <div class="params-table">
+                                <table>
+                                    <tr>
+                                        <th>Méthode</th>
+                                        <th>Description</th>
+                                    </tr>
+                                    <tr>
+                                        <td><code>highest_likelihood</code></td>
+                                        <td>Détections les plus confiantes</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>largest_size</code></td>
+                                        <td>Plus proche de la caméra</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>smallest_size</code></td>
+                                        <td>Plus éloigné de la caméra</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>greatest_displacement</code></td>
+                                        <td>Plus actif/en mouvement</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>least_displacement</code></td>
+                                        <td>Moins actif</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>first_detected</code></td>
+                                        <td>Apparaît en premier</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>last_detected</code></td>
+                                        <td>Apparaît en dernier</td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="code-block">
+                                <code>sports2d --nb_persons_to_detect 2 --person_ordering_method highest_likelihood</code>
+                            </div>
+                        </div>
+
+                        <div class="warning-box">
+                            <h4>⚠️ Pourquoi l'Ordre est Important</h4>
+                            <p>L'ordre des personnes est important lors de :</p>
+                            <ul>
+                                <li>Conversion en mètres (la taille de la première personne utilisée comme référence)</li>
+                                <li>Exécution de la cinématique inverse (calibration basée sur la première personne)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Step 5: Convert to Meters -->
+            <section class="step" id="step-5" data-step="5">
+                <div class="step-header">
+                    <span class="step-badge">Step 5</span>
+                    <h1 class="lang-en">Convert to Meters</h1>
+                    <h1 class="lang-fr" style="display:none;">Convertir en Mètres</h1>
+                </div>
+                <div class="step-content">
+                    <div class="lang-en">
+                        <p class="lead">Get real-world measurements instead of pixel coordinates.</p>
+                        
+                        <div class="warning-box">
+                            <h4>⚠️ Important Note</h4>
+                            <p>The Z coordinate (depth) is estimated and should not be overly trusted for accurate depth measurements.</p>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>Method 1: Provide Reference Height (Simple)</h3>
+                            <p>Just tell Sports2D the height of the first person:</p>
+                            <div class="code-block">
+                                <code>sports2d --first_person_height 1.65 --visible_side auto</code>
+                            </div>
+                            <p>How it works:</p>
+                            <ul>
+                                <li>Height in pixels is compared with real height to get pixel-to-meter conversion</li>
+                                <li>Floor angle and xy origin automatically estimated from gait</li>
+                                <li>Depth (Z) coordinates estimated based on visible side</li>
+                                <li>Calibration file automatically saved for reuse</li>
+                            </ul>
+                        </div>
+
+                        <div class="params-table">
+                            <h4>Visible Side Options:</h4>
+                            <table>
+                                <tr>
+                                    <th>Option</th>
+                                    <th>When to Use</th>
+                                </tr>
+                                <tr>
+                                    <td><code>auto</code></td>
+                                    <td>Automatically determine - works for sagittal plane motions (left or right based on motion direction)</td>
+                                </tr>
+                                <tr>
+                                    <td><code>left</code></td>
+                                    <td>Person's left side visible</td>
+                                </tr>
+                                <tr>
+                                    <td><code>right</code></td>
+                                    <td>Person's right side visible</td>
+                                </tr>
+                                <tr>
+                                    <td><code>front</code></td>
+                                    <td>Person faces camera</td>
+                                </tr>
+                                <tr>
+                                    <td><code>back</code></td>
+                                    <td>Person's back to camera</td>
+                                </tr>
+                                <tr>
+                                    <td><code>none</code></td>
+                                    <td>Keep 2D coordinates (when person turns around)</td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>Advanced: Manual Floor & Origin</h3>
+                            <p>Override automatic detection:</p>
+                            <div class="code-block">
+                                <code>sports2d --first_person_height 1.65 --visible_side left \
+  --floor_angle 0 --xy_origin 0 940</code>
+                            </div>
+                            <p class="small-note">Y axis points down. Origin is typically placed under the person's feet.</p>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>Method 2: Use Calibration File</h3>
+                            <p>Use a calibration file from previous runs or from other systems (Pose2Sim, Qualisys, Vicon, OpenCap, FreeMoCap):</p>
+                            <div class="code-block">
+                                <code>sports2d --calib_file Calib_demo.toml --visible_side auto front none</code>
+                            </div>
+                            <p class="small-note">By convention, camera-to-subject distance is set to 10 meters in generated calibration files</p>
+                        </div>
+                    </div>
+
+                    <div class="lang-fr" style="display:none;">
+                        <p class="lead">Obtenez des mesures réelles au lieu de coordonnées en pixels.</p>
+                        
+                        <div class="warning-box">
+                            <h4>⚠️ Note Importante</h4>
+                            <p>La coordonnée Z (profondeur) est estimée et ne doit pas être trop fiable pour des mesures de profondeur précises.</p>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>Méthode 1 : Fournir la Hauteur de Référence (Simple)</h3>
+                            <p>Dites simplement à Sports2D la taille de la première personne :</p>
+                            <div class="code-block">
+                                <code>sports2d --first_person_height 1.65 --visible_side auto</code>
+                            </div>
+                            <p>Comment ça marche :</p>
+                            <ul>
+                                <li>La hauteur en pixels est comparée à la hauteur réelle pour obtenir la conversion pixel-mètre</li>
+                                <li>L'angle du sol et l'origine xy automatiquement estimés depuis la marche</li>
+                                <li>Coordonnées de profondeur (Z) estimées selon le côté visible</li>
+                                <li>Fichier de calibration automatiquement sauvegardé pour réutilisation</li>
+                            </ul>
+                        </div>
+
+                        <div class="params-table">
+                            <h4>Options de Côté Visible :</h4>
+                            <table>
+                                <tr>
+                                    <th>Option</th>
+                                    <th>Quand l'Utiliser</th>
+                                </tr>
+                                <tr>
+                                    <td><code>auto</code></td>
+                                    <td>Déterminer automatiquement - fonctionne pour les mouvements dans le plan sagittal (gauche ou droite selon la direction du mouvement)</td>
+                                </tr>
+                                <tr>
+                                    <td><code>left</code></td>
+                                    <td>Côté gauche de la personne visible</td>
+                                </tr>
+                                <tr>
+                                    <td><code>right</code></td>
+                                    <td>Côté droit de la personne visible</td>
+                                </tr>
+                                <tr>
+                                    <td><code>front</code></td>
+                                    <td>Personne face à la caméra</td>
+                                </tr>
+                                <tr>
+                                    <td><code>back</code></td>
+                                    <td>Dos de la personne vers la caméra</td>
+                                </tr>
+                                <tr>
+                                    <td><code>none</code></td>
+                                    <td>Garder les coordonnées 2D (quand la personne se retourne)</td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>Avancé : Sol et Origine Manuels</h3>
+                            <p>Remplacer la détection automatique :</p>
+                            <div class="code-block">
+                                <code>sports2d --first_person_height 1.65 --visible_side left \
+  --floor_angle 0 --xy_origin 0 940</code>
+                            </div>
+                            <p class="small-note">L'axe Y pointe vers le bas. L'origine est typiquement placée sous les pieds de la personne.</p>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>Méthode 2 : Utiliser un Fichier de Calibration</h3>
+                            <p>Utiliser un fichier de calibration d'exécutions précédentes ou d'autres systèmes (Pose2Sim, Qualisys, Vicon, OpenCap, FreeMoCap) :</p>
+                            <div class="code-block">
+                                <code>sports2d --calib_file Calib_demo.toml --visible_side auto front none</code>
+                            </div>
+                            <p class="small-note">Par convention, la distance caméra-sujet est fixée à 10 mètres dans les fichiers de calibration générés</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Step 6: Inverse Kinematics -->
+            <section class="step" id="step-6" data-step="6">
+                <div class="step-header">
+                    <span class="step-badge">Step 6</span>
+                    <h1 class="lang-en">Inverse Kinematics with OpenSim</h1>
+                    <h1 class="lang-fr" style="display:none;">Cinématique Inverse avec OpenSim</h1>
+                </div>
+                <div class="step-content">
+                    <div class="lang-en">
+                        <p class="lead">OpenSim inverse kinematics provides biomechanically accurate results with joint constraints and consistent bone lengths.</p>
+                        
+                        <div class="warning-box">
+                            <h4>⚠️ Requirements</h4>
+                            <ul>
+                                <li>Full installation with OpenSim required</li>
+                                <li>Person must be moving in a single plane for the entire selected time range</li>
+                            </ul>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>Basic Inverse Kinematics</h3>
+                            <div class="code-block">
+                                <code>sports2d --time_range 1.2 2.7 \
+  --do_ik true --first_person_height 1.65 --visible_side auto</code>
+                            </div>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>With LSTM Marker Augmentation (Recommended)</h3>
+                            <p>Improves motion quality by filling gaps and smoothing trajectories:</p>
+                            <div class="code-block">
+                                <code>sports2d --time_range 1.2 2.7 \
+  --do_ik true --use_augmentation true \
+  --first_person_height 1.65 --visible_side left</code>
+                            </div>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>Complete Example with All Options</h3>
+                            <div class="code-block">
+                                <code>sports2d --time_range 1.2 2.7 \
+  --do_ik true --use_augmentation true \
+  --first_person_height 1.65 --visible_side left front \
+  --participant_mass 55.0 67.0 \
+  --calib_file Calib_demo.toml</code>
+                            </div>
+                            <p class="small-note">Mass has no influence on kinematics (motion), only on kinetics (forces) if you pursue further analysis</p>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>Additional Options</h3>
+                            <div class="params-table">
+                                <table>
+                                    <tr>
+                                        <th>Parameter</th>
+                                        <th>Description</th>
+                                        <th>Default</th>
+                                    </tr>
+                                    <tr>
+                                        <td><code>--feet_on_floor</code></td>
+                                        <td>Offset results so feet touch floor level</td>
+                                        <td>true</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>--use_simple_model</code></td>
+                                        <td>Faster model without muscles/flexible spine (10x speed)</td>
+                                        <td>false</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>--participant_mass</code></td>
+                                        <td>Mass in kg per person</td>
+                                        <td>70</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>--right_left_symmetry</code></td>
+                                        <td>Enforce equal left/right limb sizes</td>
+                                        <td>true</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="info-box">
+                            <h4>📊 Model Scaling Process</h4>
+                            <p>OpenSim scales the model based on segment lengths, automatically removing outliers:</p>
+                            <ul>
+                                <li>Removes 10% fastest frames (potential outliers)</li>
+                                <li>Removes frames where speed ≈ 0 (person probably out of frame)</li>
+                                <li>Removes frames with hip/knee flexion > 45° (imprecise when crouching)</li>
+                                <li>Removes 20% most extreme segment values</li>
+                                <li>Calculates mean of remaining measurements</li>
+                            </ul>
+                            <p class="small-note">All parameters can be edited in Config.toml file</p>
+                        </div>
+
+                        <div class="info-box">
+                            <h4>🎯 Benefits</h4>
+                            <ul>
+                                <li>Sets joint constraints and angle limits for realistic motion</li>
+                                <li>Maintains consistent bone lengths throughout movement</li>
+                                <li>Can enforce left/right symmetry</li>
+                                <li>Enables further analysis: joint torques, muscle forces, ground reaction forces (with MoCo)</li>
+                            </ul>
+                        </div>
+
+                        <div class="warning-box">
+                            <h4>⚠️ Important</h4>
+                            <p>This will not work on sections where the person is not moving in a single plane. You can split your video into several time ranges if needed.</p>
+                        </div>
+                    </div>
+
+                    <div class="lang-fr" style="display:none;">
+                        <p class="lead">La cinématique inverse OpenSim fournit des résultats biomécaniquement précis avec des contraintes articulaires et des longueurs d'os cohérentes.</p>
+                        
+                        <div class="warning-box">
+                            <h4>⚠️ Exigences</h4>
+                            <ul>
+                                <li>Installation complète avec OpenSim requise</li>
+                                <li>La personne doit se déplacer dans un seul plan pendant toute la plage de temps sélectionnée</li>
+                            </ul>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>Cinématique Inverse de Base</h3>
+                            <div class="code-block">
+                                <code>sports2d --time_range 1.2 2.7 \
+  --do_ik true --first_person_height 1.65 --visible_side auto</code>
+                            </div>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>Avec Augmentation de Marqueurs LSTM (Recommandé)</h3>
+                            <p>Améliore la qualité du mouvement en comblant les lacunes et en lissant les trajectoires :</p>
+                            <div class="code-block">
+                                <code>sports2d --time_range 1.2 2.7 \
+  --do_ik true --use_augmentation true \
+  --first_person_height 1.65 --visible_side left</code>
+                            </div>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>Exemple Complet avec Toutes les Options</h3>
+                            <div class="code-block">
+                                <code>sports2d --time_range 1.2 2.7 \
+  --do_ik true --use_augmentation true \
+  --first_person_height 1.65 --visible_side left front \
+  --participant_mass 55.0 67.0 \
+  --calib_file Calib_demo.toml</code>
+                            </div>
+                            <p class="small-note">La masse n'a aucune influence sur la cinématique (mouvement), seulement sur la cinétique (forces) si vous poursuivez une analyse plus poussée</p>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>Options Supplémentaires</h3>
+                            <div class="params-table">
+                                <table>
+                                    <tr>
+                                        <th>Paramètre</th>
+                                        <th>Description</th>
+                                        <th>Défaut</th>
+                                    </tr>
+                                    <tr>
+                                        <td><code>--feet_on_floor</code></td>
+                                        <td>Décaler les résultats pour que les pieds touchent le sol</td>
+                                        <td>true</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>--use_simple_model</code></td>
+                                        <td>Modèle plus rapide sans muscles/colonne flexible (10x plus rapide)</td>
+                                        <td>false</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>--participant_mass</code></td>
+                                        <td>Masse en kg par personne</td>
+                                        <td>70</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>--right_left_symmetry</code></td>
+                                        <td>Appliquer des tailles égales des membres gauche/droite</td>
+                                        <td>true</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="info-box">
+                            <h4>📊 Processus de Mise à l'Échelle</h4>
+                            <p>OpenSim met à l'échelle le modèle basé sur les longueurs de segments, supprimant automatiquement les valeurs aberrantes :</p>
+                            <ul>
+                                <li>Supprime 10% des images les plus rapides (valeurs aberrantes potentielles)</li>
+                                <li>Supprime les images où la vitesse ≈ 0 (personne probablement hors cadre)</li>
+                                <li>Supprime les images avec flexion hanche/genou > 45° (imprécis lors de l'accroupissement)</li>
+                                <li>Supprime 20% des valeurs de segments les plus extrêmes</li>
+                                <li>Calcule la moyenne des mesures restantes</li>
+                            </ul>
+                            <p class="small-note">Tous les paramètres peuvent être édités dans le fichier Config.toml</p>
+                        </div>
+
+                        <div class="info-box">
+                            <h4>🎯 Avantages</h4>
+                            <ul>
+                                <li>Définit les contraintes articulaires et les limites d'angle pour un mouvement réaliste</li>
+                                <li>Maintient des longueurs d'os cohérentes tout au long du mouvement</li>
+                                <li>Peut appliquer la symétrie gauche/droite</li>
+                                <li>Permet une analyse plus poussée : couples articulaires, forces musculaires, forces de réaction au sol (avec MoCo)</li>
+                            </ul>
+                        </div>
+
+                        <div class="warning-box">
+                            <h4>⚠️ Important</h4>
+                            <p>Cela ne fonctionnera pas sur les sections où la personne ne se déplace pas dans un seul plan. Vous pouvez diviser votre vidéo en plusieurs plages de temps si nécessaire.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Step 7: Configuration File -->
+            <section class="step" id="step-7" data-step="7">
+                <div class="step-header">
+                    <span class="step-badge">Step 7</span>
+                    <h1 class="lang-en">Configuration File</h1>
+                    <h1 class="lang-fr" style="display:none;">Fichier de Configuration</h1>
+                </div>
+                <div class="step-content">
+                    <div class="lang-en">
+                        <p class="lead">For complex analyses, use a configuration file instead of long command lines.</p>
+                        
+                        <div class="instruction-step">
+                            <h3>Run with Config File</h3>
+                            <div class="code-block">
+                                <code>sports2d --config Config_demo.toml</code>
+                            </div>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>Python Integration - Full Config</h3>
+                            <p>Load and use a complete TOML configuration file:</p>
+                            <div class="code-block">
+                                <code>from Sports2D import Sports2D
+from pathlib import Path
+import toml
+
+config_path = Path(Sports2D.__file__).parent / 'Demo' / 'Config_demo.toml'
+config_dict = toml.load(config_path)
+Sports2D.process(config_dict)</code>
+                            </div>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>Python Integration - Partial Config</h3>
+                            <p>Override only specific parameters (others use defaults):</p>
+                            <div class="code-block">
+                                <code>from Sports2D import Sports2D
+
+config_dict = {
+    'base': {
+        'nb_persons_to_detect': 1,
+        'person_ordering_method': 'greatest_displacement'
+    },
+    'pose': {
+        'mode': 'lightweight', 
+        'det_frequency': 50
+    }
+}
+Sports2D.process(config_dict)</code>
+                            </div>
+                        </div>
+
+                        <div class="info-box">
+                            <h4>📋 Config File Structure</h4>
+                            <p>TOML configuration files are organized into sections:</p>
+                            <ul>
+                                <li><strong>[base]</strong> - General settings (video input, person detection)</li>
+                                <li><strong>[pose]</strong> - Pose estimation parameters (model, frequency)</li>
+                                <li><strong>[process]</strong> - Processing options (filtering, interpolation)</li>
+                                <li><strong>[opensim]</strong> - Inverse kinematics settings</li>
+                            </ul>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>Get Help on All Parameters</h3>
+                            <div class="code-block">
+                                <code>sports2d --help</code>
+                            </div>
+                            <p>View example configuration: <a href="https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Demo/Config_demo.toml" target="_blank">Config_Demo.toml</a></p>
+                        </div>
+                    </div>
+
+                    <div class="lang-fr" style="display:none;">
+                        <p class="lead">Pour les analyses complexes, utilisez un fichier de configuration au lieu de longues lignes de commande.</p>
+                        
+                        <div class="instruction-step">
+                            <h3>Exécuter avec Fichier Config</h3>
+                            <div class="code-block">
+                                <code>sports2d --config Config_demo.toml</code>
+                            </div>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>Intégration Python - Config Complet</h3>
+                            <p>Charger et utiliser un fichier de configuration TOML complet :</p>
+                            <div class="code-block">
+                                <code>from Sports2D import Sports2D
+from pathlib import Path
+import toml
+
+config_path = Path(Sports2D.__file__).parent / 'Demo' / 'Config_demo.toml'
+config_dict = toml.load(config_path)
+Sports2D.process(config_dict)</code>
+                            </div>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>Intégration Python - Config Partiel</h3>
+                            <p>Remplacer uniquement des paramètres spécifiques (les autres utilisent les valeurs par défaut) :</p>
+                            <div class="code-block">
+                                <code>from Sports2D import Sports2D
+
+config_dict = {
+    'base': {
+        'nb_persons_to_detect': 1,
+        'person_ordering_method': 'greatest_displacement'
+    },
+    'pose': {
+        'mode': 'lightweight', 
+        'det_frequency': 50
+    }
+}
+Sports2D.process(config_dict)</code>
+                            </div>
+                        </div>
+
+                        <div class="info-box">
+                            <h4>📋 Structure du Fichier Config</h4>
+                            <p>Les fichiers de configuration TOML sont organisés en sections :</p>
+                            <ul>
+                                <li><strong>[base]</strong> - Paramètres généraux (entrée vidéo, détection de personnes)</li>
+                                <li><strong>[pose]</strong> - Paramètres d'estimation de pose (modèle, fréquence)</li>
+                                <li><strong>[process]</strong> - Options de traitement (filtrage, interpolation)</li>
+                                <li><strong>[opensim]</strong> - Paramètres de cinématique inverse</li>
+                            </ul>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>Obtenir de l'Aide sur Tous les Paramètres</h3>
+                            <div class="code-block">
+                                <code>sports2d --help</code>
+                            </div>
+                            <p>Voir exemple de configuration : <a href="https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Demo/Config_demo.toml" target="_blank">Config_Demo.toml</a></p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Step 8: All Parameters -->
+            <section class="step" id="step-8" data-step="8">
+                <div class="step-header">
+                    <span class="step-badge">Step 8</span>
+                    <h1 class="lang-en">All Parameters Reference</h1>
+                    <h1 class="lang-fr" style="display:none;">Référence Complète</h1>
+                </div>
+                <div class="step-content">
+                    <div class="lang-en">
+                        <p class="lead">Complete reference of available parameters. Most have sensible defaults.</p>
+                        
+                        <div class="params-section">
+                            <h3>📹 Video & General</h3>
+                            <div class="params-table">
+                                <table>
+                                    <tr>
+                                        <th>Parameter</th>
+                                        <th>Description</th>
+                                        <th>Default</th>
+                                    </tr>
+                                    <tr>
+                                        <td><code>video_input</code></td>
+                                        <td>Video path(s) or 'webcam'</td>
+                                        <td>demo video</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>webcam_id</code></td>
+                                        <td>Camera ID for webcam</td>
+                                        <td>0</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>time_range</code></td>
+                                        <td>Start and end time (seconds)</td>
+                                        <td>whole video</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>result_dir</code></td>
+                                        <td>Output directory</td>
+                                        <td>current dir</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>slowmo_factor</code></td>
+                                        <td>Slow-motion factor (recording fps / export fps)</td>
+                                        <td>1</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="params-section">
+                            <h3>👥 Person Detection</h3>
+                            <div class="params-table">
+                                <table>
+                                    <tr>
+                                        <th>Parameter</th>
+                                        <th>Description</th>
+                                        <th>Default</th>
+                                    </tr>
+                                    <tr>
+                                        <td><code>nb_persons_to_detect</code></td>
+                                        <td>Number or 'all'</td>
+                                        <td>all</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>person_ordering_method</code></td>
+                                        <td>on_click, highest_likelihood, largest_size, smallest_size, greatest_displacement, least_displacement, first_detected, last_detected</td>
+                                        <td>on_click</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="params-section">
+                            <h3>🎯 Pose Estimation</h3>
+                            <div class="params-table">
+                                <table>
+                                    <tr>
+                                        <th>Parameter</th>
+                                        <th>Description</th>
+                                        <th>Default</th>
+                                    </tr>
+                                    <tr>
+                                        <td><code>pose_model</code></td>
+                                        <td>body_with_feet, whole_body_wrist, whole_body, body</td>
+                                        <td>body_with_feet</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>mode</code></td>
+                                        <td>lightweight, balanced, performance (or custom dict)</td>
+                                        <td>balanced</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>det_frequency</code></td>
+                                        <td>Run detection every N frames (tracking fills gaps)</td>
+                                        <td>1</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>tracking_mode</code></td>
+                                        <td>sports2d, deepsort</td>
+                                        <td>sports2d</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>backend</code></td>
+                                        <td>auto, cpu, cuda, mps, rocm</td>
+                                        <td>auto</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="params-section">
+                            <h3>📐 Angles</h3>
+                            <div class="params-table">
+                                <table>
+                                    <tr>
+                                        <th>Parameter</th>
+                                        <th>Description</th>
+                                        <th>Default</th>
+                                    </tr>
+                                    <tr>
+                                        <td><code>calculate_angles</code></td>
+                                        <td>Calculate joint/segment angles</td>
+                                        <td>true</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>joint_angles</code></td>
+                                        <td>List of joints to compute</td>
+                                        <td>all standard joints</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>segment_angles</code></td>
+                                        <td>List of segments to compute</td>
+                                        <td>all standard segments</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>display_angle_values_on</code></td>
+                                        <td>body, list, both, or none</td>
+                                        <td>body list</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>flip_left_right</code></td>
+                                        <td>Flip angles when person switches sides</td>
+                                        <td>true</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="params-section">
+                            <h3>📏 Calibration</h3>
+                            <div class="params-table">
+                                <table>
+                                    <tr>
+                                        <th>Parameter</th>
+                                        <th>Description</th>
+                                        <th>Default</th>
+                                    </tr>
+                                    <tr>
+                                        <td><code>to_meters</code></td>
+                                        <td>Convert to real-world measurements</td>
+                                        <td>true</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>first_person_height</code></td>
+                                        <td>Reference height in meters</td>
+                                        <td>1.65</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>visible_side</code></td>
+                                        <td>auto, left, right, front, back, none</td>
+                                        <td>auto front none</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>floor_angle</code></td>
+                                        <td>Floor angle in degrees or 'auto'</td>
+                                        <td>auto</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>calib_file</code></td>
+                                        <td>Path to calibration file</td>
+                                        <td>none</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="params-section">
+                            <h3>🤸 OpenSim IK</h3>
+                            <div class="params-table">
+                                <table>
+                                    <tr>
+                                        <th>Parameter</th>
+                                        <th>Description</th>
+                                        <th>Default</th>
+                                    </tr>
+                                    <tr>
+                                        <td><code>do_ik</code></td>
+                                        <td>Run inverse kinematics</td>
+                                        <td>false</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>use_augmentation</code></td>
+                                        <td>Use LSTM marker augmentation</td>
+                                        <td>false</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>feet_on_floor</code></td>
+                                        <td>Offset so feet touch floor</td>
+                                        <td>true</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>use_simple_model</code></td>
+                                        <td>Faster model (10x speed)</td>
+                                        <td>false</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>participant_mass</code></td>
+                                        <td>Mass in kg per person</td>
+                                        <td>70</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>right_left_symmetry</code></td>
+                                        <td>Enforce symmetry</td>
+                                        <td>true</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="params-section">
+                            <h3>🔄 Processing</h3>
+                            <div class="params-table">
+                                <table>
+                                    <tr>
+                                        <th>Parameter</th>
+                                        <th>Description</th>
+                                        <th>Default</th>
+                                    </tr>
+                                    <tr>
+                                        <td><code>interpolate</code></td>
+                                        <td>Fill missing data gaps</td>
+                                        <td>true</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>interp_gap_smaller_than</code></td>
+                                        <td>Max gap size in frames</td>
+                                        <td>10</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>reject_outliers</code></td>
+                                        <td>Use Hampel filter</td>
+                                        <td>true</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>filter</code></td>
+                                        <td>Apply filtering</td>
+                                        <td>true</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>filter_type</code></td>
+                                        <td>butterworth, kalman, gcv_spline, gaussian, median, loess</td>
+                                        <td>butterworth</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>cut_off_frequency</code></td>
+                                        <td>Butterworth cutoff (Hz)</td>
+                                        <td>3</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="params-section">
+                            <h3>💾 Output</h3>
+                            <div class="params-table">
+                                <table>
+                                    <tr>
+                                        <th>Parameter</th>
+                                        <th>Description</th>
+                                        <th>Default</th>
+                                    </tr>
+                                    <tr>
+                                        <td><code>save_vid</code></td>
+                                        <td>Save processed video</td>
+                                        <td>true</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>save_img</code></td>
+                                        <td>Save processed images</td>
+                                        <td>true</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>save_pose</code></td>
+                                        <td>Save TRC pose files</td>
+                                        <td>true</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>save_angles</code></td>
+                                        <td>Save MOT angle files</td>
+                                        <td>true</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>show_realtime_results</code></td>
+                                        <td>Display during processing</td>
+                                        <td>true</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>show_graphs</code></td>
+                                        <td>Show plots after</td>
+                                        <td>true</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="info-box">
+                            <h4>📖 Full Documentation</h4>
+                            <p>For complete parameter details: <code>sports2d --help</code></p>
+                            <p>Example config: <a href="https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Demo/Config_demo.toml" target="_blank">Config_Demo.toml</a></p>
+                        </div>
+                    </div>
+
+                    <div class="lang-fr" style="display:none;">
+                        <p class="lead">Référence complète des paramètres disponibles. La plupart ont des valeurs par défaut sensées.</p>
+                        
+                        <div class="info-box">
+                            <h4>📖 Documentation Complète</h4>
+                            <p>Pour les détails complets : <code>sports2d --help</code></p>
+                            <p>Exemple de config : <a href="https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Demo/Config_demo.toml" target="_blank">Config_Demo.toml</a></p>
+                            <p>Consultez la version anglaise pour la liste complète des paramètres organisés par catégorie.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Step 9: Optimization -->
+            <section class="step" id="step-9" data-step="9">
+                <div class="step-header">
+                    <span class="step-badge">Step 9</span>
+                    <h1 class="lang-en">Performance Optimization</h1>
+                    <h1 class="lang-fr" style="display:none;">Optimisation Performance</h1>
+                </div>
+                <div class="step-content">
+                    <div class="lang-en">
+                        <p class="lead">Speed up processing for large videos or batch operations.</p>
+                        
+                        <div class="instruction-step">
+                            <h3>1. Disable Unnecessary Outputs</h3>
+                            <p>Skip video/image saving and real-time display when you only need the data:</p>
+                            <div class="code-block">
+                                <code>sports2d --save_vid false --save_img false --show_realtime_results false</code>
+                            </div>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>2. Use Lightweight Mode</h3>
+                            <p>Lighter pose model for significant speed gains:</p>
+                            <div class="code-block">
+                                <code>sports2d --mode lightweight</code>
+                            </div>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>3. Reduce Detection Frequency</h3>
+                            <p>Person detection is slow. Run it every N frames instead of every frame (tracking fills gaps):</p>
+                            <div class="code-block">
+                                <code>sports2d --det_frequency 50</code>
+                            </div>
+                            <p class="small-note">Detection finds people (slow), tracking follows them between detections (fast). Keypoint detection still runs on all frames.</p>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>4. Reuse Pose Estimation</h3>
+                            <p>Load existing pose data to test different conversion or angle parameters:</p>
+                            <div class="code-block">
+                                <code>sports2d --load_trc_px existing_file_px.trc</code>
+                            </div>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>5. Use Sports2D Tracker</h3>
+                            <p>Default Sports2D tracker is faster than DeepSort:</p>
+                            <div class="code-block">
+                                <code>sports2d --tracking_mode sports2d</code>
+                            </div>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>6. GPU Acceleration (NVIDIA)</h3>
+                            <p>Enable CUDA for dramatic speedups (requires ~6GB additional storage):</p>
+                            
+                            <div class="substep">
+                                <h4>Check GPU:</h4>
+                                <div class="code-block">
+                                    <code>nvidia-smi</code>
+                                </div>
+                                <p class="small-note">Note the CUDA version - this is the latest your driver supports</p>
+                            </div>
+
+                            <div class="substep">
+                                <h4>Install PyTorch with CUDA:</h4>
+                                <div class="code-block">
+                                    <code>pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124</code>
+                                </div>
+                                <p class="small-note">Adjust cu124 based on your CUDA version. Check <a href="https://pytorch.org/" target="_blank">pytorch.org</a> for compatible versions</p>
+                            </div>
+
+                            <div class="substep">
+                                <h4>Install ONNX Runtime GPU:</h4>
+                                <div class="code-block">
+                                    <code>pip uninstall onnxruntime
+pip install onnxruntime-gpu</code>
+                                </div>
+                            </div>
+
+                            <div class="substep">
+                                <h4>Verify:</h4>
+                                <div class="code-block">
+                                    <code>python -c "import torch; print(torch.cuda.is_available())"
+python -c "import onnxruntime as ort; print(ort.get_available_providers())"</code>
+                                </div>
+                                <p class="small-note">Should print: True and ['CUDAExecutionProvider', ...]</p>
+                            </div>
+                        </div>
+
+                        <div class="success-box">
+                            <h4>✅ Maximum Speed Command</h4>
+                            <p>Combine all optimizations:</p>
+                            <div class="code-block">
+                                <code>sports2d --mode lightweight --det_frequency 50 \
+  --save_vid false --save_img false --show_realtime_results false \
+  --tracking_mode sports2d</code>
+                            </div>
+                        </div>
+
+                        <div class="info-box">
+                            <h4>💡 Additional Tips</h4>
+                            <ul>
+                                <li>Use <code>--time_range</code> to process only relevant segments</li>
+                                <li>Lower <code>--input_size</code> for faster processing (e.g., 960 540)</li>
+                                <li>GPU acceleration provides 3-5x speedup on NVIDIA GPUs</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="lang-fr" style="display:none;">
+                        <p class="lead">Accélérer le traitement pour les grandes vidéos ou les opérations par lots.</p>
+                        
+                        <div class="instruction-step">
+                            <h3>1. Désactiver les Sorties Inutiles</h3>
+                            <p>Ignorer la sauvegarde vidéo/image et l'affichage temps réel quand vous n'avez besoin que des données :</p>
+                            <div class="code-block">
+                                <code>sports2d --save_vid false --save_img false --show_realtime_results false</code>
+                            </div>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>2. Utiliser le Mode Léger</h3>
+                            <p>Modèle de pose plus léger pour des gains de vitesse significatifs :</p>
+                            <div class="code-block">
+                                <code>sports2d --mode lightweight</code>
+                            </div>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>3. Réduire la Fréquence de Détection</h3>
+                            <p>La détection de personnes est lente. Exécutez-la toutes les N images au lieu de chaque image (le suivi comble les lacunes) :</p>
+                            <div class="code-block">
+                                <code>sports2d --det_frequency 50</code>
+                            </div>
+                            <p class="small-note">La détection trouve les personnes (lent), le suivi les suit entre les détections (rapide). La détection des points clés s'exécute toujours sur toutes les images.</p>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>4. Réutiliser l'Estimation de Pose</h3>
+                            <p>Charger les données de pose existantes pour tester différents paramètres de conversion ou d'angles :</p>
+                            <div class="code-block">
+                                <code>sports2d --load_trc_px fichier_existant_px.trc</code>
+                            </div>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>5. Utiliser le Tracker Sports2D</h3>
+                            <p>Le tracker Sports2D par défaut est plus rapide que DeepSort :</p>
+                            <div class="code-block">
+                                <code>sports2d --tracking_mode sports2d</code>
+                            </div>
+                        </div>
+
+                        <div class="instruction-step">
+                            <h3>6. Accélération GPU (NVIDIA)</h3>
+                            <p>Activer CUDA pour des accélérations spectaculaires (nécessite ~6GB de stockage supplémentaire) :</p>
+                            
+                            <div class="substep">
+                                <h4>Vérifier le GPU :</h4>
+                                <div class="code-block">
+                                    <code>nvidia-smi</code>
+                                </div>
+                                <p class="small-note">Notez la version CUDA - c'est la dernière que votre pilote supporte</p>
+                            </div>
+
+                            <div class="substep">
+                                <h4>Installer PyTorch avec CUDA :</h4>
+                                <div class="code-block">
+                                    <code>pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124</code>
+                                </div>
+                                <p class="small-note">Ajustez cu124 en fonction de votre version CUDA. Vérifiez <a href="https://pytorch.org/" target="_blank">pytorch.org</a> pour les versions compatibles</p>
+                            </div>
+
+                            <div class="substep">
+                                <h4>Installer ONNX Runtime GPU :</h4>
+                                <div class="code-block">
+                                    <code>pip uninstall onnxruntime
+pip install onnxruntime-gpu</code>
+                                </div>
+                            </div>
+
+                            <div class="substep">
+                                <h4>Vérifier :</h4>
+                                <div class="code-block">
+                                    <code>python -c "import torch; print(torch.cuda.is_available())"
+python -c "import onnxruntime as ort; print(ort.get_available_providers())"</code>
+                                </div>
+                                <p class="small-note">Devrait afficher : True et ['CUDAExecutionProvider', ...]</p>
+                            </div>
+                        </div>
+
+                        <div class="success-box">
+                            <h4>✅ Commande Vitesse Maximale</h4>
+                            <p>Combiner toutes les optimisations :</p>
+                            <div class="code-block">
+                                <code>sports2d --mode lightweight --det_frequency 50 \
+  --save_vid false --save_img false --show_realtime_results false \
+  --tracking_mode sports2d</code>
+                            </div>
+                        </div>
+
+                        <div class="info-box">
+                            <h4>💡 Conseils Supplémentaires</h4>
+                            <ul>
+                                <li>Utilisez <code>--time_range</code> pour ne traiter que les segments pertinents</li>
+                                <li>Réduisez <code>--input_size</code> pour un traitement plus rapide (ex : 960 540)</li>
+                                <li>L'accélération GPU fournit une accélération 3-5x sur les GPU NVIDIA</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Step 10: Angle Conventions -->
+            <section class="step" id="step-10" data-step="10">
+                <div class="step-header">
+                    <span class="step-badge">Step 10</span>
+                    <h1 class="lang-en">Angle Conventions</h1>
+                    <h1 class="lang-fr" style="display:none;">Conventions d'Angles</h1>
+                </div>
+                <div class="step-content">
+                    <div class="lang-en">
+                        <p class="lead">Understanding how Sports2D measures joint and segment angles.</p>
+                        
+                        <div class="params-section">
+                            <h3>🦵 Joint Angles</h3>
+                            
+                            <div class="angle-item">
+                                <h4>Ankle Dorsiflexion</h4>
+                                <p><strong>Measured between:</strong> Heel → Big toe, and Ankle → Knee</p>
+                                <p><strong>Reference:</strong> -90° when foot is aligned with the shank</p>
+                                <p class="small-note">Positive = dorsiflexion (toes up), Negative = plantarflexion (toes down)</p>
+                            </div>
+
+                            <div class="angle-item">
+                                <h4>Knee Flexion</h4>
+                                <p><strong>Measured between:</strong> Hip → Knee → Ankle</p>
+                                <p><strong>Reference:</strong> 0° when shank is aligned with thigh</p>
+                                <p class="small-note">Positive = knee bent</p>
+                            </div>
+
+                            <div class="angle-item">
+                                <h4>Hip Flexion</h4>
+                                <p><strong>Measured between:</strong> Knee → Hip → Shoulder</p>
+                                <p><strong>Reference:</strong> 0° when trunk is aligned with thigh</p>
+                                <p class="small-note">Positive = thigh moving forward</p>
+                            </div>
+
+                            <div class="angle-item">
+                                <h4>Shoulder Flexion</h4>
+                                <p><strong>Measured between:</strong> Hip → Shoulder → Elbow</p>
+                                <p><strong>Reference:</strong> 180° when arm is aligned with trunk</p>
+                                <p class="small-note">Less than 180° = arm moving forward</p>
+                            </div>
+
+                            <div class="angle-item">
+                                <h4>Elbow Flexion</h4>
+                                <p><strong>Measured between:</strong> Wrist → Elbow → Shoulder</p>
+                                <p><strong>Reference:</strong> 0° when forearm is aligned with arm</p>
+                                <p class="small-note">Positive = elbow bent</p>
+                            </div>
+                        </div>
+
+                        <div class="params-section">
+                            <h3>📏 Segment Angles</h3>
+                            <p>Measured <strong>anticlockwise</strong> from horizontal (0° = right, 90° = up, 180° = left, 270° = down)</p>
+                            
+                            <div class="params-table">
+                                <table>
+                                    <tr>
+                                        <th>Segment</th>
+                                        <th>Measured Between</th>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Foot</strong></td>
+                                        <td>Heel → Big toe</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Shank</strong></td>
+                                        <td>Ankle → Knee</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Thigh</strong></td>
+                                        <td>Hip → Knee</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Pelvis</strong></td>
+                                        <td>Left hip → Right hip</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Trunk</strong></td>
+                                        <td>Hip midpoint → Shoulder midpoint</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Shoulders</strong></td>
+                                        <td>Left shoulder → Right shoulder</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Head</strong></td>
+                                        <td>Neck → Top of head</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Arm</strong></td>
+                                        <td>Shoulder → Elbow</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Forearm</strong></td>
+                                        <td>Elbow → Wrist</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="info-box">
+                            <h4>🎨 Customization</h4>
+                            <p>Select specific angles to calculate:</p>
+                            <div class="code-block">
+                                <code>sports2d --joint_angles "right knee" "left knee" \
+  --segment_angles "right thigh" "left thigh"</code>
+                            </div>
+                            <p>Or disable angle calculation entirely:</p>
+                            <div class="code-block">
+                                <code>sports2d --calculate_angles false</code>
+                            </div>
+                        </div>
+
+                        <div class="warning-box">
+                            <h4>⚠️ Left/Right Flipping</h4>
+                            <p>By default (<code>--flip_left_right true</code>), angles flip when person switches direction. Person is considered to look right if toe keypoint is to the right of heel.</p>
+                            <p class="small-note">May not work correctly during sprinting. Set to <code>false</code> if you want timeseries to be continuous even when participant switches stance.</p>
+                        </div>
+
+                        <div class="info-box">
+                            <h4>📐 Segment Angle Correction</h4>
+                            <p>By default (<code>--correct_segment_angles_with_floor_angle true</code>), segment angles are corrected for camera tilt using detected floor angle.</p>
+                            <p class="small-note">Set to <code>false</code> if it is actually the floor which is tilted, not the camera.</p>
+                        </div>
+                    </div>
+
+                    <div class="lang-fr" style="display:none;">
+                        <p class="lead">Comprendre comment Sports2D mesure les angles articulaires et segmentaires.</p>
+                        
+                        <div class="params-section">
+                            <h3>🦵 Angles Articulaires</h3>
+                            
+                            <div class="angle-item">
+                                <h4>Dorsiflexion de la Cheville</h4>
+                                <p><strong>Mesuré entre :</strong> Talon → Gros orteil, et Cheville → Genou</p>
+                                <p><strong>Référence :</strong> -90° quand le pied est aligné avec la jambe</p>
+                                <p class="small-note">Positif = dorsiflexion (orteils vers le haut), Négatif = flexion plantaire (orteils vers le bas)</p>
+                            </div>
+
+                            <div class="angle-item">
+                                <h4>Flexion du Genou</h4>
+                                <p><strong>Mesuré entre :</strong> Hanche → Genou → Cheville</p>
+                                <p><strong>Référence :</strong> 0° quand la jambe est alignée avec la cuisse</p>
+                                <p class="small-note">Positif = genou plié</p>
+                            </div>
+
+                            <div class="angle-item">
+                                <h4>Flexion de la Hanche</h4>
+                                <p><strong>Mesuré entre :</strong> Genou → Hanche → Épaule</p>
+                                <p><strong>Référence :</strong> 0° quand le tronc est aligné avec la cuisse</p>
+                                <p class="small-note">Positif = cuisse se déplaçant vers l'avant</p>
+                            </div>
+
+                            <div class="angle-item">
+                                <h4>Flexion de l'Épaule</h4>
+                                <p><strong>Mesuré entre :</strong> Hanche → Épaule → Coude</p>
+                                <p><strong>Référence :</strong> 180° quand le bras est aligné avec le tronc</p>
+                                <p class="small-note">Moins de 180° = bras se déplaçant vers l'avant</p>
+                            </div>
+
+                            <div class="angle-item">
+                                <h4>Flexion du Coude</h4>
+                                <p><strong>Mesuré entre :</strong> Poignet → Coude → Épaule</p>
+                                <p><strong>Référence :</strong> 0° quand l'avant-bras est aligné avec le bras</p>
+                                <p class="small-note">Positif = coude plié</p>
+                            </div>
+                        </div>
+
+                        <div class="params-section">
+                            <h3>📏 Angles Segmentaires</h3>
+                            <p>Mesurés <strong>dans le sens antihoraire</strong> depuis l'horizontale (0° = droite, 90° = haut, 180° = gauche, 270° = bas)</p>
+                            
+                            <div class="params-table">
+                                <table>
+                                    <tr>
+                                        <th>Segment</th>
+                                        <th>Mesuré Entre</th>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Pied</strong></td>
+                                        <td>Talon → Gros orteil</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Jambe</strong></td>
+                                        <td>Cheville → Genou</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Cuisse</strong></td>
+                                        <td>Hanche → Genou</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Bassin</strong></td>
+                                        <td>Hanche gauche → Hanche droite</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Tronc</strong></td>
+                                        <td>Point médian hanche → Point médian épaule</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Épaules</strong></td>
+                                        <td>Épaule gauche → Épaule droite</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Tête</strong></td>
+                                        <td>Cou → Haut de la tête</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Bras</strong></td>
+                                        <td>Épaule → Coude</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Avant-bras</strong></td>
+                                        <td>Coude → Poignet</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="info-box">
+                            <h4>🎨 Personnalisation</h4>
+                            <p>Sélectionner des angles spécifiques à calculer :</p>
+                            <div class="code-block">
+                                <code>sports2d --joint_angles "right knee" "left knee" \
+  --segment_angles "right thigh" "left thigh"</code>
+                            </div>
+                            <p>Ou désactiver complètement le calcul d'angle :</p>
+                            <div class="code-block">
+                                <code>sports2d --calculate_angles false</code>
+                            </div>
+                        </div>
+
+                        <div class="warning-box">
+                            <h4>⚠️ Basculement Gauche/Droite</h4>
+                            <p>Par défaut (<code>--flip_left_right true</code>), les angles basculent quand la personne change de direction. La personne est considérée regarder à droite si le point clé de l'orteil est à droite du talon.</p>
+                            <p class="small-note">Peut ne pas fonctionner correctement lors du sprint. Définir sur <code>false</code> si vous voulez que les séries chronologiques soient continues même quand le participant change de position.</p>
+                        </div>
+
+                        <div class="info-box">
+                            <h4>📐 Correction d'Angle Segmentaire</h4>
+                            <p>Par défaut (<code>--correct_segment_angles_with_floor_angle true</code>), les angles segmentaires sont corrigés pour l'inclinaison de la caméra en utilisant l'angle du sol détecté.</p>
+                            <p class="small-note">Définir sur <code>false</code> si c'est en fait le sol qui est incliné, pas la caméra.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="nav-buttons">
+            <button class="btn btn-secondary" onclick="previousStep()" id="prevBtn" style="display:none;">
+                <span class="lang-en">← Previous</span>
+                <span class="lang-fr" style="display:none;">← Précédent</span>
+            </button>
+            <button class="btn btn-primary" onclick="nextStep()" id="nextBtn">
+                <span class="lang-en">Next →</span>
+                <span class="lang-fr" style="display:none;">Suivant →</span>
+            </button>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="lang-en">
+                    <p>Sports2D Documentation • <a href="https://github.com/davidpagnon/Sports2D" target="_blank">GitHub</a> • <a href="https://joss.theoj.org/papers/10.21105/joss.06849" target="_blank">Cite</a></p>
+                    <p>Website created by AYL with ❤️ for the Sports2D community</p>
+                </div>
+                <div class="lang-fr" style="display:none;">
+                    <p>Documentation Sports2D • <a href="https://github.com/davidpagnon/Sports2D" target="_blank">GitHub</a> • <a href="https://joss.theoj.org/papers/10.21105/joss.06849" target="_blank">Citer</a></p>
+                    <p>Site créé par AYL avec ❤️ pour la communauté Sports2D</p>
+                </div>
+            </div>
+        </footer>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
