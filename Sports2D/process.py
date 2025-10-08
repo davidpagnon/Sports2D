@@ -798,6 +798,8 @@ def pose_plots(trc_data_unfiltered, trc_data, person_id, show=True):
     INPUTS:
     - trc_data_unfiltered: pd.DataFrame. The unfiltered trc data
     - trc_data: pd.DataFrame. The filtered trc data
+    - person_id: int. The ID of the person
+    - show: bool. Whether to show the plots
 
     OUTPUT:
     - matplotlib window with tabbed figures for each keypoint
@@ -806,7 +808,6 @@ def pose_plots(trc_data_unfiltered, trc_data, person_id, show=True):
     os_name = platform.system()
     if os_name == 'Windows':
         mpl.use('qt5agg') # windows
-
     mpl.rc('figure', max_open_warning=0)
 
     keypoints_names = trc_data.columns[1::3]
@@ -1142,6 +1143,8 @@ def select_persons_on_vid(video_file_path, frame_range, all_pose_coords):
 
         # Change color on hover
         for person_idx, bbox in enumerate(all_bboxes[frame_idx]):
+            if person_idx >= len(rects):  # Skip if rect doesn't exist
+                continue
             if ~np.isnan(bbox).any():
                 x_min, y_min, x_max, y_max = bbox.astype(int)
                 if x_min <= x <= x_max and y_min <= y <= y_max:
@@ -1623,6 +1626,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         # Load pose file in px
         Q_coords, _, time_col, keypoints_names, _ = read_trc(load_trc_px)
         t0 = time_col[0]
+        tf = time_col.iloc[-1]
         keypoints_ids = [i for i in range(len(keypoints_names))]
         keypoints_all, scores_all = load_pose_file(Q_coords)
 
@@ -1640,6 +1644,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         keypoints_ids = [node.id for _, _, node in RenderTree(pose_model) if node.id!=None]
         keypoints_names = [node.name for _, _, node in RenderTree(pose_model) if node.id!=None]
         t0 = 0
+        tf = (cap.get(cv2.CAP_PROP_FRAME_COUNT)-1) / fps if cap.get(cv2.CAP_PROP_FRAME_COUNT)>0 else float('inf')
 
         # Set up pose tracker
         try:
@@ -1691,6 +1696,11 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     frame_processing_times = []
     frame_count = 0
     first_frame = max(int(t0 * fps), frame_range[0])
+    last_frame = min(int(tf * fps), frame_range[1]-1)
+    if first_frame >= last_frame:
+        logging.error('Error: No frames to process. Check that your time_range is coherent with the video duration.')
+        raise ValueError('Error: No frames to process. Check that your time_range is coherent with the video duration.')
+    
     # frames = []
     while cap.isOpened():
         # Skip to the starting frame
@@ -2283,15 +2293,16 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
 
                 # Plotting angles before and after interpolation and filtering
                 all_frames_angles_person.insert(0, 'time', all_frames_time)
-                if save_plots and (show_plots or save_plots):
+                if show_plots or save_plots:
                     pw = angle_plots(all_frames_angles_person, angle_data, i, show=show_plots) # i = current person
-                    for n, f in enumerate(pw.figure_handles):
-                        dpi = pw.canvases[i].figure.dpi
-                        f.set_size_inches(1280/dpi, 720/dpi)
-                        title = pw.tabs.tabText(n)
-                        plot_path = plots_output_dir / (pose_output_path_m.stem + f'_person{i:02d}_ang_{title.replace(" ","_").replace("/","_")}.png')
-                        f.savefig(plot_path, dpi=dpi, bbox_inches='tight')
-                    logging.info(f'Pose plots (m) saved in {plots_output_dir}.')
+                    if save_plots:
+                        for n, f in enumerate(pw.figure_handles):
+                            dpi = pw.canvases[i].figure.dpi
+                            f.set_size_inches(1280/dpi, 720/dpi)
+                            title = pw.tabs.tabText(n)
+                            plot_path = plots_output_dir / (pose_output_path_m.stem + f'_person{i:02d}_ang_{title.replace(" ","_").replace("/","_")}.png')
+                            f.savefig(plot_path, dpi=dpi, bbox_inches='tight')
+                        logging.info(f'Pose plots (m) saved in {plots_output_dir}.')
 
 
     #%% ==================================================
