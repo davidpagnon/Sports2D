@@ -83,6 +83,7 @@ from deep_sort_realtime.deepsort_tracker import DeepSort
 from Sports2D.Utilities.common import *
 from Pose2Sim.common import *
 from Pose2Sim.skeletons import *
+from Pose2Sim.calibration import toml_write
 from Pose2Sim.triangulation import indices_of_first_last_non_nan_chunks
 from Pose2Sim.personAssociation import *
 from Pose2Sim.filtering import *
@@ -1476,8 +1477,12 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     save_calib = config_dict.get('px_to_meters_conversion').get('save_calib')
     # Calibration from file
     calib_file = config_dict.get('px_to_meters_conversion').get('calib_file')
-    if calib_file == '': calib_file = None
-    else: calib_file = Path(calib_file).resolve()
+    if calib_file == '': 
+        calib_file = None
+    else: 
+        calib_file = video_dir / calib_file
+        if not calib_file.is_file():
+            raise FileNotFoundError(f'Error: Could not find calibration file {calib_file}. Check that the file exists.')
     # Calibration from person height
     floor_angle = config_dict.get('px_to_meters_conversion').get('floor_angle') # 'auto' or float
     floor_angle = np.radians(float(floor_angle)) if floor_angle != 'auto' else floor_angle
@@ -2107,16 +2112,47 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         trc_data_m = []
         if to_meters and save_pose:
             logging.info('\nConverting pose to meters:')
+
+            # Compute height in px of the first person
+            height_px = compute_height(trc_data[0].iloc[:,1:], new_keypoints_names,
+                                        fastest_frames_to_remove_percent=fastest_frames_to_remove_percent, close_to_zero_speed=close_to_zero_speed_px, large_hip_knee_angles=large_hip_knee_angles, trimmed_extrema_percent=trimmed_extrema_percent)
+
+            if calib_file or save_calib:
+                dist_to_cam = 10.0 # arbitrary distance between the camera and the person (m)
+                R90z = np.array([[0.0, -1.0, 0.0],
+                                [1.0, 0.0, 0.0],
+                                [0.0, 0.0, 1.0]])
+                R270x = np.array([[1.0, 0.0, 0.0],
+                                [0.0, 0.0, 1.0],
+                                [0.0, -1.0, 0.0]])
+
+            # Compute px to meter parameters from calibration file
             if calib_file:
-                logging.info(f'Using calibration file to convert coordinates in meters: {calib_file}.')
                 calib_params_dict = retrieve_calib_params(calib_file)
-                # TODO
 
+                f = calib_params_dict['K'][0][0][0]
+                first_person_height = height_px / f * dist_to_cam
+
+                R_cam = cv2.Rodrigues(calib_params_dict['R'][0])[0]
+                T_cam = np.array(calib_params_dict['T'][0])
+                R_world, T_world = world_to_camera_persp(R_cam, T_cam)
+                Rfloory = R90z.T @ R_world @ R270x.T
+                T_world = R90z.T @ T_world
+                floor_angle_estim = np.arctan2(Rfloory[0,2], Rfloory[0,0])
+                
+                cu = calib_params_dict['K'][0][0][2]
+                cv = calib_params_dict['K'][0][1][2]
+                cx = 0.0
+                cy = cv + T_world[2]*f/dist_to_cam
+                xy_origin_estim = [cx, cy]
+
+                logging.info(f'Using calibration file to convert coordinates in meters: {calib_file}.\n'
+                             f'Floor angle: {np.degrees(floor_angle_estim):.2f}°, '
+                             f'xy_origin: [{cx:.2f}, {cy:.2f}] px.')
+
+                
+            # Compute px to meter parameters from scene
             else:
-                # Compute calibration parameters
-                height_px = compute_height(trc_data[0].iloc[:,1:], new_keypoints_names,
-                                            fastest_frames_to_remove_percent=fastest_frames_to_remove_percent, close_to_zero_speed=close_to_zero_speed_px, large_hip_knee_angles=large_hip_knee_angles, trimmed_extrema_percent=trimmed_extrema_percent)
-
                 toe_speed_below = 1 # m/s (below which the foot is considered to be stationary)
                 px_per_m = height_px/first_person_height
                 toe_speed_below_px_frame = toe_speed_below * px_per_m / fps
@@ -2142,6 +2178,37 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 logging.info(f'Using height of person #0 ({first_person_height}m) to convert coordinates in meters.\n'
                              f'Floor angle: {np.degrees(floor_angle_estim) if not floor_angle=="auto" else f"auto (estimation: {round(np.degrees(floor_angle_estim),2)}°)"}, '
                              f'xy_origin: {xy_origin if not xy_origin=="auto" else f"auto (estimation: {[round(c) for c in xy_origin_estim]})"} px.')
+                
+                # Save calibration file
+                if save_calib:
+                    calib_file_path = output_dir / f'{video_file_stem}_Sports2D_calib.toml'
+                    
+                    # name, size, distortions
+                    N = [video_file_stem]
+                    S = [[cam_width, cam_height]]
+                    D = [[0.0, 0.0, 0.0, 0.0]]
+
+                    # Intrinsics
+                    f = height_px / first_person_height * dist_to_cam
+                    cu = cam_width/2
+                    cv = cam_height/2
+                    K = np.array([[[f, 0.0, cu], [0.0, f, cv], [0.0, 0.0, 1.0]]])
+
+                    # Extrinsics
+                    Rfloory = np.array([[np.cos(floor_angle_estim), 0.0, np.sin(floor_angle_estim)],
+                                        [0.0, 1.0, 0.0],
+                                        [-np.sin(floor_angle_estim), 0.0, np.cos(floor_angle_estim)]])
+                    R_world = R90z @ Rfloory @ R270x
+                    T_world = R90z @ np.array([-(cx-cu)/f*dist_to_cam, -dist_to_cam, (cy-cv)/f*dist_to_cam])
+                    
+                    R_cam, T_cam = world_to_camera_persp(R_world, T_world)
+                    Tvec_cam = T_cam.reshape(1,3).tolist()
+                    Rvec_cam = cv2.Rodrigues(R_cam)[0].reshape(1,3).tolist()
+
+                    # Write calibration file
+                    toml_write(calib_file_path, N, S, D, K, Rvec_cam, Tvec_cam)
+                    logging.info(f'Calibration saved to {calib_file_path}.')
+
 
             # Coordinates in m
             new_visible_side = []
@@ -2206,48 +2273,6 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 new_visible_side += [visible_side_i]
         else:
             new_visible_side = visible_side.copy()
-                
-            
-
-
-
-
-                # # plt.plot(trc_data_m.iloc[:,0], trc_data_m.iloc[:,1])
-                # # plt.ylim([0,2])
-                # # plt.show()
-
-
-
-                # z = 3.0 # distance between the camera and the person. Required in the calibration file but simplified in the equations
-                # f = height_px / first_person_height * z
-
-
-                # # Name
-                # N = [video_file]
-
-                # # Size
-                # S = [[cam_width, cam_height]]
-
-                # # Distortions
-                # D = [[0.0, 0.0, 0.0, 0.0]]
-                        
-                # # Camera matrix
-                # K = [[[f, 0.0, cx], [0.0, f, cy], [0.0, 0.0, 1.0]]] # f and Z do not matter in 2D
-                
-                # # Rot, Trans
-                # R = 
-                # T = 
-
-                # # Save calibration file
-
-                # # Convert to meters
-                # trc_data = 
-
-
-
-
-
-
 
 
     #%% ==================================================

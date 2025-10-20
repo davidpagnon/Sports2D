@@ -103,7 +103,7 @@ max_distance = 100  # in px or None # If a person is detected further than max_d
 # Pixel to meters conversion
 to_meters = true
 make_c3d = true
-save_calib = false
+save_calib = true
 
 # If conversion from first_person_height
 floor_angle = 'auto'    # 'auto' or a value in degrees, eg 2.3. If 'auto', estimated from the line formed by the toes when they are on the ground (where speed = 0)
@@ -111,7 +111,9 @@ xy_origin = ['auto']    # ['auto'] or [px_x,px_y]. N.B.: px_y points downwards. 
 
 # If conversion from a calibration file
 calib_file = ''         # Calibration in the Pose2Sim format. 'calib_demo.toml', or '' if not available
-
+# subject_distance
+# focal_distance
+# recalculate_extrinsics
 
 [angles]
 display_angle_values_on = ['body', 'list'] # 'body', 'list', ['body', 'list'], 'none'. Display angle values on the body, as a list in the upper left of the image, both, or do not display them.
