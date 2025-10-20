@@ -45,7 +45,9 @@ Works on any smartphone!**\
 </br>
 
 
-https://github.com/user-attachments/assets/6a444474-4df1-4134-af0c-e9746fa433ad
+https://github.com/user-attachments/assets/2ce62012-f28c-4e23-b3b8-f68931bacb77
+
+<!-- https://github.com/user-attachments/assets/6a444474-4df1-4134-af0c-e9746fa433ad -->
 
 <!-- https://github.com/user-attachments/assets/1c6e2d6b-d0cf-4165-864e-d9f01c0b8a0e -->
 
