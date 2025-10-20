@@ -87,10 +87,13 @@ from Pose2Sim.triangulation import indices_of_first_last_non_nan_chunks
 from Pose2Sim.personAssociation import *
 from Pose2Sim.filtering import *
 
+# Silence numpy "RuntimeWarning: Mean of empty slice"
+import warnings
+warnings.filterwarnings("ignore", category=RuntimeWarning, message="Mean of empty slice")
+
 # Not safe, but to be used until OpenMMLab/RTMlib's SSL certificates are updated
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
-
 
 
 DEFAULT_MASS = 70
@@ -1272,7 +1275,7 @@ def select_persons_on_vid(video_file_path, frame_range, all_pose_coords):
     return selected_persons
 
 
-def compute_floor_line(trc_data, keypoint_names = ['LBigToe', 'RBigToe'], toe_speed_below = 7, tot_speed_above=2.0):
+def compute_floor_line(trc_data, score_data, keypoint_names = ['LBigToe', 'RBigToe'], toe_speed_below = 7, score_threshold=0.5):
     '''
     Compute the floor line equation, angle, and direction
     from the feet keypoints when they have zero speed.
@@ -1290,20 +1293,25 @@ def compute_floor_line(trc_data, keypoint_names = ['LBigToe', 'RBigToe'], toe_sp
     - gait_direction: float. Left if < 0, 'right' otherwise
     '''
 
-    # Remove frames where the person is mostly not moving (outlier)
-    speeds_kpts = np.array([np.insert(np.linalg.norm(trc_data[kpt].diff(), axis=1)[1:],0,0) 
-                        for kpt in trc_data.columns.unique()[1:]]).T
-    av_speeds = np.array([np.nanmean(speed_kpt) if not np.isnan(speed_kpt).all() else 0 for speed_kpt in speeds_kpts])
-    trc_data = trc_data[av_speeds>tot_speed_above]
-
     # Retrieve zero-speed coordinates for the foot
     low_speeds_X, low_speeds_Y = [], []
     gait_direction_val = []
     for kpt in keypoint_names:
-        speeds = np.linalg.norm(trc_data[kpt].diff(), axis=1)
+        # Remove frames without data
+        trc_data_kpt = trc_data[kpt].iloc[:,:2]
+        score_data_kpt = score_data[kpt]
+        start, end = indices_of_first_last_non_nan_chunks(score_data_kpt, chunk_choice_method='all')
+        trc_data_kpt_trim = trc_data_kpt.iloc[start:end].reset_index(drop=True)
+        score_data_kpt_trim = score_data_kpt.iloc[start:end].reset_index(drop=True)
 
-        low_speed_frames = trc_data[speeds<toe_speed_below].index
-        low_speeds_coords = trc_data[kpt].loc[low_speed_frames]
+        # Compute speeds
+        speeds = np.linalg.norm(trc_data_kpt_trim.diff(), axis=1)
+
+        # Remove speeds with low confidence
+        speeds = np.where(score_data_kpt_trim>score_threshold, speeds, np.nan)
+
+        # Get coordinates with low speeds, high
+        low_speeds_coords = trc_data_kpt_trim[speeds<toe_speed_below]
         low_speeds_coords = low_speeds_coords[low_speeds_coords!=0]
 
         low_speeds_X_kpt = low_speeds_coords.iloc[:,0].tolist()
@@ -1448,6 +1456,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     mode = config_dict.get('pose').get('mode')
     det_frequency = config_dict.get('pose').get('det_frequency')
     tracking_mode = config_dict.get('pose').get('tracking_mode')
+    max_distance = config_dict.get('pose').get('max_distance', None)
     if tracking_mode == 'deepsort':
         deepsort_params = config_dict.get('pose').get('deepsort_params')
         try:
@@ -1495,7 +1504,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     interp_gap_smaller_than = config_dict.get('post-processing').get('interp_gap_smaller_than')
     fill_large_gaps_with = config_dict.get('post-processing').get('fill_large_gaps_with')
     sections_to_keep = config_dict.get('post-processing').get('sections_to_keep')
-
+    min_chunk_size = config_dict.get('post-processing').get('min_chunk_size')
     do_filter = config_dict.get('post-processing').get('filter')
     handle_LR_swap = config_dict.get('post-processing').get('handle_LR_swap', False)
     reject_outliers = config_dict.get('post-processing').get('reject_outliers', False)
@@ -1517,7 +1526,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     # Create output directories
     if video_file == "webcam":
         current_date = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_dir_name = f'webcam_{current_date}_Sports2D'
+        video_file_stem = f'webcam_{current_date}'
+        output_dir_name = f'{video_file_stem}_Sports2D'
         video_file_path = result_dir / output_dir_name / f'webcam_{current_date}_raw.mp4'
     else:
         video_file_stem = video_file.stem
@@ -1657,14 +1667,12 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             except:
                 logging.error('Error: Pose estimation failed. Check in Config.toml that pose_model and mode are valid.')
                 raise ValueError('Error: Pose estimation failed. Check in Config.toml that pose_model and mode are valid.')
-        
-        # if tracking_mode not in ['deepsort', 'sports2d']:
-        #     logging.warning(f"Tracking mode {tracking_mode} not recognized. Using sports2d method.")
-        #     tracking_mode = 'sports2d'
-        # logging.info(f'Pose tracking set up for "{pose_model_name}" model.')
-        # logging.info(f'Mode: {mode}.\n')
         logging.info(f'Persons are detected every {det_frequency} frames and tracked inbetween. Tracking is done with {tracking_mode}.')
-        if tracking_mode == 'deepsort': logging.info(f'Deepsort parameters: {deepsort_params}.')
+        
+        if tracking_mode == 'deepsort': 
+            logging.info(f'Deepsort parameters: {deepsort_params}.')
+        if tracking_mode not in ['deepsort', 'sports2d']:
+            logging.warning(f"Tracking mode {tracking_mode} is not implemented. 'sports2d' is recommended.")
         logging.info(f'{"All persons are" if nb_persons_to_detect=="all" else f"{nb_persons_to_detect} persons are" if nb_persons_to_detect>1 else "1 person is"} analyzed. Person ordering method is {person_ordering_method}.')
         logging.info(f"{keypoint_likelihood_threshold=}, {average_likelihood_threshold=}, {keypoint_number_threshold=}")
 
@@ -1701,7 +1709,6 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         logging.error('Error: No frames to process. Check that your time_range is coherent with the video duration.')
         raise ValueError('Error: No frames to process. Check that your time_range is coherent with the video duration.')
     
-    # frames = []
     while cap.isOpened():
         # Skip to the starting frame
         if frame_count < first_frame:
@@ -1724,9 +1731,6 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 if save_angles:
                     all_frames_angles.append([])
                 continue
-            # else: # does not store all frames in memory if they are not saved or used for ordering
-            #     if save_img or save_vid or person_ordering_method == 'on_click':
-            #         frames.append(frame.copy())
 
             # Retrieve pose or Estimate pose and track people
             if load_trc_px: 
@@ -1742,22 +1746,57 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 # Detect poses
                 keypoints, scores = pose_tracker(frame)
 
-                # Non maximum suppression (at pose level, not detection)
+                # Non maximum suppression (at pose level, not detection, and only using likely keypoints)
                 frame_shape = frame.shape
-                bboxes = bbox_xyxy_compute(frame_shape, keypoints, padding=0)
-                score_bboxes = np.array([np.mean(s) for s in scores])
-                keep = nms(bboxes, score_bboxes, nms_thr=0.45)
-                keypoints, scores = keypoints[keep], scores[keep]
-                
+                mask_scores = np.mean(scores, axis=1) > 0.2
+
+                likely_keypoints = np.where(mask_scores[:, np.newaxis, np.newaxis], keypoints, np.nan)
+                likely_scores = np.where(mask_scores[:, np.newaxis], scores, np.nan)
+                likely_bboxes = bbox_xyxy_compute(frame_shape, likely_keypoints, padding=0)
+                score_likely_bboxes = np.nanmean(likely_scores, axis=1)
+
+                valid_indices = np.where(~np.isnan(score_likely_bboxes))[0]
+                if len(valid_indices) > 0:
+                    valid_bboxes = likely_bboxes[valid_indices]
+                    valid_scores = score_likely_bboxes[valid_indices]
+                    keep_valid = nms(valid_bboxes, valid_scores, nms_thr=0.45)
+                    keep = valid_indices[keep_valid]
+                else:
+                    keep = []
+                keypoints, scores = likely_keypoints[keep], likely_scores[keep]
+
+                # # Debugging: display detected keypoints on the frame
+                # colors = [(255,0,0), (0,255,0), (0,0,255), (255,255,0), (255,0,255), (0,255,255), (128,0,0), (0,128,0), (0,0,128), (128,128,0), (128,0,128), (0,128,128)]
+                # bboxes = likely_bboxes[keep]
+                # for person_idx in range(len(keypoints)):
+                #     for kpt_idx, kpt in enumerate(keypoints[person_idx]):
+                #         if not np.isnan(kpt).any():
+                #             cv2.circle(frame, (int(kpt[0]), int(kpt[1])), 3, colors[person_idx%len(colors)], -1)
+                #     if not np.isnan(bboxes[person_idx]).any():
+                #         cv2.rectangle(frame, (int(bboxes[person_idx][0]), int(bboxes[person_idx][1])), (int(bboxes[person_idx][2]), int(bboxes[person_idx][3])), colors[person_idx%len(colors)], 1)
+                #     cv2.imshow(f'{video_file} Sports2D', frame)
+
                 # Track poses across frames
                 if tracking_mode == 'deepsort':
                     keypoints, scores = sort_people_deepsort(keypoints, scores, deepsort_tracker, frame, frame_count)
                 if tracking_mode == 'sports2d': 
                     if 'prev_keypoints' not in locals(): prev_keypoints = keypoints
-                    prev_keypoints, keypoints, scores = sort_people_sports2d(prev_keypoints, keypoints, scores=scores)
+                    prev_keypoints, keypoints, scores = sort_people_sports2d(prev_keypoints, keypoints, scores=scores, max_dist=max_distance)
                 else:
                     pass
-
+                
+                # # Debugging: display detected keypoints on the frame
+                # colors = [(255,0,0), (0,255,0), (0,0,255), (255,255,0), (255,0,255), (0,255,255), (128,0,0), (0,128,0), (0,0,128), (128,128,0), (128,0,128), (0,128,128)]
+                # for person_idx in range(len(keypoints)):
+                #     for kpt_idx, kpt in enumerate(keypoints[person_idx]):
+                #         if not np.isnan(kpt).any():
+                #             cv2.circle(frame, (int(kpt[0]), int(kpt[1])), 3, colors[person_idx%len(colors)], -1)
+                #         # if not np.isnan(bboxes[person_idx]).any():
+                #         #     cv2.rectangle(frame, (int(bboxes[person_idx][0]), int(bboxes[person_idx][1])), (int(bboxes[person_idx][2]), int(bboxes[person_idx][3])), colors[person_idx%len(colors)], 1)
+                #     cv2.imshow(f'{video_file} Sports2D', frame)
+                # # if (cv2.waitKey(1) & 0xFF) == ord('q') or (cv2.waitKey(1) & 0xFF) == 27:
+                # #     break
+                # # input()
             
             # Process coordinates and compute angles
             valid_X, valid_Y, valid_scores = [], [], []
@@ -1780,6 +1819,18 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                         person_X = np.full_like(person_X, np.nan)
                         person_Y = np.full_like(person_Y, np.nan)
                         person_scores = np.full_like(person_scores, np.nan)
+
+                    
+                    
+                    ## RECREATE KEYPOINTS, SCORES
+
+
+
+
+
+
+
+
 
                 # Check whether the person is looking to the left or right
                 if flip_left_right:
@@ -1925,16 +1976,38 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     if save_pose:
         logging.info('\nPost-processing pose:')
         # Process pose for each person
-        trc_data, trc_data_unfiltered = [], []
+        trc_data, trc_data_unfiltered, score_data = [], [], []
+        first_run_starts_everyone, last_run_ends_everyone = [], []
         for i, idx_person in enumerate(selected_persons):
             pose_path_person = pose_output_path.parent / (pose_output_path.stem + f'_person{i:02d}.trc')
             all_frames_X_person = pd.DataFrame(all_frames_X_processed[:,idx_person,:], columns=new_keypoints_names)
             all_frames_Y_person = pd.DataFrame(all_frames_Y_processed[:,idx_person,:], columns=new_keypoints_names)
+            score_data.append(pd.DataFrame(all_frames_scores_processed[:,idx_person,:], columns=new_keypoints_names))
             if calculate_angles or save_angles:
                 all_frames_X_flipped_person = pd.DataFrame(all_frames_X_flipped_processed[:,idx_person,:], columns=new_keypoints_names)
-            # Delete person if less than 10 valid frames
-            pose_nan_count = len(np.where(all_frames_X_person.sum(axis=1)==0)[0])
-            if frame_count - frame_range[0] - pose_nan_count <= 10:
+
+            # Interpolate
+            if not interpolate:
+                logging.info(f'- Person {i}: No interpolation.')
+                all_frames_X_person_interp = all_frames_X_person
+                all_frames_Y_person_interp = all_frames_Y_person
+            else:
+                logging.info(f'- Person {i}: Interpolating missing sequences if they are smaller than {interp_gap_smaller_than} frames. Large gaps filled with {fill_large_gaps_with}.')
+                all_frames_X_person_interp = all_frames_X_person.apply(interpolate_zeros_nans, axis=0, args = [interp_gap_smaller_than, 'linear'])
+                all_frames_Y_person_interp = all_frames_Y_person.apply(interpolate_zeros_nans, axis=0, args = [interp_gap_smaller_than, 'linear'])
+
+            # Find the first and last valid chunks of data
+            first_run_starts, last_run_ends = [], []
+            for col in all_frames_X_person.columns:
+                first_run_start, last_run_end = indices_of_first_last_non_nan_chunks(all_frames_X_person_interp[col], min_chunk_size=min_chunk_size, chunk_choice_method=sections_to_keep)
+                first_run_starts += [first_run_start]
+                last_run_ends += [last_run_end]
+            first_run_start_min, last_run_end_max = min(first_run_starts), max(last_run_ends)
+            first_run_starts_everyone += [first_run_starts]
+            last_run_ends_everyone += [last_run_ends]
+
+            # Do not process person if no section of min_chunk_size valid frames in a row
+            if (first_run_start_min, last_run_end_max) == (0,0):
                 all_frames_X_processed[:,idx_person,:], all_frames_X_flipped_processed[:,idx_person,:], all_frames_Y_processed[:,idx_person,:] = np.nan, np.nan, np.nan
                 columns=np.array([[c]*3 for c in all_frames_X_person.columns]).flatten()
                 trc_data_i = pd.DataFrame(0, index=all_frames_X_person.index, columns=['time']+list(columns))
@@ -1942,105 +2015,92 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 trc_data.append(trc_data_i)
                 trc_data_unfiltered_i = trc_data_i.copy()
                 trc_data_unfiltered.append(trc_data_unfiltered_i)
-                
-                logging.info(f'- Person {i}: Less than 10 valid frames. Deleting person.')
+                logging.info(f'  Person {i}: Less than {min_chunk_size} valid frames in a row. Deleting person.')
+                continue
 
+            # Fill remaining gaps
+            if fill_large_gaps_with.lower() == 'last_value':
+                for col_id, col in enumerate(all_frames_X_person_interp.columns):
+                    first_run_start, last_run_end = first_run_starts[col_id], last_run_ends[col_id]
+                    for coord_df in [all_frames_X_person_interp, all_frames_Y_person_interp, all_frames_Z_homog]:
+                        coord_df.loc[:first_run_start, col] = np.nan
+                        coord_df.loc[last_run_end:, col] = np.nan
+                        coord_df.loc[first_run_start:last_run_end, col] = coord_df.loc[first_run_start:last_run_end, col].ffill().bfill()
+            elif fill_large_gaps_with.lower() == 'zeros':
+                all_frames_X_person_interp.replace(np.nan, 0, inplace=True)
+                all_frames_Y_person_interp.replace(np.nan, 0, inplace=True)
+
+            # if handle_LR_swap:
+            #     logging.info(f'Handling left-right swaps.')
+            #     all_frames_X_person_interp = all_frames_X_person_interp.apply(LR_unswap, axis=0)
+            #     all_frames_Y_person_interp = all_frames_Y_person_interp.apply(LR_unswap, axis=0)
+
+            if reject_outliers:
+                logging.info('Rejecting outliers with a Hampel filter.')
+                all_frames_X_person_interp = all_frames_X_person_interp.apply(hampel_filter, axis=0, args = [round(7*frame_rate/30), 2])
+                all_frames_Y_person_interp = all_frames_Y_person_interp.apply(hampel_filter, axis=0, args = [round(7*frame_rate/30), 2])
+
+            if not do_filter:
+                logging.info(f'No filtering.')
+                all_frames_X_person_filt = all_frames_X_person_interp
+                all_frames_Y_person_filt = all_frames_Y_person_interp
             else:
-                # Interpolate
-                if not interpolate:
-                    logging.info(f'- Person {i}: No interpolation.')
-                    all_frames_X_person_interp = all_frames_X_person
-                    all_frames_Y_person_interp = all_frames_Y_person
+                if filter_type == ('butterworth' or 'butterworth_on_speed'):
+                    cutoff = butterworth_filter_cutoff
+                    if video_file == 'webcam':
+                        if cutoff / (fps / 2) >= 1:
+                            cutoff_old = cutoff
+                            cutoff = fps/(2+0.001)
+                            args = f'\n{cutoff_old:.1f} Hz cut-off framerate too large for a real-time framerate of {fps:.1f} Hz. Using a cut-off framerate of {cutoff:.1f} Hz instead.'
+                            butterworth_filter_cutoff = cutoff
+                    filt_type = 'Butterworth' if filter_type == 'butterworth' else 'Butterworth on speed'
+                    args = f'{filt_type} filter, {butterworth_filter_order}th order, {butterworth_filter_cutoff} Hz.'
+                    frame_rate = fps
+                elif filter_type == 'gcv_spline':
+                    args = f'GVC Spline filter, which automatically evaluates the best trade-off between smoothness and fidelity to data.'
+                elif filter_type == 'kalman':
+                    args = f'Kalman filter, trusting measurement {kalman_filter_trust_ratio} times more than the process matrix.'
+                elif filter_type == 'gaussian':
+                    args = f'Gaussian filter, Sigma kernel {gaussian_filter_kernel}.'
+                elif filter_type == 'loess':
+                    args = f'LOESS filter, window size of {loess_filter_kernel} frames.'
+                elif filter_type == 'median':
+                    args = f'Median filter, kernel of {median_filter_kernel}.'
                 else:
-                    logging.info(f'- Person {i}: Interpolating missing sequences if they are smaller than {interp_gap_smaller_than} frames. Large gaps filled with {fill_large_gaps_with}.')
-                    all_frames_X_person_interp = all_frames_X_person.apply(interpolate_zeros_nans, axis=0, args = [interp_gap_smaller_than, 'linear'])
-                    all_frames_Y_person_interp = all_frames_Y_person.apply(interpolate_zeros_nans, axis=0, args = [interp_gap_smaller_than, 'linear'])
+                    logging.error(f"Invalid filter_type: {filter_type}. Must be 'butterworth', 'gcv_spline', 'kalman', 'gaussian', 'loess', or 'median'.")
+                    raise ValueError(f"Invalid filter_type: {filter_type}. Must be 'butterworth', 'gcv_spline', 'kalman', 'gaussian', 'loess', or 'median'.")
 
-                    if fill_large_gaps_with.lower() == 'last_value':
-                        for col in all_frames_X_person_interp.columns:
-                            first_run_start, last_run_end = indices_of_first_last_non_nan_chunks(all_frames_Y_person_interp[col], min_chunk_size=interp_gap_smaller_than, chunk_choice_method=sections_to_keep)
-                            for coord_df in [all_frames_X_person_interp, all_frames_Y_person_interp, all_frames_Z_homog]:
-                                coord_df.loc[:first_run_start, col] = np.nan
-                                coord_df.loc[last_run_end:, col] = np.nan
-                                coord_df.loc[first_run_start:last_run_end, col] = coord_df.loc[first_run_start:last_run_end, col].ffill().bfill()
+                logging.info(f'Filtering with {args}')
+                all_frames_X_person_filt = all_frames_X_person_interp.apply(filter1d, axis=0, args = [Pose2Sim_config_dict, filter_type, frame_rate])
+                all_frames_Y_person_filt = all_frames_Y_person_interp.apply(filter1d, axis=0, args = [Pose2Sim_config_dict, filter_type, frame_rate])
 
-                    elif fill_large_gaps_with.lower() == 'zeros':
-                        all_frames_X_person_interp.replace(np.nan, 0, inplace=True)
-                        all_frames_Y_person_interp.replace(np.nan, 0, inplace=True)
+            # Build TRC file
+            trc_data_i = trc_data_from_XYZtime(all_frames_X_person_filt, all_frames_Y_person_filt, all_frames_Z_homog, all_frames_time)
+            trc_data.append(trc_data_i)
+            if not load_trc_px:
+                make_trc_with_trc_data(trc_data_i, str(pose_path_person), fps=fps)
+                logging.info(f'Pose in pixels saved to {pose_path_person.resolve()}.')
 
-                # Filter
-                # if handle_LR_swap:
-                #     logging.info(f'Handling left-right swaps.')
-                #     all_frames_X_person_interp = all_frames_X_person_interp.apply(LR_unswap, axis=0)
-                #     all_frames_Y_person_interp = all_frames_Y_person_interp.apply(LR_unswap, axis=0)
-
-                if reject_outliers:
-                    logging.info('Rejecting outliers with a Hampel filter.')
-                    all_frames_X_person_interp = all_frames_X_person_interp.apply(hampel_filter, axis=0, args = [round(7*frame_rate/30), 2])
-                    all_frames_Y_person_interp = all_frames_Y_person_interp.apply(hampel_filter, axis=0, args = [round(7*frame_rate/30), 2])
-
-                if not do_filter:
-                    logging.info(f'No filtering.')
-                    all_frames_X_person_filt = all_frames_X_person_interp
-                    all_frames_Y_person_filt = all_frames_Y_person_interp
-                else:
-                    if filter_type == ('butterworth' or 'butterworth_on_speed'):
-                        cutoff = butterworth_filter_cutoff
-                        if video_file == 'webcam':
-                            if cutoff / (fps / 2) >= 1:
-                                cutoff_old = cutoff
-                                cutoff = fps/(2+0.001)
-                                args = f'\n{cutoff_old:.1f} Hz cut-off framerate too large for a real-time framerate of {fps:.1f} Hz. Using a cut-off framerate of {cutoff:.1f} Hz instead.'
-                                butterworth_filter_cutoff = cutoff
-                        filt_type = 'Butterworth' if filter_type == 'butterworth' else 'Butterworth on speed'
-                        args = f'{filt_type} filter, {butterworth_filter_order}th order, {butterworth_filter_cutoff} Hz.'
-                        frame_rate = fps
-                    elif filter_type == 'gcv_spline':
-                        args = f'GVC Spline filter, which automatically evaluates the best trade-off between smoothness and fidelity to data.'
-                    elif filter_type == 'kalman':
-                        args = f'Kalman filter, trusting measurement {kalman_filter_trust_ratio} times more than the process matrix.'
-                    elif filter_type == 'gaussian':
-                        args = f'Gaussian filter, Sigma kernel {gaussian_filter_kernel}.'
-                    elif filter_type == 'loess':
-                        args = f'LOESS filter, window size of {loess_filter_kernel} frames.'
-                    elif filter_type == 'median':
-                        args = f'Median filter, kernel of {median_filter_kernel}.'
-                    else:
-                        logging.error(f"Invalid filter_type: {filter_type}. Must be 'butterworth', 'gcv_spline', 'kalman', 'gaussian', 'loess', or 'median'.")
-                        raise ValueError(f"Invalid filter_type: {filter_type}. Must be 'butterworth', 'gcv_spline', 'kalman', 'gaussian', 'loess', or 'median'.")
-
-                    logging.info(f'Filtering with {args}')
-                    all_frames_X_person_filt = all_frames_X_person_interp.apply(filter1d, axis=0, args = [Pose2Sim_config_dict, filter_type, frame_rate])
-                    all_frames_Y_person_filt = all_frames_Y_person_interp.apply(filter1d, axis=0, args = [Pose2Sim_config_dict, filter_type, frame_rate])
-
-
-                # Build TRC file
-                trc_data_i = trc_data_from_XYZtime(all_frames_X_person_filt, all_frames_Y_person_filt, all_frames_Z_homog, all_frames_time)
-                trc_data.append(trc_data_i)
-                if not load_trc_px:
-                    make_trc_with_trc_data(trc_data_i, str(pose_path_person), fps=fps)
-                    logging.info(f'Pose in pixels saved to {pose_path_person.resolve()}.')
-
-                # Plotting coordinates before and after interpolation and filtering
-                columns_to_concat = []
-                for kpt in range(len(all_frames_X_person.columns)):
-                    columns_to_concat.extend([all_frames_X_person.iloc[:,kpt], all_frames_Y_person.iloc[:,kpt], all_frames_Z_homog.iloc[:,kpt]])
-                trc_data_unfiltered_i = pd.concat([all_frames_time] + columns_to_concat, axis=1)
-                trc_data_unfiltered.append(trc_data_unfiltered_i)
-                if not to_meters and (show_plots or save_plots):
-                    pw = pose_plots(trc_data_unfiltered_i, trc_data_i, i, show=show_plots)
-                    if save_plots:
-                        for n, f in enumerate(pw.figure_handles):
-                            dpi = pw.canvases[i].figure.dpi
-                            f.set_size_inches(1280/dpi, 720/dpi)
-                            title = pw.tabs.tabText(n)
-                            plot_path = plots_output_dir / (pose_output_path.stem + f'_person{i:02d}_px_{title.replace(" ","_").replace("/","_")}.png')
-                            f.savefig(plot_path, dpi=dpi, bbox_inches='tight')
-                        logging.info(f'Pose plots (px) saved in {plots_output_dir}.')
-                        
-                all_frames_X_processed[:,idx_person,:], all_frames_Y_processed[:,idx_person,:] = all_frames_X_person_filt, all_frames_Y_person_filt
-                if calculate_angles or save_angles:
-                    all_frames_X_flipped_processed[:,idx_person,:] = all_frames_X_flipped_person
+            # Plotting coordinates before and after interpolation and filtering
+            columns_to_concat = []
+            for kpt in range(len(all_frames_X_person.columns)):
+                columns_to_concat.extend([all_frames_X_person.iloc[:,kpt], all_frames_Y_person.iloc[:,kpt], all_frames_Z_homog.iloc[:,kpt]])
+            trc_data_unfiltered_i = pd.concat([all_frames_time] + columns_to_concat, axis=1)
+            trc_data_unfiltered.append(trc_data_unfiltered_i)
+            if not to_meters and (show_plots or save_plots):
+                pw = pose_plots(trc_data_unfiltered_i, trc_data_i, i, show=show_plots)
+                if save_plots:
+                    for n, f in enumerate(pw.figure_handles):
+                        dpi = pw.canvases[i].figure.dpi
+                        f.set_size_inches(1280/dpi, 720/dpi)
+                        title = pw.tabs.tabText(n)
+                        plot_path = plots_output_dir / (pose_output_path.stem + f'_person{i:02d}_px_{title.replace(" ","_").replace("/","_")}.png')
+                        f.savefig(plot_path, dpi=dpi, bbox_inches='tight')
+                    logging.info(f'Pose plots (px) saved in {plots_output_dir}.')
+                    
+            all_frames_X_processed[:,idx_person,:], all_frames_Y_processed[:,idx_person,:] = all_frames_X_person_filt, all_frames_Y_person_filt
+            if calculate_angles or save_angles:
+                all_frames_X_flipped_processed[:,idx_person,:] = all_frames_X_flipped_person
                 
 
         #%% Convert px to meters
@@ -2064,11 +2124,11 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     # estimated from the line formed by the toes when they are on the ground (where speed = 0)
                     try:
                         if all(key in trc_data[0] for key in ['LBigToe', 'RBigToe']):
-                            floor_angle_estim, xy_origin_estim, _ = compute_floor_line(trc_data[0], keypoint_names=['LBigToe', 'RBigToe'], toe_speed_below=toe_speed_below_px_frame)
+                            floor_angle_estim, xy_origin_estim, _ = compute_floor_line(trc_data[0], score_data[0], keypoint_names=['LBigToe', 'RBigToe'], toe_speed_below=toe_speed_below_px_frame, score_threshold=average_likelihood_threshold)
                         else:
-                            floor_angle_estim, xy_origin_estim, _ = compute_floor_line(trc_data[0], keypoint_names=['LAnkle', 'RAnkle'], toe_speed_below=toe_speed_below_px_frame)
-                            xy_origin_estim[0] = xy_origin_estim[0]-0.13
-                            logging.warning(f'The RBigToe and LBigToe are missing from your model. Using ankles - 13 cm to compute the floor line.')
+                            floor_angle_estim, xy_origin_estim, _ = compute_floor_line(trc_data[0], score_data[0], keypoint_names=['LAnkle', 'RAnkle'], toe_speed_below=toe_speed_below_px_frame, score_threshold=average_likelihood_threshold)
+                            xy_origin_estim[1] = xy_origin_estim[1] + 0.13*px_per_m # approx. height of the ankle above the floor
+                            logging.warning(f'The RBigToe and LBigToe are missing from your pose estimation model. Using ankles - 13 cm to compute the floor line.')
                     except:
                         floor_angle_estim = 0
                         xy_origin_estim = cam_width/2, cam_height/2
@@ -2079,7 +2139,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     cx, cy = xy_origin_estim
                 else:
                     cx, cy = xy_origin
-                logging.info(f'Using height of person #0 ({first_person_height}m) to convert coordinates in meters. '
+                logging.info(f'Using height of person #0 ({first_person_height}m) to convert coordinates in meters.\n'
                              f'Floor angle: {np.degrees(floor_angle_estim) if not floor_angle=="auto" else f"auto (estimation: {round(np.degrees(floor_angle_estim),2)}°)"}, '
                              f'xy_origin: {xy_origin if not xy_origin=="auto" else f"auto (estimation: {[round(c) for c in xy_origin_estim]})"} px.')
 
@@ -2093,9 +2153,9 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     if visible_side_i == 'auto':
                         try:
                             if all(key in trc_data[i] for key in ['LBigToe', 'RBigToe']):
-                                _, _, gait_direction = compute_floor_line(trc_data[i], keypoint_names=['LBigToe', 'RBigToe'], toe_speed_below=toe_speed_below_px_frame)
+                                _, _, gait_direction = compute_floor_line(trc_data[i], score_data[0], keypoint_names=['LBigToe', 'RBigToe'], toe_speed_below=toe_speed_below_px_frame, score_threshold=average_likelihood_threshold)
                             else:
-                                _, _, gait_direction = compute_floor_line(trc_data[i], keypoint_names=['LAnkle', 'RAnkle'], toe_speed_below=toe_speed_below_px_frame)
+                                _, _, gait_direction = compute_floor_line(trc_data[i], score_data[0], keypoint_names=['LAnkle', 'RAnkle'], toe_speed_below=toe_speed_below_px_frame, score_threshold=average_likelihood_threshold)
                                 logging.warning(f'The RBigToe and LBigToe are missing from your model. Gait direction will be determined from the ankle points.')
                             visible_side_i = 'right' if gait_direction > 0.3 \
                                                 else 'left' if gait_direction < -0.3 \
@@ -2113,8 +2173,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     # Convert to meters
                     px_to_m_i = [convert_px_to_meters(trc_data[i][kpt_name], first_person_height, height_px, cx, cy, -floor_angle_estim, visible_side=visible_side_i) for kpt_name in new_keypoints_names]
                     trc_data_m_i = pd.concat([all_frames_time.rename('time')]+px_to_m_i, axis=1)
-                    for c in 3*np.arange(len(trc_data_m_i.columns[3::3]))+1: # only X coordinates
-                        first_run_start, last_run_end = indices_of_first_last_non_nan_chunks(trc_data_m_i.iloc[:,c], min_chunk_size=interp_gap_smaller_than, chunk_choice_method=sections_to_keep)
+                    for c_id, c in enumerate(3*np.arange(len(trc_data_m_i.columns[3::3]))+1): # only X coordinates
+                        first_run_start, last_run_end = first_run_starts_everyone[i][c_id], last_run_ends_everyone[i][c_id]
                         trc_data_m_i.iloc[:first_run_start,c+2] = np.nan
                         trc_data_m_i.iloc[last_run_end:,c+2] = np.nan
                         trc_data_m_i.iloc[first_run_start:last_run_end,c+2] = trc_data_m_i.iloc[first_run_start:last_run_end,c+2].ffill().bfill()
@@ -2215,94 +2275,102 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             if new_visible_side[i] == 'left' and not flip_left_right: 
                 all_frames_angles_homog[:, idx_person, :] = -all_frames_angles_homog[:, idx_person, :]
 
-            # Delete person if less than 4 valid frames
-            angle_nan_count = len(np.where(all_frames_angles_person.sum(axis=1)==0)[0])
-            if frame_count - frame_range[0] - angle_nan_count <= 4:
-                all_frames_angles_processed[:,idx_person,:] = np.nan
-                logging.info(f'- Person {i}: Less than 4 valid frames. Deleting person.')
-
+            if not interpolate:
+                logging.info(f'- Person {i}: No interpolation.')
+                all_frames_angles_person_interp = all_frames_angles_person
             else:
-                # Interpolate
-                if not interpolate:
-                    logging.info(f'- Person {i}: No interpolation.')
-                    all_frames_angles_person_interp = all_frames_angles_person
-                else:
-                    logging.info(f'- Person {i}: Interpolating missing sequences if they are smaller than {interp_gap_smaller_than} frames. Large gaps filled with {fill_large_gaps_with}.')
-                    all_frames_angles_person_interp = all_frames_angles_person.apply(interpolate_zeros_nans, axis=0, args = [interp_gap_smaller_than, 'linear'])
-                    if fill_large_gaps_with == 'last_value':
-                        for col in all_frames_angles_person_interp.columns:
-                            first_run_start, last_run_end = indices_of_first_last_non_nan_chunks(all_frames_angles_person_interp[col], min_chunk_size=interp_gap_smaller_than, chunk_choice_method=sections_to_keep)
-                            all_frames_angles_person_interp.loc[:first_run_start, col] = np.nan
-                            all_frames_angles_person_interp.loc[last_run_end:, col] = np.nan
-                            all_frames_angles_person_interp.loc[first_run_start:last_run_end, col] = all_frames_angles_person_interp.loc[first_run_start:last_run_end, col].ffill().bfill()
-                    elif fill_large_gaps_with == 'zeros':
-                        all_frames_angles_person_interp.replace(np.nan, 0, inplace=True)
+                logging.info(f'- Person {i}: Interpolating missing sequences if they are smaller than {interp_gap_smaller_than} frames. Large gaps filled with {fill_large_gaps_with}.')
+                all_frames_angles_person_interp = all_frames_angles_person.apply(interpolate_zeros_nans, axis=0, args = [interp_gap_smaller_than, 'linear'])
+
+            # Find the first and last valid chunks of data
+            first_run_starts, last_run_ends = [], []
+            for col in all_frames_angles_person.columns:
+                first_run_start, last_run_end = indices_of_first_last_non_nan_chunks(all_frames_angles_person_interp[col], min_chunk_size=min_chunk_size, chunk_choice_method=sections_to_keep)
+                first_run_starts += [first_run_start]
+                last_run_ends += [last_run_end]
+            first_run_start_min, last_run_end_max = min(first_run_starts), max(last_run_ends)
+
+            # Do not process person if no section of min_chunk_size valid frames in a row
+            if (first_run_start_min, last_run_end_max) == (0,0):
+                all_frames_angles_processed[:,idx_person,:]= np.nan
+                logging.info(f'  Person {i}: Less than {min_chunk_size} valid frames in a row. Deleting person.')
+                continue
+
+            # Fill remaining gaps
+            if fill_large_gaps_with == 'last_value':
+                for col_id, col in enumerate(all_frames_angles_person_interp.columns):
+                    first_run_start, last_run_end = first_run_starts[col_id], last_run_ends[col_id]
+                    all_frames_angles_person_interp.loc[:first_run_start, col] = np.nan
+                    all_frames_angles_person_interp.loc[last_run_end:, col] = np.nan
+                    all_frames_angles_person_interp.loc[first_run_start:last_run_end, col] = all_frames_angles_person_interp.loc[first_run_start:last_run_end, col].ffill().bfill()
+            elif fill_large_gaps_with == 'zeros':
+                all_frames_angles_person_interp.replace(np.nan, 0, inplace=True)
                 
-                # Filter
-                if reject_outliers:
-                    logging.info(f'Rejecting outliers with a Hampel filter.')
-                    all_frames_angles_person_interp = all_frames_angles_person_interp.apply(hampel_filter, axis=0)
+            # Filter
+            if reject_outliers:
+                logging.info(f'Rejecting outliers with a Hampel filter.')
+                all_frames_angles_person_interp = all_frames_angles_person_interp.apply(hampel_filter, axis=0)
 
-                if not do_filter:
-                    logging.info(f'No filtering.')
-                    all_frames_angles_person_filt = all_frames_angles_person_interp
+            if not do_filter:
+                logging.info(f'No filtering.')
+                all_frames_angles_person_filt = all_frames_angles_person_interp
+            else:
+                if filter_type == ('butterworth' or 'butterworth_on_speed'):
+                    cutoff = butterworth_filter_cutoff
+                    if video_file == 'webcam':
+                        if cutoff / (fps / 2) >= 1:
+                            cutoff_old = cutoff
+                            cutoff = fps/(2+0.001)
+                            args = f'\n{cutoff_old:.1f} Hz cut-off framerate too large for a real-time framerate of {fps:.1f} Hz. Using a cut-off framerate of {cutoff:.1f} Hz instead.'
+                            butterworth_filter_cutoff = cutoff
+                    filt_type = 'Butterworth' if filter_type == 'butterworth' else 'Butterworth on speed'
+                    args = f'{filt_type} filter, {butterworth_filter_order}th order, {butterworth_filter_cutoff} Hz.'
+                    frame_rate = fps
+                elif filter_type == 'gcv_spline':
+                    args = f'GVC Spline filter, which automatically evaluates the best trade-off between smoothness and fidelity to data.'
+                elif filter_type == 'kalman':
+                    args = f'Kalman filter, trusting measurement {kalman_filter_trust_ratio} times more than the process matrix.'
+                elif filter_type == 'gaussian':
+                    args = f'Gaussian filter, Sigma kernel {gaussian_filter_kernel}.'
+                elif filter_type == 'loess':
+                    args = f'LOESS filter, window size of {loess_filter_kernel} frames.'
+                elif filter_type == 'median':
+                    args = f'Median filter, kernel of {median_filter_kernel}.'
                 else:
-                    if filter_type == ('butterworth' or 'butterworth_on_speed'):
-                        cutoff = butterworth_filter_cutoff
-                        if video_file == 'webcam':
-                            if cutoff / (fps / 2) >= 1:
-                                cutoff_old = cutoff
-                                cutoff = fps/(2+0.001)
-                                args = f'\n{cutoff_old:.1f} Hz cut-off framerate too large for a real-time framerate of {fps:.1f} Hz. Using a cut-off framerate of {cutoff:.1f} Hz instead.'
-                                butterworth_filter_cutoff = cutoff
-                        filt_type = 'Butterworth' if filter_type == 'butterworth' else 'Butterworth on speed'
-                        args = f'{filt_type} filter, {butterworth_filter_order}th order, {butterworth_filter_cutoff} Hz.'
-                        frame_rate = fps
-                    elif filter_type == 'gcv_spline':
-                        args = f'GVC Spline filter, which automatically evaluates the best trade-off between smoothness and fidelity to data.'
-                    elif filter_type == 'kalman':
-                        args = f'Kalman filter, trusting measurement {kalman_filter_trust_ratio} times more than the process matrix.'
-                    elif filter_type == 'gaussian':
-                        args = f'Gaussian filter, Sigma kernel {gaussian_filter_kernel}.'
-                    elif filter_type == 'loess':
-                        args = f'LOESS filter, window size of {loess_filter_kernel} frames.'
-                    elif filter_type == 'median':
-                        args = f'Median filter, kernel of {median_filter_kernel}.'
-                    else:
-                        logging.error(f"Invalid filter_type: {filter_type}. Must be 'butterworth', 'gcv_spline', 'kalman', 'gaussian', 'loess', or 'median'.")
-                        raise ValueError(f"Invalid filter_type: {filter_type}. Must be 'butterworth', 'gcv_spline', 'kalman', 'gaussian', 'loess', or 'median'.")
+                    logging.error(f"Invalid filter_type: {filter_type}. Must be 'butterworth', 'gcv_spline', 'kalman', 'gaussian', 'loess', or 'median'.")
+                    raise ValueError(f"Invalid filter_type: {filter_type}. Must be 'butterworth', 'gcv_spline', 'kalman', 'gaussian', 'loess', or 'median'.")
 
-                    logging.info(f'Filtering with {args}')
-                    all_frames_angles_person_filt = all_frames_angles_person_interp.apply(filter1d, axis=0, args = [Pose2Sim_config_dict, filter_type, frame_rate])
+                logging.info(f'Filtering with {args}')
+                all_frames_angles_person_filt = all_frames_angles_person_interp.apply(filter1d, axis=0, args = [Pose2Sim_config_dict, filter_type, frame_rate])
 
-                # Add floor_angle_estim to segment angles
-                if correct_segment_angles_with_floor_angle and to_meters:
-                    logging.info(f'Correcting segment angles by removing the {round(np.degrees(floor_angle_estim),2)}° floor angle.')
-                    for ang_name in all_frames_angles_person_filt.columns:
-                        if 'horizontal' in angle_dict[ang_name][1]:
-                            all_frames_angles_person_filt[ang_name] -= np.degrees(floor_angle_estim)
+            # Add floor_angle_estim to segment angles
+            if correct_segment_angles_with_floor_angle and to_meters:
+                logging.info(f'Correcting segment angles by removing the {round(np.degrees(floor_angle_estim),2)}° floor angle.')
+                for ang_name in all_frames_angles_person_filt.columns:
+                    if 'horizontal' in angle_dict[ang_name][1]:
+                        all_frames_angles_person_filt[ang_name] -= np.degrees(floor_angle_estim)
 
-                # Remove columns with all nan values
-                all_frames_angles_processed[:,idx_person,:] = all_frames_angles_person_filt
-                all_frames_angles_person_filt.dropna(axis=1, how='all', inplace=True)
-                all_frames_angles_person = all_frames_angles_person[all_frames_angles_person_filt.columns]
+            # Remove columns with all nan values
+            all_frames_angles_processed[:,idx_person,:] = all_frames_angles_person_filt
+            all_frames_angles_person_filt.dropna(axis=1, how='all', inplace=True)
+            all_frames_angles_person = all_frames_angles_person[all_frames_angles_person_filt.columns]
 
-                # Build mot file
-                angle_data = make_mot_with_angles(all_frames_angles_person_filt, all_frames_time, str(angles_path_person))
-                logging.info(f'Angles saved to {angles_path_person.resolve()}.')
+            # Build mot file
+            angle_data = make_mot_with_angles(all_frames_angles_person_filt, all_frames_time, str(angles_path_person))
+            logging.info(f'Angles saved to {angles_path_person.resolve()}.')
 
-                # Plotting angles before and after interpolation and filtering
-                all_frames_angles_person.insert(0, 'time', all_frames_time)
-                if show_plots or save_plots:
-                    pw = angle_plots(all_frames_angles_person, angle_data, i, show=show_plots) # i = current person
-                    if save_plots:
-                        for n, f in enumerate(pw.figure_handles):
-                            dpi = pw.canvases[i].figure.dpi
-                            f.set_size_inches(1280/dpi, 720/dpi)
-                            title = pw.tabs.tabText(n)
-                            plot_path = plots_output_dir / (pose_output_path_m.stem + f'_person{i:02d}_ang_{title.replace(" ","_").replace("/","_")}.png')
-                            f.savefig(plot_path, dpi=dpi, bbox_inches='tight')
-                        logging.info(f'Pose plots (m) saved in {plots_output_dir}.')
+            # Plotting angles before and after interpolation and filtering
+            all_frames_angles_person.insert(0, 'time', all_frames_time)
+            if show_plots or save_plots:
+                pw = angle_plots(all_frames_angles_person, angle_data, i, show=show_plots) # i = current person
+                if save_plots:
+                    for n, f in enumerate(pw.figure_handles):
+                        dpi = pw.canvases[i].figure.dpi
+                        f.set_size_inches(1280/dpi, 720/dpi)
+                        title = pw.tabs.tabText(n)
+                        plot_path = plots_output_dir / (pose_output_path_m.stem + f'_person{i:02d}_ang_{title.replace(" ","_").replace("/","_")}.png')
+                        f.savefig(plot_path, dpi=dpi, bbox_inches='tight')
+                    logging.info(f'Pose plots (m) saved in {plots_output_dir}.')
 
 
     #%% ==================================================
@@ -2403,25 +2471,17 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 # Delete person if less than 4 valid frames
                 pose_path_person = pose_output_path.parent / (pose_output_path.stem + f'_person{i:02d}.trc')
                 all_frames_X_person = pd.DataFrame(all_frames_X_homog[:,i,:], columns=new_keypoints_names)
-                pose_nan_count = len(np.where(all_frames_X_person.sum(axis=1)==0)[0])
-                if frame_count - frame_range[0] - pose_nan_count <= 4:
-                    # heights_m.append(DEFAULT_HEIGHT)
-                    # masses.append(DEFAULT_MASS)
-                    logging.info(f'Less than 4 valid frames. Deleting person.')
+                if new_visible_side[i] == 'none':
+                    logging.info(f'Skipping marker augmentation and inverse kinematics because visible_side is "none".')
                 else:
-                    if new_visible_side[i] == 'none':
-                        logging.info(f'Skipping marker augmentation and inverse kinematics because visible_side is "none".')
-                        # heights_m.append(DEFAULT_HEIGHT)
-                        # masses.append(DEFAULT_MASS)
-                    else:
-                        # Provide missing data to Pose2Sim_config_dict
-                        height_m_i = compute_height(trc_data_m_i.iloc[:,1:], keypoints_names,
-                            fastest_frames_to_remove_percent=fastest_frames_to_remove_percent, close_to_zero_speed=close_to_zero_speed_m, large_hip_knee_angles=large_hip_knee_angles, trimmed_extrema_percent=trimmed_extrema_percent)
-                        mass_i = participant_masses[i] if len(participant_masses)>i else 70
-                        if len(participant_masses)<=i:
-                            logging.warning(f'No mass provided. Using 70 kg as default.')
-                        heights_m.append(height_m_i)
-                        masses.append(mass_i)
+                    # Provide missing data to Pose2Sim_config_dict
+                    height_m_i = compute_height(trc_data_m_i.iloc[:,1:], keypoints_names,
+                        fastest_frames_to_remove_percent=fastest_frames_to_remove_percent, close_to_zero_speed=close_to_zero_speed_m, large_hip_knee_angles=large_hip_knee_angles, trimmed_extrema_percent=trimmed_extrema_percent)
+                    mass_i = participant_masses[i] if len(participant_masses)>i else DEFAULT_MASS
+                    if len(participant_masses)<=i:
+                        logging.warning(f'No mass provided. Using {DEFAULT_MASS} kg as default.')
+                    heights_m.append(height_m_i)
+                    masses.append(mass_i)
                 
             Pose2Sim_config_dict['project']['participant_height'] = heights_m
             Pose2Sim_config_dict['project']['participant_mass'] = masses

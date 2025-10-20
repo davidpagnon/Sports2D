@@ -97,7 +97,7 @@ tracking_mode = 'sports2d' # 'sports2d' or 'deepsort'. 'deepsort' is slower, har
 keypoint_likelihood_threshold = 0.3 # Keypoints whose likelihood is lower will not be taken into account
 average_likelihood_threshold = 0.5  # Person will be ignored if average likelihood of good keypoints is lower than this value
 keypoint_number_threshold = 0.3     # Person will be ignored if the number of good keypoints (above keypoint_likelihood_threshold) is less than this fraction
-
+max_distance = 100  # in px or None # If a person is detected further than max_distance from its position on the previous frame, it will be considered as a new one
 
 [px_to_meters_conversion]
 # Pixel to meters conversion
@@ -131,11 +131,12 @@ correct_segment_angles_with_floor_angle = true # If the camera is tilted, correc
 
 [post-processing]
 interpolate = true
-interp_gap_smaller_than = 10        # do not interpolate bigger gaps
+interp_gap_smaller_than = 10        # Do not interpolate larger gaps
 fill_large_gaps_with = 'last_value' # 'last_value', 'nan', or 'zeros' 
 sections_to_keep = 'all' # 'all', 'largest', 'first', 'last'
-                        # keep 'all' valid sections even when they are interspersed with undetected chunks, or the 'largest' valid section, or the 'first' one, or the 'last' one
-reject_outliers = true      # Hampel filter for outlier rejection before other filtering methods. Rejects outliers that are outside of a 95% confidence interal from the median in a sliding window of size 7.
+                        # Keep 'all' valid sections even when they are interspersed with undetected chunks, or the 'largest' valid section, or the 'first' one, or the 'last' one
+min_chunk_size = 10     # Minimum number of valid frames in a row to keep a chunk of data for a person
+reject_outliers = true  # Hampel filter for outlier rejection before other filtering methods. Rejects outliers that are outside of a 95% confidence interal from the median in a sliding window of size 7.
 
 filter = true
 show_graphs = true         # Show plots of raw and processed results
