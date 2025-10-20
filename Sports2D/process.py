@@ -78,7 +78,6 @@ from matplotlib import patheffects
 
 from rtmlib import PoseTracker, BodyWithFeet, Wholebody, Body, Hand, Custom
 from rtmlib.tools.object_detection.post_processings import nms
-from deep_sort_realtime.deepsort_tracker import DeepSort
 
 from Sports2D.Utilities.common import *
 from Pose2Sim.common import *
@@ -1459,6 +1458,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     tracking_mode = config_dict.get('pose').get('tracking_mode')
     max_distance = config_dict.get('pose').get('max_distance', None)
     if tracking_mode == 'deepsort':
+        from deep_sort_realtime.deepsort_tracker import DeepSort
         deepsort_params = config_dict.get('pose').get('deepsort_params')
         try:
             deepsort_params = ast.literal_eval(deepsort_params)
