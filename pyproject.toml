@@ -48,7 +48,7 @@ dependencies = [
     "openvino",
     "opencv-python<4.12", # otherwise forces numpy>=2.0, which is incompatible with some opensim/python combinations
     "imageio_ffmpeg",
-    "deep-sort-realtime",
+    # "deep-sort-realtime", # likely not required anymore
     "Pose2Sim>=0.10.38"
 ]
 
