@@ -33,23 +33,6 @@ classifiers = [
 ]
 urls = {Homepage = "https://github.com/davidpagnon/Sports2D", "Bug Tracker" = "https://github.com/davidpagnon/Sports2D/issues"}
 dependencies = [
-    "toml",
-    "numpy<2.0; python_version<'3.12'",
-    "numpy>=2.0,<2.3; python_version>='3.12'",
-    "matplotlib",
-    "PyQt5",
-    "tqdm",
-    "anytree",
-    "pandas>=1.5",
-    "scipy",
-    "statsmodels",
-    "ipython",
-    "c3d",
-    "rtmlib",
-    "openvino",
-    "opencv-python != 4.11.*", # avoid 4.11 due to displaymatrix ignored (rotation metadata)
-    "imageio_ffmpeg",
-    # "deep-sort-realtime", # likely not required anymore
     "Pose2Sim>=0.10.38"
 ]
 
