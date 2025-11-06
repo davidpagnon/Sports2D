@@ -2296,23 +2296,42 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                                 else 'left' if gait_direction < -0.3 \
                                 else 'front'
 
-            logging.info(f'Converting from pixels to meters using a person height of {height_px:.2f} px and {first_person_height:.2f} m.')
-            logging.info(f'Perspective effects corrected using a camera-to-person distance of {distance_m:.2f} m ' \
-                        f'{"(obtained from a manual input)." if perspective_unit == "distance_m" else
-                            f"(calculated from a focal length of {perspective_value:.2f} m)." if perspective_unit == "f_px" else
-                            f"(calculated from a field of view of {perspective_value:.2f} deg)." if perspective_unit == "fov_deg" else
-                            f"(calculated from a field of view of {perspective_value:.2f} rad)." if perspective_unit == "fov_rad" else
-                            f"(calculated from a calibration file: {calib_file})." if perspective_unit == "from_calib" else
-                            ""}')
-            logging.info(f'Camera horizon: {np.degrees(floor_angle_estim):.2f}°, corrected using {"manual input." if isinstance(floor_angle, (int, float)) else 
-                                                        "gait kinematics." if floor_angle in ["auto", "from_kinematics"] else 
-                                                        "a calibration file." if floor_angle=="from_calib" else
-                                                        ""}')
-            logging.info(f'Floor level: {cy:.2f} px (pointing downwards), gait starting at {cx:.2f} px in the {direction_person0} direction for the first person. ' \
-                         f'Corrected using {"manual input." if all(isinstance(o, (int,float)) for o in xy_origin) and len(xy_origin) == 2 else 
-                                                        "gait kinematics." if xy_origin in[["auto"], ["from_kinematics"]] else 
-                                                        "a calibration file." if xy_origin==["from_calib"] else 
-                                                        "."}\n')
+            logging.info(f'Converting from pixels to meters using a person height of {first_person_height:.2f} in meters (manual input), and of {height_px:.2f} in pixels (calculated).')
+
+            perspective_messages = {
+                "distance_m": f"(obtained from a manual input).",
+                "f_px": f"(calculated from a focal length of {perspective_value:.2f} m).",
+                "fov_deg": f"(calculated from a field of view of {perspective_value:.2f} deg).",
+                "fov_rad": f"(calculated from a field of view of {perspective_value:.2f} rad).",
+                "from_calib": f"(calculated from a calibration file: {calib_file}).",
+            }
+            message = perspective_messages.get(perspective_unit, "")
+            logging.info(f'Perspective effects corrected using a camera-to-person distance of {distance_m:.2f} m {message}')
+
+            floor_angle_messages = {
+                "manual": "manual input.",
+                "auto": "gait kinematics.",
+                "from_kinematics": "gait kinematics.",
+                "from_calib": "a calibration file.",
+            }
+            if isinstance(floor_angle, (int, float)):
+                key = "manual"
+            else:
+                key = floor_angle
+            message = floor_angle_messages.get(key, "")
+            logging.info(f'Camera horizon: {np.degrees(floor_angle_estim):.2f}°, corrected using {message}')
+
+            def get_correction_message(xy_origin):
+                if all(isinstance(o, (int, float)) for o in xy_origin) and len(xy_origin) == 2:
+                    return "manual input."
+                elif xy_origin == ["auto"] or xy_origin == ["from_kinematics"]:
+                    return "gait kinematics."
+                elif xy_origin == ["from_calib"]:
+                    return "a calibration file."
+                else:
+                    return "."
+            message = get_correction_message(xy_origin)
+            logging.info(f'Floor level: {cy:.2f} px (from the top of the image), gait starting at {cx:.2f} px in the {direction_person0} direction for the first person. Corrected using {message}\n')
 
 
             # Save calibration file
