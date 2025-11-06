@@ -97,7 +97,8 @@ tracking_mode = 'sports2d' # 'sports2d' or 'deepsort'. 'deepsort' is slower, har
 keypoint_likelihood_threshold = 0.3 # Keypoints whose likelihood is lower will not be taken into account
 average_likelihood_threshold = 0.5  # Person will be ignored if average likelihood of good keypoints is lower than this value
 keypoint_number_threshold = 0.3     # Person will be ignored if the number of good keypoints (above keypoint_likelihood_threshold) is less than this fraction
-max_distance = 100  # in px or None # If a person is detected further than max_distance from its position on the previous frame, it will be considered as a new one
+max_distance = 250  # in px or None # If a person is detected further than max_distance from its position on the previous frame, it will be considered as a new one
+
 
 [px_to_meters_conversion]
 # Pixel to meters conversion
@@ -105,15 +106,17 @@ to_meters = true
 make_c3d = true
 save_calib = true
 
-# If conversion from first_person_height
-floor_angle = 'auto'    # 'auto' or a value in degrees, eg 2.3. If 'auto', estimated from the line formed by the toes when they are on the ground (where speed = 0)
-xy_origin = ['auto']    # ['auto'] or [px_x,px_y]. N.B.: px_y points downwards. If ['auto'], direction estimated from the start to the end of the line formed by the toes when they are on the ground
+# Compensate for perspective effects, which make the further limb look smaller. 1-2% coordinate error at 10 m, less if the camera is further away
+perspective_value = 10 # Either camera-to-person distance (m), or focal length (px), or field-of-view (degrees or radians), or '' if perspective_unit=='from_calib'
+perspective_unit = 'distance_m' # 'distance_m', 'f_px', 'fov_deg', 'fov_rad', or 'from_calib'
 
-# If conversion from a calibration file
-calib_file = ''         # Calibration in the Pose2Sim format. 'calib_demo.toml', or '' if not available
-# subject_distance
-# focal_distance
-# recalculate_extrinsics
+# Compensate for camera horizon 
+floor_angle = 'auto' # float, 'from_kinematics', 'from_calib', or 'auto' # 'auto' is equivalent to 'from_kinematics', ie angle calculated from foot contacts. 'from_calib' calculates it from a toml calibration file. Use float to manually specify it in degrees
+xy_origin = ['auto'] # [px_x,px_y], or ['from kinematics'], ['from_calib'], or ['auto']. # BETWEEN BRACKETS! # ['auto'] is equivalent to ['from_kinematics'], ie origin estimated at first foot contact, direction is direction of motion. ['from_calib'] calculates it from a calibration file. Use [px_x,px_y] to manually specify it in pixels (px_y points downwards)
+
+# Optional calibration file
+calib_file = ''      # Calibration file in the Pose2Sim toml format, or '' if not available
+
 
 [angles]
 display_angle_values_on = ['body', 'list'] # 'body', 'list', ['body', 'list'], 'none'. Display angle values on the body, as a list in the upper left of the image, both, or do not display them.

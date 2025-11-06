@@ -90,6 +90,8 @@ from Pose2Sim.filtering import *
 # Silence numpy "RuntimeWarning: Mean of empty slice"
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning, message="Mean of empty slice")
+warnings.filterwarnings("ignore", category=RuntimeWarning, message="All-NaN slice encountered")
+warnings.filterwarnings("ignore", category=RuntimeWarning, message="invalid value encountered in scalar divide")
 
 # Not safe, but to be used until OpenMMLab/RTMlib's SSL certificates are updated
 import ssl
@@ -1334,14 +1336,158 @@ def compute_floor_line(trc_data, score_data, keypoint_names = ['LBigToe', 'RBigT
     return angle, xy_origin, gait_direction
 
 
-def convert_px_to_meters(Q_coords_kpt, first_person_height, height_px, cx, cy, floor_angle, visible_side='none'):
+def get_distance_from_camera(perspective_value=10, perspective_unit='distance_m', calib_file =None, height_px=1, height_m=1, cam_width=1, cam_height=1):
+    '''
+    Compute the distance between the camera and the person based on the chosen perspective unit.
+
+    INPUTS:
+    - perspective_value: Value associated with the chosen perspective unit.
+    - perspective_unit: Unit used to compute the distance. Can be 'distance_m', 'f_px', 'fov_rad', 'fov_deg', or 'from_calib'.
+    - calib_file: Path to the toml calibration file.
+    - height_px: Height of the person in pixels.
+    - height_m: Height of the first person in meters.
+    - cam_width: Width of the camera frame in pixels.
+    - cam_height: Height of the camera frame in pixels.
+    
+    OUTPUTS:
+    - distance_m: Distance between the camera and the person in meters.
+    '''
+
+    if perspective_unit == 'from_calib':
+        if not calib_file:
+            perspective_unit = 'distance_m'
+            distance_m = 10.0
+            logging.warning(f'No calibration file provided. Using a default distance of {distance_m} m between the camera and the person to convert px to meters.')
+        else:
+            calib_params_dict = retrieve_calib_params(calib_file)
+            f_px = calib_params_dict['K'][0][0][0]
+            distance_m = f_px / height_px * height_m
+    elif perspective_unit == 'distance_m':
+        distance_m = perspective_value
+    elif perspective_unit == 'f_px':
+        f_px = perspective_value
+        distance_m = f_px / height_px * height_m
+    elif perspective_unit == 'fov_rad':
+        fov_rad = perspective_value
+        f_px = max(cam_width, cam_height)/2 / np.tan(fov_rad / 2)
+        distance_m = f_px / height_px * height_m
+    elif perspective_unit == 'fov_deg':
+        fov_rad = np.radians(perspective_value)
+        f_px = max(cam_width, cam_height)/2 / np.tan(fov_rad / 2)
+        distance_m = f_px / height_px * height_m
+
+    return distance_m
+
+
+def get_floor_params(floor_angle='auto', xy_origin=['auto'], 
+                     calib_file=None, height_px=1, height_m=1, 
+                     fps=30, trc_data=pd.DataFrame(), score_data=pd.DataFrame(), toe_speed_below=1, score_threshold=0.5, 
+                     cam_width=1, cam_height=1):
+    '''
+    Compute the floor angle and the xy_origin based on calibration file, kinematics, or user input.
+
+    INPUTS:
+    - floor_angle: Method to compute the floor angle. Can be 'auto', 'from_calib', 'from_kinematics', or a numeric value in degrees.
+    - xy_origin: Method to compute the xy_origin. Can be ['auto'], ['from_calib'], ['from_kinematics'], or a list of two numeric values in pixels [cx, cy].
+    - calib_file: Path to a toml calibration file.
+    - height_px: Height of the person in pixels.
+    - height_m: Height of the first person in meters.
+    - fps: Framerate of the video in frames per second. Used if estimating floor line from kinematics.
+    - trc_data: DataFrame containing the pose data in pixels for one person. Used if estimating floor line from kinematics.
+    - score_data: DataFrame containing the keypoint scores for one person. Used if estimating floor line from kinematics.
+    - toe_speed_below: Speed below which the foot is considered to be stationary, in m/s. Used if estimating floor line from kinematics.
+    - score_threshold: Minimum average keypoint score to consider a frame for floor line estimation.
+    - cam_width: Width of the camera frame in pixels. Used if failed to estimate floor line from kinematics.
+    - cam_height: Height of the camera frame in pixels. Used if failed to estimate floor line from kinematics.
+
+    OUTPUTS:
+    - floor_angle_estim: Estimated floor angle in radians.
+    - xy_origin_estim: Estimated xy_origin as a list of two numeric values in pixels [cx, cy].
+    - gait_direction: Estimated gait direction. 'left' if < 0, 'right' otherwise.
+    '''
+    
+    # Estimate floor angle from the calibration file
+    if floor_angle == 'from_calib' or xy_origin == ['from_calib']:
+        if not calib_file:
+            if floor_angle == 'from_calib':
+                floor_angle = 'auto'
+            if  xy_origin == ['from_calib']:
+                xy_origin = ['auto']
+            logging.warning(f'No calibration file provided. Estimating floor angle and xy_origin from the pose of the first selected person.')
+        else:
+            calib_params_dict = retrieve_calib_params(calib_file)
+
+            R90z = np.array([[0.0, -1.0, 0.0],
+                            [1.0, 0.0, 0.0],
+                            [0.0, 0.0, 1.0]])
+            R270x = np.array([[1.0, 0.0, 0.0],
+                            [0.0, 0.0, 1.0],
+                            [0.0, -1.0, 0.0]])
+
+            R_cam = cv2.Rodrigues(calib_params_dict['R'][0])[0]
+            T_cam = np.array(calib_params_dict['T'][0])
+            R_world, T_world = world_to_camera_persp(R_cam, T_cam)
+            Rfloory = R90z.T @ R_world @ R270x.T
+            T_world = R90z.T @ T_world
+            floor_angle_calib = np.arctan2(Rfloory[0,2], Rfloory[0,0])
+            
+            cu = calib_params_dict['K'][0][0][2]
+            cv = calib_params_dict['K'][0][1][2]
+            cx = 0.0
+            cy = cv + T_world[2]* height_px / height_m
+            xy_origin_calib = [cx, cy]
+
+    # Estimate xy_origin from the line formed by the toes when they are on the ground (where speed = 0)
+    if floor_angle in ['auto', 'from_kinematics'] or xy_origin in [['auto'], ['from_kinematics']]:
+        px_per_m = height_px/height_m
+        toe_speed_below_px_frame = toe_speed_below * px_per_m / fps # speed below which the foot is considered to be stationary
+        try:
+            if all(key in trc_data for key in ['LBigToe', 'RBigToe']):
+                floor_angle_kin, xy_origin_kin, gait_direction = compute_floor_line(trc_data, score_data, keypoint_names=['LBigToe', 'RBigToe'], toe_speed_below=toe_speed_below_px_frame, score_threshold=score_threshold)
+            else:
+                floor_angle_kin, xy_origin_estim, gait_direction = compute_floor_line(trc_data, score_data, keypoint_names=['LAnkle', 'RAnkle'], toe_speed_below=toe_speed_below_px_frame, score_threshold=score_threshold)
+                xy_origin_kin[1] = xy_origin_kin[1] + 0.13*px_per_m # approx. height of the ankle above the floor
+                logging.warning(f'The RBigToe and LBigToe are missing from your pose estimation model. Using ankles - 13 cm to compute the floor line.')
+        except:
+            floor_angle_kin = 0
+            xy_origin_kin = cam_width/2, cam_height/2
+            logging.warning(f'Could not estimate the floor angle and xy_origin from person {0}. Make sure that the full body is visible. Using floor angle = 0° and xy_origin = [{cam_width/2}, {cam_height/2}] px.')
+
+    # Determine final floor angle estimation
+    if floor_angle == 'from_calib':
+        floor_angle_estim = floor_angle_calib
+    elif floor_angle in ['auto', 'from_kinematics']:
+        floor_angle_estim = floor_angle_kin
+    elif isinstance(floor_angle, (int,float)):
+        floor_angle_estim =  np.radians(floor_angle)
+    else:
+        raise ValueError(f'Invalid floor_angle: {floor_angle}. Must be "auto", "from_calib", "from_kinematics", or a numeric value in degrees.')
+
+    # Determine final xy_origin estimation
+    if xy_origin == ['from_calib']:
+        xy_origin_estim = xy_origin_calib
+    elif xy_origin in [['auto'], ['from_kinematics']]:
+        xy_origin_estim = xy_origin_kin
+    elif all(isinstance(o, (int,float)) for o in xy_origin) and len(xy_origin) == 2:
+        xy_origin_estim = xy_origin
+    else:
+        raise ValueError(f'Invalid xy_origin: {xy_origin}. Must be "auto", "from_calib", "from_kinematics", or a list of two numeric values in pixels.')
+    
+    return floor_angle_estim, xy_origin_estim, gait_direction
+
+
+def convert_px_to_meters(Q_coords_kpt, first_person_height, height_px, distance_m, cam_width, cam_height, cx, cy, floor_angle, visible_side='none'):
     '''
     Convert pixel coordinates to meters.
+    Corrects for floor angle, floor level, and depth perspective errors.
 
     INPUTS:
     - Q_coords_kpt: pd.DataFrame. The xyz coordinates of a keypoint in pixels, with z filled with zeros
     - first_person_height: float. The height of the person in meters
     - height_px: float. The height of the person in pixels
+    - cam_width: float. The width of the camera frame in pixels
+    - cam_height: float. The height of the camera frame in pixels
+    - distance_m: float. The distance between the camera and the person in meters
     - cx, cy: float. The origin of the image in pixels
     - floor_angle: float. The angle of the floor in radians
     - visible_side: str. The side of the person that is visible ('right', 'left', 'front', 'back', 'none')
@@ -1350,19 +1496,36 @@ def convert_px_to_meters(Q_coords_kpt, first_person_height, height_px, cx, cy, f
     - Q_coords_kpt_m: pd.DataFrame. The XYZ coordinates of a keypoint in meters
     '''
 
+    # u,v coordinates
     u = Q_coords_kpt.iloc[:,0]
     v = Q_coords_kpt.iloc[:,1]
+    cu = cam_width / 2
+    cv = cam_height / 2
 
-    X = first_person_height / height_px * ((u-cx) + (v-cy)*np.sin(floor_angle))
-    Y = - first_person_height / height_px * np.cos(floor_angle) * (v-cy - np.tan(floor_angle)*(u-cx))
-
+    # Normative Z coordinates
     marker_name = Q_coords_kpt.columns[0]
     if 'marker_Z_positions' in globals() and visible_side!='none' and marker_name in marker_Z_positions[visible_side].keys():
-        Z = X.copy()
+        Z = u.copy()
         Z[:] = marker_Z_positions[visible_side][marker_name]
     else:
-        Z = np.zeros_like(X)
+        Z = np.zeros_like(u)
 
+    ## Compute X and Y coordinates in meters
+    # X =   first_person_height / height_px * (u-cu)
+    # Y = - first_person_height / height_px * (v-cv)
+    ## With floor angle and level correction:
+    # X =   first_person_height / height_px * ((u-cx)*np.cos(floor_angle) + (v-cy)*np.sin(floor_angle))
+    # Y = - first_person_height / height_px * ((v-cy)*np.cos(floor_angle) + (u-cx)*np.sin(floor_angle))
+    ## With floor angle and level correction, and depth perspective correction:
+    scaling_factor = first_person_height / height_px
+    X = scaling_factor * ( \
+            ((u-cx) - Z/distance_m * (u-cu)) * np.cos(floor_angle) + \
+            ((v-cy) - Z/distance_m * (v-cv)) * np.sin(floor_angle) )
+    Y = - scaling_factor * ( \
+            ((v-cy) - Z/distance_m * (v-cv)) * np.cos(floor_angle) - \
+            ((u-cx) - Z/distance_m * (u-cu)) * np.sin(floor_angle) )
+
+    # Assemble results
     Q_coords_kpt_m = pd.DataFrame(np.array([X, Y, Z]).T, columns=Q_coords_kpt.columns)
 
     return Q_coords_kpt_m
@@ -1455,8 +1618,9 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     pose_model = config_dict.get('pose').get('pose_model')
     mode = config_dict.get('pose').get('mode')
     det_frequency = config_dict.get('pose').get('det_frequency')
+    backend = config_dict.get('pose').get('backend')
+    device = config_dict.get('pose').get('device')
     tracking_mode = config_dict.get('pose').get('tracking_mode')
-    max_distance = config_dict.get('pose').get('max_distance', None)
     if tracking_mode == 'deepsort':
         from deep_sort_realtime.deepsort_tracker import DeepSort
         deepsort_params = config_dict.get('pose').get('deepsort_params')
@@ -1468,13 +1632,22 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             deepsort_params = json.loads(deepsort_params)
         deepsort_tracker = DeepSort(**deepsort_params)
         deepsort_tracker.tracker.tracks.clear()
-    backend = config_dict.get('pose').get('backend')
-    device = config_dict.get('pose').get('device')
-    
+
+    keypoint_likelihood_threshold = config_dict.get('pose').get('keypoint_likelihood_threshold')
+    average_likelihood_threshold = config_dict.get('pose').get('average_likelihood_threshold')
+    keypoint_number_threshold = config_dict.get('pose').get('keypoint_number_threshold')
+    max_distance = config_dict.get('pose').get('max_distance', None)
+
     # Pixel to meters conversion
     to_meters = config_dict.get('px_to_meters_conversion').get('to_meters')
     make_c3d = config_dict.get('px_to_meters_conversion').get('make_c3d')
     save_calib = config_dict.get('px_to_meters_conversion').get('save_calib')
+    # Correct perspective effects
+    perspective_value = config_dict.get('px_to_meters_conversion', {}).get('perspective_value', 10.0)
+    perspective_unit = config_dict.get('px_to_meters_conversion', {}).get('perspective_unit', 'distance_m')
+    # Calibration from person height
+    floor_angle = config_dict.get('px_to_meters_conversion').get('floor_angle', 'auto') # 'auto' or float
+    xy_origin = config_dict.get('px_to_meters_conversion').get('xy_origin', ['auto']) # ['auto'] or [x, y]    
     # Calibration from file
     calib_file = config_dict.get('px_to_meters_conversion').get('calib_file')
     if calib_file == '': 
@@ -1483,24 +1656,15 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         calib_file = video_dir / calib_file
         if not calib_file.is_file():
             raise FileNotFoundError(f'Error: Could not find calibration file {calib_file}. Check that the file exists.')
-    # Calibration from person height
-    floor_angle = config_dict.get('px_to_meters_conversion').get('floor_angle') # 'auto' or float
-    floor_angle = np.radians(float(floor_angle)) if floor_angle != 'auto' else floor_angle
-    xy_origin = config_dict.get('px_to_meters_conversion').get('xy_origin') # ['auto'] or [x, y]    
-    xy_origin = [float(o) for o in xy_origin] if xy_origin != ['auto'] else 'auto'
-
-    keypoint_likelihood_threshold = config_dict.get('pose').get('keypoint_likelihood_threshold')
-    average_likelihood_threshold = config_dict.get('pose').get('average_likelihood_threshold')
-    keypoint_number_threshold = config_dict.get('pose').get('keypoint_number_threshold')
 
     # Angles advanced settings
+    display_angle_values_on = config_dict.get('angles').get('display_angle_values_on')
+    fontSize = config_dict.get('angles').get('fontSize')
+    thickness = 1 if fontSize < 0.8 else 2
     joint_angle_names = config_dict.get('angles').get('joint_angles')
     segment_angle_names = config_dict.get('angles').get('segment_angles')
     angle_names = joint_angle_names + segment_angle_names
     angle_names = [angle_name.lower() for angle_name in angle_names]
-    display_angle_values_on = config_dict.get('angles').get('display_angle_values_on')
-    fontSize = config_dict.get('angles').get('fontSize')
-    thickness = 1 if fontSize < 0.8 else 2
     flip_left_right = config_dict.get('angles').get('flip_left_right')
     correct_segment_angles_with_floor_angle = config_dict.get('angles').get('correct_segment_angles_with_floor_angle')
 
@@ -1672,7 +1836,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             except:
                 logging.error('Error: Pose estimation failed. Check in Config.toml that pose_model and mode are valid.')
                 raise ValueError('Error: Pose estimation failed. Check in Config.toml that pose_model and mode are valid.')
-        logging.info(f'Persons are detected every {det_frequency} frames and tracked inbetween. Tracking is done with {tracking_mode}.')
+        logging.info(f'Persons detection is run every {det_frequency} frames (pose estimation is run at every frame). Tracking is done with {tracking_mode}.')
         
         if tracking_mode == 'deepsort': 
             logging.info(f'Deepsort parameters: {deepsort_params}.')
@@ -2112,102 +2276,81 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         trc_data_m = []
         if to_meters and save_pose:
             logging.info('\nConverting pose to meters:')
-
+            
             # Compute height in px of the first person
             height_px = compute_height(trc_data[0].iloc[:,1:], new_keypoints_names,
                                         fastest_frames_to_remove_percent=fastest_frames_to_remove_percent, close_to_zero_speed=close_to_zero_speed_px, large_hip_knee_angles=large_hip_knee_angles, trimmed_extrema_percent=trimmed_extrema_percent)
 
-            if calib_file or save_calib:
-                dist_to_cam = 10.0 # arbitrary distance between the camera and the person (m)
+            # Compute distance from camera to compensate for perspective effects
+            distance_m = get_distance_from_camera(perspective_value=perspective_value, perspective_unit=perspective_unit, 
+                                                  calib_file=calib_file, height_px=height_px, height_m=first_person_height, 
+                                                  cam_width=cam_width, cam_height=cam_height)
+
+            # Compute floor angle and xy_origin to compensate for camera horizon and person position
+            floor_angle_estim, xy_origin_estim, gait_direction = get_floor_params(floor_angle=floor_angle, xy_origin=xy_origin, 
+                                                    calib_file=calib_file, height_px=height_px, height_m=first_person_height, 
+                                                    fps=fps, trc_data=trc_data[0], score_data=score_data[0], toe_speed_below=1, score_threshold=average_likelihood_threshold, 
+                                                    cam_width=cam_width, cam_height=cam_height)
+            cx, cy = xy_origin_estim
+            direction_person0 = 'right' if gait_direction > 0.3 \
+                                else 'left' if gait_direction < -0.3 \
+                                else 'front'
+
+            logging.info(f'Converting from pixels to meters using a person height of {height_px:.2f} px and {first_person_height:.2f} m.')
+            logging.info(f'Perspective effects corrected using a camera-to-person distance of {distance_m:.2f} m ' \
+                        f'{"(obtained from a manual input)." if perspective_unit == "distance_m" else
+                            f"(calculated from a focal length of {perspective_value:.2f} m)." if perspective_unit == "f_px" else
+                            f"(calculated from a field of view of {perspective_value:.2f} deg)." if perspective_unit == "fov_deg" else
+                            f"(calculated from a field of view of {perspective_value:.2f} rad)." if perspective_unit == "fov_rad" else
+                            f"(calculated from a calibration file: {calib_file})." if perspective_unit == "from_calib" else
+                            ""}')
+            logging.info(f'Camera horizon: {np.degrees(floor_angle_estim):.2f}°, corrected using {"manual input." if isinstance(floor_angle, (int, float)) else 
+                                                        "gait kinematics." if floor_angle in ["auto", "from_kinematics"] else 
+                                                        "a calibration file." if floor_angle=="from_calib" else
+                                                        ""}')
+            logging.info(f'Floor level: {cy:.2f} px (pointing downwards), gait starting at {cx:.2f} px in the {direction_person0} direction for the first person. ' \
+                         f'Corrected using {"manual input." if all(isinstance(o, (int,float)) for o in xy_origin) and len(xy_origin) == 2 else 
+                                                        "gait kinematics." if xy_origin in[["auto"], ["from_kinematics"]] else 
+                                                        "a calibration file." if xy_origin==["from_calib"] else 
+                                                        "."}\n')
+
+
+            # Save calibration file
+            if save_calib and not calib_file:
                 R90z = np.array([[0.0, -1.0, 0.0],
                                 [1.0, 0.0, 0.0],
                                 [0.0, 0.0, 1.0]])
                 R270x = np.array([[1.0, 0.0, 0.0],
                                 [0.0, 0.0, 1.0],
                                 [0.0, -1.0, 0.0]])
-
-            # Compute px to meter parameters from calibration file
-            if calib_file:
-                calib_params_dict = retrieve_calib_params(calib_file)
-
-                f = calib_params_dict['K'][0][0][0]
-                first_person_height = height_px / f * dist_to_cam
-
-                R_cam = cv2.Rodrigues(calib_params_dict['R'][0])[0]
-                T_cam = np.array(calib_params_dict['T'][0])
-                R_world, T_world = world_to_camera_persp(R_cam, T_cam)
-                Rfloory = R90z.T @ R_world @ R270x.T
-                T_world = R90z.T @ T_world
-                floor_angle_estim = np.arctan2(Rfloory[0,2], Rfloory[0,0])
                 
-                cu = calib_params_dict['K'][0][0][2]
-                cv = calib_params_dict['K'][0][1][2]
-                cx = 0.0
-                cy = cv + T_world[2]*f/dist_to_cam
-                xy_origin_estim = [cx, cy]
-
-                logging.info(f'Using calibration file to convert coordinates in meters: {calib_file}.\n'
-                             f'Floor angle: {np.degrees(floor_angle_estim):.2f}°, '
-                             f'xy_origin: [{cx:.2f}, {cy:.2f}] px.')
-
+                calib_file_path = output_dir / f'{video_file_stem}_Sports2D_calib.toml'
                 
-            # Compute px to meter parameters from scene
-            else:
-                toe_speed_below = 1 # m/s (below which the foot is considered to be stationary)
-                px_per_m = height_px/first_person_height
-                toe_speed_below_px_frame = toe_speed_below * px_per_m / fps
-                if floor_angle == 'auto' or xy_origin == 'auto':
-                    # estimated from the line formed by the toes when they are on the ground (where speed = 0)
-                    try:
-                        if all(key in trc_data[0] for key in ['LBigToe', 'RBigToe']):
-                            floor_angle_estim, xy_origin_estim, _ = compute_floor_line(trc_data[0], score_data[0], keypoint_names=['LBigToe', 'RBigToe'], toe_speed_below=toe_speed_below_px_frame, score_threshold=average_likelihood_threshold)
-                        else:
-                            floor_angle_estim, xy_origin_estim, _ = compute_floor_line(trc_data[0], score_data[0], keypoint_names=['LAnkle', 'RAnkle'], toe_speed_below=toe_speed_below_px_frame, score_threshold=average_likelihood_threshold)
-                            xy_origin_estim[1] = xy_origin_estim[1] + 0.13*px_per_m # approx. height of the ankle above the floor
-                            logging.warning(f'The RBigToe and LBigToe are missing from your pose estimation model. Using ankles - 13 cm to compute the floor line.')
-                    except:
-                        floor_angle_estim = 0
-                        xy_origin_estim = cam_width/2, cam_height/2
-                        logging.warning(f'Could not estimate the floor angle and xy_origin from person {0}. Make sure that the full body is visible. Using floor angle = 0° and xy_origin = [{cam_width/2}, {cam_height/2}] px.')
-                if not floor_angle == 'auto':
-                    floor_angle_estim = floor_angle
-                if xy_origin == 'auto':
-                    cx, cy = xy_origin_estim
-                else:
-                    cx, cy = xy_origin
-                logging.info(f'Using height of person #0 ({first_person_height}m) to convert coordinates in meters.\n'
-                             f'Floor angle: {np.degrees(floor_angle_estim) if not floor_angle=="auto" else f"auto (estimation: {round(np.degrees(floor_angle_estim),2)}°)"}, '
-                             f'xy_origin: {xy_origin if not xy_origin=="auto" else f"auto (estimation: {[round(c) for c in xy_origin_estim]})"} px.')
+                # name, size, distortions
+                N = [video_file_stem]
+                S = [[cam_width, cam_height]]
+                D = [[0.0, 0.0, 0.0, 0.0]]
+
+                # Intrinsics
+                f = height_px / first_person_height * distance_m
+                cu = cam_width/2
+                cv = cam_height/2
+                K = np.array([[[f, 0.0, cu], [0.0, f, cv], [0.0, 0.0, 1.0]]])
+
+                # Extrinsics
+                Rfloory = np.array([[np.cos(floor_angle_estim), 0.0, np.sin(floor_angle_estim)],
+                                    [0.0, 1.0, 0.0],
+                                    [-np.sin(floor_angle_estim), 0.0, np.cos(floor_angle_estim)]])
+                R_world = R90z @ Rfloory @ R270x
+                T_world = R90z @ np.array([-(cx-cu)/f*distance_m, -distance_m, (cy-cv)/f*distance_m])
                 
-                # Save calibration file
-                if save_calib:
-                    calib_file_path = output_dir / f'{video_file_stem}_Sports2D_calib.toml'
-                    
-                    # name, size, distortions
-                    N = [video_file_stem]
-                    S = [[cam_width, cam_height]]
-                    D = [[0.0, 0.0, 0.0, 0.0]]
+                R_cam, T_cam = world_to_camera_persp(R_world, T_world)
+                Tvec_cam = T_cam.reshape(1,3).tolist()
+                Rvec_cam = cv2.Rodrigues(R_cam)[0].reshape(1,3).tolist()
 
-                    # Intrinsics
-                    f = height_px / first_person_height * dist_to_cam
-                    cu = cam_width/2
-                    cv = cam_height/2
-                    K = np.array([[[f, 0.0, cu], [0.0, f, cv], [0.0, 0.0, 1.0]]])
-
-                    # Extrinsics
-                    Rfloory = np.array([[np.cos(floor_angle_estim), 0.0, np.sin(floor_angle_estim)],
-                                        [0.0, 1.0, 0.0],
-                                        [-np.sin(floor_angle_estim), 0.0, np.cos(floor_angle_estim)]])
-                    R_world = R90z @ Rfloory @ R270x
-                    T_world = R90z @ np.array([-(cx-cu)/f*dist_to_cam, -dist_to_cam, (cy-cv)/f*dist_to_cam])
-                    
-                    R_cam, T_cam = world_to_camera_persp(R_world, T_world)
-                    Tvec_cam = T_cam.reshape(1,3).tolist()
-                    Rvec_cam = cv2.Rodrigues(R_cam)[0].reshape(1,3).tolist()
-
-                    # Write calibration file
-                    toml_write(calib_file_path, N, S, D, K, Rvec_cam, Tvec_cam)
-                    logging.info(f'Calibration saved to {calib_file_path}.')
+                # Write calibration file
+                toml_write(calib_file_path, N, S, D, K, Rvec_cam, Tvec_cam)
+                logging.info(f'Calibration saved to {calib_file_path}.')
 
 
             # Coordinates in m
@@ -2220,9 +2363,9 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     if visible_side_i == 'auto':
                         try:
                             if all(key in trc_data[i] for key in ['LBigToe', 'RBigToe']):
-                                _, _, gait_direction = compute_floor_line(trc_data[i], score_data[0], keypoint_names=['LBigToe', 'RBigToe'], toe_speed_below=toe_speed_below_px_frame, score_threshold=average_likelihood_threshold)
+                                _, _, gait_direction = compute_floor_line(trc_data[i], score_data[i], keypoint_names=['LBigToe', 'RBigToe'], score_threshold=average_likelihood_threshold) # toe_speed_below=1 bu default 
                             else:
-                                _, _, gait_direction = compute_floor_line(trc_data[i], score_data[0], keypoint_names=['LAnkle', 'RAnkle'], toe_speed_below=toe_speed_below_px_frame, score_threshold=average_likelihood_threshold)
+                                _, _, gait_direction = compute_floor_line(trc_data[i], score_data[i], keypoint_names=['LAnkle', 'RAnkle'], score_threshold=average_likelihood_threshold)
                                 logging.warning(f'The RBigToe and LBigToe are missing from your model. Gait direction will be determined from the ankle points.')
                             visible_side_i = 'right' if gait_direction > 0.3 \
                                                 else 'left' if gait_direction < -0.3 \
@@ -2237,8 +2380,9 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     else:
                         logging.info(f'- Person {i}: Seen from the {visible_side_i}.')
                     
+
                     # Convert to meters
-                    px_to_m_i = [convert_px_to_meters(trc_data[i][kpt_name], first_person_height, height_px, cx, cy, -floor_angle_estim, visible_side=visible_side_i) for kpt_name in new_keypoints_names]
+                    px_to_m_i = [convert_px_to_meters(trc_data[i][kpt_name], first_person_height, height_px, distance_m, cam_width, cam_height, cx, cy, -floor_angle_estim, visible_side=visible_side_i) for kpt_name in new_keypoints_names]
                     trc_data_m_i = pd.concat([all_frames_time.rename('time')]+px_to_m_i, axis=1)
                     for c_id, c in enumerate(3*np.arange(len(trc_data_m_i.columns[3::3]))+1): # only X coordinates
                         first_run_start, last_run_end = first_run_starts_everyone[i][c_id], last_run_ends_everyone[i][c_id]
@@ -2247,7 +2391,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                         trc_data_m_i.iloc[first_run_start:last_run_end,c+2] = trc_data_m_i.iloc[first_run_start:last_run_end,c+2].ffill().bfill()
                     first_trim, last_trim = trc_data_m_i.isnull().any(axis=1).idxmin(), trc_data_m_i[::-1].isnull().any(axis=1).idxmin()
                     trc_data_m_i = trc_data_m_i.iloc[first_trim:last_trim+1,:]
-                    px_to_m_unfiltered_i = [convert_px_to_meters(trc_data_unfiltered[i][kpt_name], first_person_height, height_px, cx, cy, -floor_angle_estim) for kpt_name in new_keypoints_names]
+                    px_to_m_unfiltered_i = [convert_px_to_meters(trc_data_unfiltered[i][kpt_name], first_person_height, height_px, distance_m, cam_width, cam_height, cx, cy, -floor_angle_estim, visible_side=visible_side_i) for kpt_name in new_keypoints_names]
                     trc_data_unfiltered_m_i = pd.concat([all_frames_time.rename('time')]+px_to_m_unfiltered_i, axis=1)
 
                     if to_meters and (show_plots or save_plots):
