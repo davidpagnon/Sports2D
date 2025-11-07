@@ -1438,40 +1438,41 @@ def get_floor_params(floor_angle='auto', xy_origin=['auto'],
             xy_origin_calib = [cx, cy]
 
     # Estimate xy_origin from the line formed by the toes when they are on the ground (where speed = 0)
-    if floor_angle in ['auto', 'from_kinematics'] or xy_origin in [['auto'], ['from_kinematics']]:
-        px_per_m = height_px/height_m
-        toe_speed_below_px_frame = toe_speed_below * px_per_m / fps # speed below which the foot is considered to be stationary
-        try:
-            if all(key in trc_data for key in ['LBigToe', 'RBigToe']):
-                floor_angle_kin, xy_origin_kin, gait_direction = compute_floor_line(trc_data, score_data, keypoint_names=['LBigToe', 'RBigToe'], toe_speed_below=toe_speed_below_px_frame, score_threshold=score_threshold)
-            else:
-                floor_angle_kin, xy_origin_estim, gait_direction = compute_floor_line(trc_data, score_data, keypoint_names=['LAnkle', 'RAnkle'], toe_speed_below=toe_speed_below_px_frame, score_threshold=score_threshold)
-                xy_origin_kin[1] = xy_origin_kin[1] + 0.13*px_per_m # approx. height of the ankle above the floor
-                logging.warning(f'The RBigToe and LBigToe are missing from your pose estimation model. Using ankles - 13 cm to compute the floor line.')
-        except:
-            floor_angle_kin = 0
-            xy_origin_kin = cam_width/2, cam_height/2
-            logging.warning(f'Could not estimate the floor angle and xy_origin from person {0}. Make sure that the full body is visible. Using floor angle = 0° and xy_origin = [{cam_width/2}, {cam_height/2}] px.')
+    px_per_m = height_px/height_m
+    toe_speed_below_px_frame = toe_speed_below * px_per_m / fps # speed below which the foot is considered to be stationary
+    try:
+        if all(key in trc_data for key in ['LBigToe', 'RBigToe']):
+            floor_angle_kin, xy_origin_kin, gait_direction = compute_floor_line(trc_data, score_data, keypoint_names=['LBigToe', 'RBigToe'], toe_speed_below=toe_speed_below_px_frame, score_threshold=score_threshold)
+        else:
+            floor_angle_kin, xy_origin_estim, gait_direction = compute_floor_line(trc_data, score_data, keypoint_names=['LAnkle', 'RAnkle'], toe_speed_below=toe_speed_below_px_frame, score_threshold=score_threshold)
+            xy_origin_kin[1] = xy_origin_kin[1] + 0.13*px_per_m # approx. height of the ankle above the floor
+            logging.warning(f'The RBigToe and LBigToe are missing from your pose estimation model. Using ankles - 13 cm to compute the floor line.')
+    except:
+        floor_angle_kin = 0
+        xy_origin_kin = cam_width/2, cam_height/2
+        logging.warning(f'Could not estimate the floor angle and xy_origin from person {0}. Make sure that the full body is visible. Using floor angle = 0° and xy_origin = [{cam_width/2}, {cam_height/2}] px.')
 
     # Determine final floor angle estimation
     if floor_angle == 'from_calib':
         floor_angle_estim = floor_angle_calib
     elif floor_angle in ['auto', 'from_kinematics']:
         floor_angle_estim = floor_angle_kin
-    elif isinstance(floor_angle, (int,float)):
-        floor_angle_estim =  np.radians(floor_angle)
     else:
-        raise ValueError(f'Invalid floor_angle: {floor_angle}. Must be "auto", "from_calib", "from_kinematics", or a numeric value in degrees.')
+        try:
+            floor_angle_estim =  np.radians(float(floor_angle))
+        except:
+            raise ValueError(f'Invalid floor_angle: {floor_angle}. Must be "auto", "from_calib", "from_kinematics", or a numeric value in degrees.')
 
     # Determine final xy_origin estimation
     if xy_origin == ['from_calib']:
         xy_origin_estim = xy_origin_calib
     elif xy_origin in [['auto'], ['from_kinematics']]:
         xy_origin_estim = xy_origin_kin
-    elif all(isinstance(o, (int,float)) for o in xy_origin) and len(xy_origin) == 2:
-        xy_origin_estim = xy_origin
     else:
-        raise ValueError(f'Invalid xy_origin: {xy_origin}. Must be "auto", "from_calib", "from_kinematics", or a list of two numeric values in pixels.')
+        try:
+            xy_origin_estim = [float(v) for v in xy_origin]
+        except:
+            raise ValueError(f'Invalid xy_origin: {xy_origin}. Must be "auto", "from_calib", "from_kinematics", or a list of two numeric values in pixels.')
     
     return floor_angle_estim, xy_origin_estim, gait_direction
 
@@ -1653,7 +1654,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     if calib_file == '': 
         calib_file = None
     else: 
-        calib_file = video_dir / calib_file
+        calib_file = Path(calib_file).resolve()
         if not calib_file.is_file():
             raise FileNotFoundError(f'Error: Could not find calibration file {calib_file}. Check that the file exists.')
 
