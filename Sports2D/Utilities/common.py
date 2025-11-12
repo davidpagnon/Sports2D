@@ -36,6 +36,9 @@ __status__ = "Development"
 
 
 ## CONSTANTS
+# 4 points joint angle: between knee and ankle, and toe and heel. Add 90° offset and multiply by 1
+# 3 points joint angle: between ankle, knee, hip. -180° offset, multiply by -1
+# 2 points segment angle: between horizontal and ankle and knee, 0° offset, multiply by -1
 angle_dict = { # lowercase!
     # joint angles
     'right ankle': [['RKnee', 'RAnkle', 'RBigToe', 'RHeel'], 'dorsiflexion', 90, 1],

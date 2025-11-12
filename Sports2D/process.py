@@ -1277,7 +1277,7 @@ def select_persons_on_vid(video_file_path, frame_range, all_pose_coords):
     return selected_persons
 
 
-def compute_floor_line(trc_data, score_data, keypoint_names = ['LBigToe', 'RBigToe'], toe_speed_below = 7, score_threshold=0.5):
+def compute_floor_line(trc_data, score_data, keypoint_names = ['LBigToe', 'RBigToe'], toe_speed_below = 7, score_threshold=0.3):
     '''
     Compute the floor line equation, angle, and direction
     from the feet keypoints when they have zero speed.
@@ -1327,7 +1327,7 @@ def compute_floor_line(trc_data, score_data, keypoint_names = ['LBigToe', 'RBigT
 
     # Fit a line to the zero-speed coordinates
     floor_line = np.polyfit(low_speeds_X, low_speeds_Y, 1) # (slope, intercept)
-    angle = -np.arctan(floor_line[0]) # angle of the floor line in degrees
+    angle = -np.arctan(floor_line[0]) # angle of the floor line in radians
     xy_origin = [0, floor_line[1]] # origin of the floor line
 
     # Gait direction
@@ -2383,9 +2383,9 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     if visible_side_i == 'auto':
                         try:
                             if all(key in trc_data[i] for key in ['LBigToe', 'RBigToe']):
-                                _, _, gait_direction = compute_floor_line(trc_data[i], score_data[i], keypoint_names=['LBigToe', 'RBigToe'], score_threshold=average_likelihood_threshold) # toe_speed_below=1 bu default 
+                                _, _, gait_direction = compute_floor_line(trc_data[i], score_data[i], keypoint_names=['LBigToe', 'RBigToe'], score_threshold=keypoint_likelihood_threshold) # toe_speed_below=1 bu default 
                             else:
-                                _, _, gait_direction = compute_floor_line(trc_data[i], score_data[i], keypoint_names=['LAnkle', 'RAnkle'], score_threshold=average_likelihood_threshold)
+                                _, _, gait_direction = compute_floor_line(trc_data[i], score_data[i], keypoint_names=['LAnkle', 'RAnkle'], score_threshold=keypoint_likelihood_threshold)
                                 logging.warning(f'The RBigToe and LBigToe are missing from your model. Gait direction will be determined from the ankle points.')
                             visible_side_i = 'right' if gait_direction > 0.3 \
                                                 else 'left' if gait_direction < -0.3 \
@@ -2695,7 +2695,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                         if (mot_file.parent/(mot_file.stem+'_ik.mot')).exists():
                             os.remove(mot_file.parent/(mot_file.stem+'_ik.mot'))
                         os.rename(mot_file, mot_file.parent/(mot_file.stem+'_ik.mot'))
-                    logging.info(f'.osim model and .mot motion file results saved to {kinematics_dir.resolve()}.\n')
+                    logging.info(f'.osim model and .mot motion file results saved to {kinematics_dir.resolve().parent}.\n')
                             
             # Move all files in pose-3d and kinematics to the output_dir
             osim.Logger.removeFileSink()
