@@ -24,7 +24,7 @@
 </br>
 
 > **`Announcements:`**
-> - Compensate for floor angle, floor height, depth perspective effects, generate a calibration file **New in v0.9!** 
+> - Compensate for floor angle, floor height, depth perspective effects, generate a calibration file **New in v0.8.25!** 
 > - Select only the persons you want to analyze **New in v0.8!** 
 > - MarkerAugmentation and Inverse Kinematics for accurate 3D motion with OpenSim. **New in v0.7!** 
 > - Any detector and pose estimation model can be used. **New in v0.6!**
@@ -396,7 +396,7 @@ sports2d --video_input demo.mp4 other_video.mp4 --time_range 1.2 2.7 0 3.5
   sports2d --calculate_angles false
   ```
 - Flip angles when the person faces the other side.\
-  **N.B.:** *We consider that the person looks to the right if their toe keypoint is to the right of their heel. This is not always true when the person is sprinting, especially in the swing phase. Set it to false if you want timeseries to be continuous even when the participant switches their stance.*
+  **N.B.: Set to false when sprinting.** *We consider that each limb "looks" to the right if the toe keypoint is to the right of the heel one. This is not always true, particularly during the swing phase of sprinting. Set it to false if you want timeseries to be continuous even when the participant switches their stance.*
   ```cmd
   sports2d --flip_left_right true # Default
   ```
