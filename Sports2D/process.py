@@ -242,7 +242,7 @@ def setup_model_class_mode(pose_model, mode, config_dict={}):
         try: # from Config.toml
             from anytree.importer import DictImporter
             model_name = pose_model.upper()
-            pose_model = DictImporter().import_(config_dict.get('pose').get(pose_model))
+            pose_model = DictImporter().import_(config_dict.get('pose').get(pose_model)[0])
             if pose_model.id == 'None':
                 pose_model.id = None
             logging.info(f"Using model {model_name} for pose estimation.")

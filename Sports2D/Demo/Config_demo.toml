@@ -212,7 +212,7 @@ use_custom_logging = false # if integrated in an API that already has logging
 # 
 # Check your model hierarchy with:  for pre, _, node in RenderTree(model): 
 #                                      print(f'{pre}{node.name} id={node.id}')
-[pose.CUSTOM]
+[[pose.CUSTOM]]
 name = "Hip"
 id = 19
   [[pose.CUSTOM.children]]
