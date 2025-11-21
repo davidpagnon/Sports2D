@@ -9,11 +9,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: Push to Hugging Face Space
         run: |
-          git clone https://huggingface.co/spaces/DavidPagnon/sports2d
+          git clone https://${{ secrets.HUGGINGFACE_TOKEN }}@huggingface.co/spaces/DavidPagnon/sports2d
           cd sports2d
           git config --global user.name "DavidPagnon"
           git config --global user.email "contact@david-pagnon.com"
-          cp -r ../DavidPagnon/* .
+          cp -r ../Sports2D/* .
           git add .
           git commit -m "Sync from GitHub"
-          git push
+          git push https://${{ secrets.HUGGINGFACE_TOKEN }}@huggingface.co/spaces/DavidPagnon/sports2d
