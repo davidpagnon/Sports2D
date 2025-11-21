@@ -1,0 +1,19 @@
+name: Sync to Hugging Face Space
+on:
+  push:
+    branches: [ main ]
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Push to Hugging Face Space
+        run: |
+          git clone https://huggingface.co/spaces/DavidPagnon/sports2d
+          cd sports2d
+          git config --global user.name "DavidPagnon"
+          git config --global user.email "contact@david-pagnon.com"
+          cp -r ../DavidPagnon/* .
+          git add .
+          git commit -m "Sync from GitHub"
+          git push
