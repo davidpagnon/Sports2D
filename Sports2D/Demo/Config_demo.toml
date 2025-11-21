@@ -106,13 +106,16 @@ to_meters = true
 make_c3d = true
 save_calib = true
 
+# Compensate for camera horizon 
+floor_angle = 'auto' # float, 'from_kinematics', 'from_calib', or 'auto' # 'auto' is equivalent to 'from_kinematics', ie angle calculated from foot contacts. 'from_calib' calculates it from a toml calibration file. Use float to manually specify it in degrees
+xy_origin = ['auto'] # [px_x,px_y], or ['from kinematics'], ['from_calib'], or ['auto']. # BETWEEN BRACKETS! # ['auto'] is equivalent to ['from_kinematics'], ie origin estimated at first foot contact, direction is direction of motion. ['from_calib'] calculates it from a calibration file. Use [px_x,px_y] to manually specify it in pixels (px_y points downwards)
+
 # Compensate for perspective effects, which make the further limb look smaller. 1-2% coordinate error at 10 m, less if the camera is further away
 perspective_value = 10 # Either camera-to-person distance (m), or focal length (px), or field-of-view (degrees or radians), or '' if perspective_unit=='from_calib'
 perspective_unit = 'distance_m' # 'distance_m', 'f_px', 'fov_deg', 'fov_rad', or 'from_calib'
 
-# Compensate for camera horizon 
-floor_angle = 'auto' # float, 'from_kinematics', 'from_calib', or 'auto' # 'auto' is equivalent to 'from_kinematics', ie angle calculated from foot contacts. 'from_calib' calculates it from a toml calibration file. Use float to manually specify it in degrees
-xy_origin = ['auto'] # [px_x,px_y], or ['from kinematics'], ['from_calib'], or ['auto']. # BETWEEN BRACKETS! # ['auto'] is equivalent to ['from_kinematics'], ie origin estimated at first foot contact, direction is direction of motion. ['from_calib'] calculates it from a calibration file. Use [px_x,px_y] to manually specify it in pixels (px_y points downwards)
+# Optional distortion coefficients
+distortions = [0.0, 0.0, 0.0, 0.0, 0.0] # [k1, k2, p1, p2, k3] or 'from_calib' (not implemented yet)
 
 # Optional calibration file
 calib_file = ''      # Calibration file in the Pose2Sim toml format, or '' if not available

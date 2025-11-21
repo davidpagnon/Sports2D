@@ -1306,7 +1306,7 @@ def compute_floor_line(trc_data, score_data, keypoint_names = ['LBigToe', 'RBigT
         trc_data_kpt_trim = trc_data_kpt.iloc[start:end].reset_index(drop=True)
         score_data_kpt_trim = score_data_kpt.iloc[start:end].reset_index(drop=True)
 
-        # Compute speeds
+        # Compute euclidean speed
         speeds = np.linalg.norm(trc_data_kpt_trim.diff(), axis=1)
 
         # Remove speeds with low confidence
@@ -1450,7 +1450,8 @@ def get_floor_params(floor_angle='auto', xy_origin=['auto'],
     except:
         floor_angle_kin = 0
         xy_origin_kin = cam_width/2, cam_height/2
-        logging.warning(f'Could not estimate the floor angle and xy_origin from person {0}. Make sure that the full body is visible. Using floor angle = 0° and xy_origin = [{cam_width/2}, {cam_height/2}] px.')
+        gait_direction = 1
+        logging.warning(f'Could not estimate the floor angle, xy_origin, and visible from person {0}. Make sure that the full body is visible. Using floor angle = 0°, xy_origin = [{cam_width/2}, {cam_height/2}] px, and visible_side = right.')
 
     # Determine final floor angle estimation
     if floor_angle == 'from_calib':
@@ -1578,7 +1579,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     
     # Base parameters
     video_dir = Path(config_dict.get('base').get('video_dir'))
-
+    
     nb_persons_to_detect = config_dict.get('base').get('nb_persons_to_detect')
     if nb_persons_to_detect != 'all': 
         try:
@@ -2058,6 +2059,10 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 if (cv2.waitKey(1) & 0xFF) == ord('q') or (cv2.waitKey(1) & 0xFF) == 27:
                     break
 
+                # # Debugging
+                # img_output_path = img_output_dir / f'{video_file_stem}_frame{frame_nb:06d}.png'
+                # cv2.imwrite(str(img_output_path), img)
+
             all_frames_X.append(np.array(valid_X))
             all_frames_X_flipped.append(np.array(valid_X_flipped))
             all_frames_Y.append(np.array(valid_Y))
@@ -2334,41 +2339,40 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             message = get_correction_message(xy_origin)
             logging.info(f'Floor level: {cy:.2f} px (from the top of the image), gait starting at {cx:.2f} px in the {direction_person0} direction for the first person. Corrected using {message}\n')
 
+            # Prepare calibration data
+            R90z = np.array([[0.0, -1.0, 0.0],
+                            [1.0, 0.0, 0.0],
+                            [0.0, 0.0, 1.0]])
+            R270x = np.array([[1.0, 0.0, 0.0],
+                            [0.0, 0.0, 1.0],
+                            [0.0, -1.0, 0.0]])
+            
+            calib_file_path = output_dir / f'{video_file_stem}_Sports2D_calib.toml'
+            
+            # name, size, distortions
+            N = [video_file_stem]
+            S = [[cam_width, cam_height]]
+            D = [[0.0, 0.0, 0.0, 0.0]]
+
+            # Intrinsics
+            f = height_px / first_person_height * distance_m
+            cu = cam_width/2
+            cv = cam_height/2
+            K = np.array([[[f, 0.0, cu], [0.0, f, cv], [0.0, 0.0, 1.0]]])
+
+            # Extrinsics
+            Rfloory = np.array([[np.cos(floor_angle_estim), 0.0, np.sin(floor_angle_estim)],
+                                [0.0, 1.0, 0.0],
+                                [-np.sin(floor_angle_estim), 0.0, np.cos(floor_angle_estim)]])
+            R_world = R90z @ Rfloory @ R270x
+            T_world = R90z @ np.array([-(cx-cu)/f*distance_m, -distance_m, (cy-cv)/f*distance_m])
+            
+            R_cam, T_cam = world_to_camera_persp(R_world, T_world)
+            Tvec_cam = T_cam.reshape(1,3).tolist()
+            Rvec_cam = cv2.Rodrigues(R_cam)[0].reshape(1,3).tolist()
 
             # Save calibration file
             if save_calib and not calib_file:
-                R90z = np.array([[0.0, -1.0, 0.0],
-                                [1.0, 0.0, 0.0],
-                                [0.0, 0.0, 1.0]])
-                R270x = np.array([[1.0, 0.0, 0.0],
-                                [0.0, 0.0, 1.0],
-                                [0.0, -1.0, 0.0]])
-                
-                calib_file_path = output_dir / f'{video_file_stem}_Sports2D_calib.toml'
-                
-                # name, size, distortions
-                N = [video_file_stem]
-                S = [[cam_width, cam_height]]
-                D = [[0.0, 0.0, 0.0, 0.0]]
-
-                # Intrinsics
-                f = height_px / first_person_height * distance_m
-                cu = cam_width/2
-                cv = cam_height/2
-                K = np.array([[[f, 0.0, cu], [0.0, f, cv], [0.0, 0.0, 1.0]]])
-
-                # Extrinsics
-                Rfloory = np.array([[np.cos(floor_angle_estim), 0.0, np.sin(floor_angle_estim)],
-                                    [0.0, 1.0, 0.0],
-                                    [-np.sin(floor_angle_estim), 0.0, np.cos(floor_angle_estim)]])
-                R_world = R90z @ Rfloory @ R270x
-                T_world = R90z @ np.array([-(cx-cu)/f*distance_m, -distance_m, (cy-cv)/f*distance_m])
-                
-                R_cam, T_cam = world_to_camera_persp(R_world, T_world)
-                Tvec_cam = T_cam.reshape(1,3).tolist()
-                Rvec_cam = cv2.Rodrigues(R_cam)[0].reshape(1,3).tolist()
-
-                # Write calibration file
                 toml_write(calib_file_path, N, S, D, K, Rvec_cam, Tvec_cam)
                 logging.info(f'Calibration saved to {calib_file_path}.')
 
