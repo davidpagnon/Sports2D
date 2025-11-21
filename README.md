@@ -497,6 +497,7 @@ sports2d --help
 'calib_file': ["", "path to calibration file. '' if not specified, eg no calibration file"],
 'save_calib': ["", "save calibration file. true if not specified"],
 'feet_on_floor': ["", "offset marker augmentation results so that feet are at floor level. true if not specified"],
+'distortions': ["", "camera distortion coefficients [k1, k2, p1, p2, k3] or 'from_calib'. [0.0, 0.0, 0.0, 0.0, 0.0] if not specified"],
 'use_simple_model': ["", "IK 10+ times faster, but no muscles or flexible spine, no patella. false if not specified"],
 'close_to_zero_speed_m': ["","Sum for all keypoints: about 50 px/frame or 0.2 m/frame"], 
 'tracking_mode': ["", "'sports2d' or 'deepsort'. 'deepsort' is slower, harder to parametrize but can be more robust if correctly tuned"],
