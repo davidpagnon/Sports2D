@@ -1826,6 +1826,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         keypoints_names = [node.name for _, _, node in RenderTree(pose_model) if node.id!=None]
         t0 = 0
         tf = (cap.get(cv2.CAP_PROP_FRAME_COUNT)-1) / fps if cap.get(cv2.CAP_PROP_FRAME_COUNT)>0 else float('inf')
+        kpt_id_max = max(keypoints_ids)+1
 
         # Set up pose tracker
         try:
@@ -1914,60 +1915,64 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 if video_file == "webcam":
                     out_vid.write(frame)
 
-                # Detect poses
-                keypoints, scores = pose_tracker(frame)
+                try: # Frames with no detection cause errors on MacOS CoreMLExecutionProvider
+                    # Detect poses
+                    keypoints, scores = pose_tracker(frame)
 
-                # Non maximum suppression (at pose level, not detection, and only using likely keypoints)
-                frame_shape = frame.shape
-                mask_scores = np.mean(scores, axis=1) > 0.2
+                    # Non maximum suppression (at pose level, not detection, and only using likely keypoints)
+                    frame_shape = frame.shape
+                    mask_scores = np.mean(scores, axis=1) > 0.2
 
-                likely_keypoints = np.where(mask_scores[:, np.newaxis, np.newaxis], keypoints, np.nan)
-                likely_scores = np.where(mask_scores[:, np.newaxis], scores, np.nan)
-                likely_bboxes = bbox_xyxy_compute(frame_shape, likely_keypoints, padding=0)
-                score_likely_bboxes = np.nanmean(likely_scores, axis=1)
+                    likely_keypoints = np.where(mask_scores[:, np.newaxis, np.newaxis], keypoints, np.nan)
+                    likely_scores = np.where(mask_scores[:, np.newaxis], scores, np.nan)
+                    likely_bboxes = bbox_xyxy_compute(frame_shape, likely_keypoints, padding=0)
+                    score_likely_bboxes = np.nanmean(likely_scores, axis=1)
 
-                valid_indices = np.where(~np.isnan(score_likely_bboxes))[0]
-                if len(valid_indices) > 0:
-                    valid_bboxes = likely_bboxes[valid_indices]
-                    valid_scores = score_likely_bboxes[valid_indices]
-                    keep_valid = nms(valid_bboxes, valid_scores, nms_thr=0.45)
-                    keep = valid_indices[keep_valid]
-                else:
-                    keep = []
-                keypoints, scores = likely_keypoints[keep], likely_scores[keep]
+                    valid_indices = np.where(~np.isnan(score_likely_bboxes))[0]
+                    if len(valid_indices) > 0:
+                        valid_bboxes = likely_bboxes[valid_indices]
+                        valid_scores = score_likely_bboxes[valid_indices]
+                        keep_valid = nms(valid_bboxes, valid_scores, nms_thr=0.45)
+                        keep = valid_indices[keep_valid]
+                    else:
+                        keep = []
+                    keypoints, scores = likely_keypoints[keep], likely_scores[keep]
 
-                # # Debugging: display detected keypoints on the frame
-                # colors = [(255,0,0), (0,255,0), (0,0,255), (255,255,0), (255,0,255), (0,255,255), (128,0,0), (0,128,0), (0,0,128), (128,128,0), (128,0,128), (0,128,128)]
-                # bboxes = likely_bboxes[keep]
-                # for person_idx in range(len(keypoints)):
-                #     for kpt_idx, kpt in enumerate(keypoints[person_idx]):
-                #         if not np.isnan(kpt).any():
-                #             cv2.circle(frame, (int(kpt[0]), int(kpt[1])), 3, colors[person_idx%len(colors)], -1)
-                #     if not np.isnan(bboxes[person_idx]).any():
-                #         cv2.rectangle(frame, (int(bboxes[person_idx][0]), int(bboxes[person_idx][1])), (int(bboxes[person_idx][2]), int(bboxes[person_idx][3])), colors[person_idx%len(colors)], 1)
-                #     cv2.imshow(f'{video_file} Sports2D', frame)
+                    # # Debugging: display detected keypoints on the frame
+                    # colors = [(255,0,0), (0,255,0), (0,0,255), (255,255,0), (255,0,255), (0,255,255), (128,0,0), (0,128,0), (0,0,128), (128,128,0), (128,0,128), (0,128,128)]
+                    # bboxes = likely_bboxes[keep]
+                    # for person_idx in range(len(keypoints)):
+                    #     for kpt_idx, kpt in enumerate(keypoints[person_idx]):
+                    #         if not np.isnan(kpt).any():
+                    #             cv2.circle(frame, (int(kpt[0]), int(kpt[1])), 3, colors[person_idx%len(colors)], -1)
+                    #     if not np.isnan(bboxes[person_idx]).any():
+                    #         cv2.rectangle(frame, (int(bboxes[person_idx][0]), int(bboxes[person_idx][1])), (int(bboxes[person_idx][2]), int(bboxes[person_idx][3])), colors[person_idx%len(colors)], 1)
+                    #     cv2.imshow(f'{video_file} Sports2D', frame)
 
-                # Track poses across frames
-                if tracking_mode == 'deepsort':
-                    keypoints, scores = sort_people_deepsort(keypoints, scores, deepsort_tracker, frame, frame_count)
-                if tracking_mode == 'sports2d': 
-                    if 'prev_keypoints' not in locals(): prev_keypoints = keypoints
-                    prev_keypoints, keypoints, scores = sort_people_sports2d(prev_keypoints, keypoints, scores=scores, max_dist=max_distance)
-                else:
-                    pass
-                
-                # # Debugging: display detected keypoints on the frame
-                # colors = [(255,0,0), (0,255,0), (0,0,255), (255,255,0), (255,0,255), (0,255,255), (128,0,0), (0,128,0), (0,0,128), (128,128,0), (128,0,128), (0,128,128)]
-                # for person_idx in range(len(keypoints)):
-                #     for kpt_idx, kpt in enumerate(keypoints[person_idx]):
-                #         if not np.isnan(kpt).any():
-                #             cv2.circle(frame, (int(kpt[0]), int(kpt[1])), 3, colors[person_idx%len(colors)], -1)
-                #         # if not np.isnan(bboxes[person_idx]).any():
-                #         #     cv2.rectangle(frame, (int(bboxes[person_idx][0]), int(bboxes[person_idx][1])), (int(bboxes[person_idx][2]), int(bboxes[person_idx][3])), colors[person_idx%len(colors)], 1)
-                #     cv2.imshow(f'{video_file} Sports2D', frame)
-                # # if (cv2.waitKey(1) & 0xFF) == ord('q') or (cv2.waitKey(1) & 0xFF) == 27:
-                # #     break
-                # # input()
+                    # Track poses across frames
+                    if tracking_mode == 'deepsort':
+                        keypoints, scores = sort_people_deepsort(keypoints, scores, deepsort_tracker, frame, frame_count)
+                    if tracking_mode == 'sports2d': 
+                        if 'prev_keypoints' not in locals(): prev_keypoints = keypoints
+                        prev_keypoints, keypoints, scores = sort_people_sports2d(prev_keypoints, keypoints, scores=scores, max_dist=max_distance)
+                    else:
+                        pass
+                    
+                    # # Debugging: display detected keypoints on the frame
+                    # colors = [(255,0,0), (0,255,0), (0,0,255), (255,255,0), (255,0,255), (0,255,255), (128,0,0), (0,128,0), (0,0,128), (128,128,0), (128,0,128), (0,128,128)]
+                    # for person_idx in range(len(keypoints)):
+                    #     for kpt_idx, kpt in enumerate(keypoints[person_idx]):
+                    #         if not np.isnan(kpt).any():
+                    #             cv2.circle(frame, (int(kpt[0]), int(kpt[1])), 3, colors[person_idx%len(colors)], -1)
+                    #         # if not np.isnan(bboxes[person_idx]).any():
+                    #         #     cv2.rectangle(frame, (int(bboxes[person_idx][0]), int(bboxes[person_idx][1])), (int(bboxes[person_idx][2]), int(bboxes[person_idx][3])), colors[person_idx%len(colors)], 1)
+                    #     cv2.imshow(f'{video_file} Sports2D', frame)
+                    # # if (cv2.waitKey(1) & 0xFF) == ord('q') or (cv2.waitKey(1) & 0xFF) == 27:
+                    # #     break
+                    # # input()
+                except:
+                    keypoints = np.full((1,kpt_id_max,2), fill_value=np.nan)
+                    scores = np.full((1,kpt_id_max), fill_value=np.nan)
             
             # Process coordinates and compute angles
             valid_X, valid_Y, valid_scores = [], [], []
