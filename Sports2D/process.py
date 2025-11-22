@@ -798,7 +798,6 @@ def make_mot_with_angles(angles, time, mot_path):
 def pose_plots(trc_data_unfiltered, trc_data, person_id, show=True):
     '''
     Displays trc filtered and unfiltered data for comparison
-    ⚠ Often crashes on the third window...
 
     INPUTS:
     - trc_data_unfiltered: pd.DataFrame. The unfiltered trc data
@@ -809,23 +808,26 @@ def pose_plots(trc_data_unfiltered, trc_data, person_id, show=True):
     OUTPUT:
     - matplotlib window with tabbed figures for each keypoint
     '''
-
+    
     os_name = platform.system()
-    if os_name == 'Windows':
-        mpl.use('qt5agg') # windows
     mpl.rc('figure', max_open_warning=0)
+    if show:
+        if os_name == 'Windows':
+            mpl.use('qt5agg') # windows
+        pw = plotWindow()
+        pw.MainWindow.setWindowTitle('Person'+ str(person_id) + ' coordinates')
+    else:
+        mpl.use('Agg') # Otherwise fails on Hugging-face
+        figures_list = []    
 
     keypoints_names = trc_data.columns[1::3]
-    
-    pw = plotWindow()
-    pw.MainWindow.setWindowTitle('Person'+ str(person_id) + ' coordinates') # Main title
-
     for id, keypoint in enumerate(keypoints_names):
         f = plt.figure()
-        if os_name == 'Windows':
-            f.canvas.manager.window.setWindowTitle(keypoint + ' Plot') # windows
-        elif os_name == 'Darwin':  # macOS
-            f.canvas.manager.set_window_title(keypoint + ' Plot') # mac
+        if show:
+            if os_name == 'Windows':
+                f.canvas.manager.window.setWindowTitle(keypoint + ' Plot')
+            elif os_name == 'Darwin':
+                f.canvas.manager.set_window_title(keypoint + ' Plot')
 
         axX = plt.subplot(211)
         plt.plot(trc_data_unfiltered.iloc[:,0], trc_data_unfiltered.iloc[:,id*3+1], label='unfiltered')
@@ -840,18 +842,21 @@ def pose_plots(trc_data_unfiltered, trc_data, person_id, show=True):
         axY.set_xlabel('Time (seconds)')
         axY.set_ylabel(keypoint+' Y')
 
-        pw.addPlot(keypoint, f)
+        if show:
+            pw.addPlot(keypoint, f)
+        else:
+            figures_list.append((keypoint, f))
     
     if show:
         pw.show()
-
-    return pw
-
+        return pw
+    else:
+        return figures_list
+    
 
 def angle_plots(angle_data_unfiltered, angle_data, person_id, show=True):
     '''
     Displays angle filtered and unfiltered data for comparison
-    ⚠ Often crashes on the third window...
 
     INPUTS:
     - angle_data_unfiltered: pd.DataFrame. The unfiltered angle data
@@ -862,21 +867,24 @@ def angle_plots(angle_data_unfiltered, angle_data, person_id, show=True):
     '''
 
     os_name = platform.system()
-    if os_name == 'Windows':
-        mpl.use('qt5agg') # windows
     mpl.rc('figure', max_open_warning=0)
+    if show:
+        if os_name == 'Windows':
+            mpl.use('qt5agg') # windows
+        pw = plotWindow()
+        pw.MainWindow.setWindowTitle('Person'+ str(person_id) + ' angles')
+    else:
+        mpl.use('Agg') # Otherwise fails on Hugging-face
+        figures_list = []
 
     angles_names = angle_data.columns[1:]
-    
-    pw = plotWindow()
-    pw.MainWindow.setWindowTitle('Person'+ str(person_id) + ' angles') # Main title
-
     for id, angle in enumerate(angles_names):
         f = plt.figure()
-        if os_name == 'Windows':
-            f.canvas.manager.window.setWindowTitle(angle + ' Plot') # windows
-        elif os_name == 'Darwin':  # macOS
-            f.canvas.manager.set_window_title(angle + ' Plot') # mac
+        if show:
+            if os_name == 'Windows':
+                f.canvas.manager.window.setWindowTitle(angle + ' Plot') # windows
+            elif os_name == 'Darwin':  # macOS
+                f.canvas.manager.set_window_title(angle + ' Plot') # mac
         
         ax = plt.subplot(111)
         plt.plot(angle_data_unfiltered.iloc[:,0], angle_data_unfiltered.iloc[:,id+1], label='unfiltered')
@@ -886,12 +894,16 @@ def angle_plots(angle_data_unfiltered, angle_data, person_id, show=True):
         ax.set_ylabel(angle+' (°)')
         plt.legend()
 
-        pw.addPlot(angle, f)
-
+        if show:
+            pw.addPlot(angle, f)
+        else:
+            figures_list.append((angle, f))
+    
     if show:
         pw.show()
-
-    return pw
+        return pw
+    else:
+        return figures_list
 
 
 def get_personIDs_with_highest_scores(all_frames_scores, nb_persons_to_detect):
@@ -2270,12 +2282,20 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             if not to_meters and (show_plots or save_plots):
                 pw = pose_plots(trc_data_unfiltered_i, trc_data_i, i, show=show_plots)
                 if save_plots:
-                    for n, f in enumerate(pw.figure_handles):
-                        dpi = pw.canvases[i].figure.dpi
-                        f.set_size_inches(1280/dpi, 720/dpi)
-                        title = pw.tabs.tabText(n)
-                        plot_path = plots_output_dir / (pose_output_path.stem + f'_person{i:02d}_px_{title.replace(" ","_").replace("/","_")}.png')
-                        f.savefig(plot_path, dpi=dpi, bbox_inches='tight')
+                    if show_plots:
+                        for n, f in enumerate(pw.figure_handles):
+                            dpi = pw.canvases[n].figure.dpi
+                            f.set_size_inches(1280/dpi, 720/dpi)
+                            title = pw.tabs.tabText(n)
+                            plot_path = plots_output_dir / (pose_output_path.stem + f'_person{i:02d}_px_{title.replace(" ","_").replace("/","_")}.png')
+                            f.savefig(plot_path, dpi=dpi, bbox_inches='tight')
+                    else: # Tabbed plots not used
+                        for title, f in pw:
+                            dpi = f.dpi
+                            f.set_size_inches(1280/dpi, 720/dpi)
+                            plot_path = plots_output_dir / (pose_output_path.stem + f'_person{i:02d}_px_{title.replace(" ","_").replace("/","_")}.png')
+                            f.savefig(plot_path, dpi=dpi, bbox_inches='tight')
+                            plt.close(f)
                     logging.info(f'Pose plots (px) saved in {plots_output_dir}.')
                     
             all_frames_X_processed[:,idx_person,:], all_frames_Y_processed[:,idx_person,:] = all_frames_X_person_filt, all_frames_Y_person_filt
@@ -2426,12 +2446,20 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     if to_meters and (show_plots or save_plots):
                         pw = pose_plots(trc_data_unfiltered_m_i, trc_data_m_i, i, show=show_plots)
                         if save_plots:
-                            for n, f in enumerate(pw.figure_handles):
-                                dpi = pw.canvases[i].figure.dpi
-                                f.set_size_inches(1280/dpi, 720/dpi)
-                                title = pw.tabs.tabText(n)
-                                plot_path = plots_output_dir / (pose_output_path_m.stem + f'_person{i:02d}_m_{title.replace(" ","_").replace("/","_")}.png')
-                                f.savefig(plot_path, dpi=dpi, bbox_inches='tight')
+                            if show_plots:
+                                for n, f in enumerate(pw.figure_handles):
+                                    dpi = pw.canvases[n].figure.dpi
+                                    f.set_size_inches(1280/dpi, 720/dpi)
+                                    title = pw.tabs.tabText(n)
+                                    plot_path = plots_output_dir / (pose_output_path.stem + f'_person{i:02d}_m_{title.replace(" ","_").replace("/","_")}.png')
+                                    f.savefig(plot_path, dpi=dpi, bbox_inches='tight')
+                            else: # Tabbed plots not used
+                                for title, f in pw:
+                                    dpi = f.dpi
+                                    f.set_size_inches(1280/dpi, 720/dpi)
+                                    plot_path = plots_output_dir / (pose_output_path.stem + f'_person{i:02d}_m_{title.replace(" ","_").replace("/","_")}.png')
+                                    f.savefig(plot_path, dpi=dpi, bbox_inches='tight')
+                                    plt.close(f)
                             logging.info(f'Pose plots (m) saved in {plots_output_dir}.')
 
                     # Write to trc file
@@ -2562,12 +2590,20 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             if show_plots or save_plots:
                 pw = angle_plots(all_frames_angles_person, angle_data, i, show=show_plots) # i = current person
                 if save_plots:
-                    for n, f in enumerate(pw.figure_handles):
-                        dpi = pw.canvases[i].figure.dpi
-                        f.set_size_inches(1280/dpi, 720/dpi)
-                        title = pw.tabs.tabText(n)
-                        plot_path = plots_output_dir / (pose_output_path_m.stem + f'_person{i:02d}_ang_{title.replace(" ","_").replace("/","_")}.png')
-                        f.savefig(plot_path, dpi=dpi, bbox_inches='tight')
+                    if show_plots:
+                        for n, f in enumerate(pw.figure_handles):
+                            dpi = pw.canvases[n].figure.dpi
+                            f.set_size_inches(1280/dpi, 720/dpi)
+                            title = pw.tabs.tabText(n)
+                            plot_path = plots_output_dir / (pose_output_path.stem + f'_person{i:02d}_ang_{title.replace(" ","_").replace("/","_")}.png')
+                            f.savefig(plot_path, dpi=dpi, bbox_inches='tight')
+                    else: # Tabbed plots not used
+                        for title, f in pw:
+                            dpi = f.dpi
+                            f.set_size_inches(1280/dpi, 720/dpi)
+                            plot_path = plots_output_dir / (pose_output_path.stem + f'_person{i:02d}_ang_{title.replace(" ","_").replace("/","_")}.png')
+                            f.savefig(plot_path, dpi=dpi, bbox_inches='tight')
+                            plt.close(f)
                     logging.info(f'Pose plots (m) saved in {plots_output_dir}.')
 
 
