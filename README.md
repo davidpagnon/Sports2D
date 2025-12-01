@@ -11,8 +11,8 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10576574.svg)](https://zenodo.org/doi/10.5281/zenodo.7903962)
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 \
-[![Hugging Face Space](https://img.shields.io/badge/HuggingFace-Sports2D-yellow?logo=huggingface)](https://huggingface.co/spaces/DavidPagnon/sports2d)
 [![Discord](https://img.shields.io/discord/1183750225471492206?logo=Discord&label=Discord%20community)](https://discord.com/invite/4mXUdSFjmt)
+[![Hugging Face Space](https://img.shields.io/badge/HuggingFace-Sports2D-yellow?logo=huggingface)](https://huggingface.co/spaces/DavidPagnon/sports2d)
 
 
 <!-- [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://bit.ly/Sports2D_Colab)-->
@@ -65,7 +65,7 @@ If you need 3D research-grade markerless joint kinematics, consider using severa
 ## Contents
 1. [Installation and Demonstration](#installation-and-demonstration)
    1. [Test it on Hugging face](#test-it-on-hugging-face)
-   1. [Installation](#installation)
+   1. [Local installation](#local-installation)
       1. [Quick install](#quick-install)
       2. [Full install](#full-install)
    2. [Demonstration](#demonstration)
@@ -103,7 +103,7 @@ Test an online, limited version [on Hugging Face](https://huggingface.co/spaces/
 
 
 
-### Installation
+### Local installation
 
 <!--- OPTION 0: **Use Colab** \
   User-friendly (but full) version, also works on a phone or a tablet.\
