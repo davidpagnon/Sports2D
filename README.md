@@ -11,7 +11,9 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10576574.svg)](https://zenodo.org/doi/10.5281/zenodo.7903962)
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 \
+[![Hugging Face Space](https://img.shields.io/badge/HuggingFace-Sports2D-yellow?logo=huggingface)](https://huggingface.co/spaces/DavidPagnon/sports2d)
 [![Discord](https://img.shields.io/discord/1183750225471492206?logo=Discord&label=Discord%20community)](https://discord.com/invite/4mXUdSFjmt)
+
 
 <!-- [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://bit.ly/Sports2D_Colab)-->
 
@@ -52,7 +54,7 @@ https://github.com/user-attachments/assets/2ce62012-f28c-4e23-b3b8-f68931bacb77
 <!-- https://github.com/user-attachments/assets/1c6e2d6b-d0cf-4165-864e-d9f01c0b8a0e -->
 
 `Warning:` Angle estimation is only as good as the pose estimation algorithm, i.e., it is not perfect.\
-`Warning:` Results are acceptable only if the persons move in the 2D plane (sagittal or frontal plane). The persons need to be filmed as parallel as possible to the motion plane.\
+`Warning:` Results are acceptable only if the persons move in the 2D plane (sagittal or frontal). The persons need to be filmed as parallel as possible to the motion plane.\
 If you need 3D research-grade markerless joint kinematics, consider using several cameras with **[Pose2Sim](https://github.com/perfanalytics/pose2sim)**.
 
 <!--`Warning:` Google Colab does not follow the European GDPR requirements regarding data privacy. [Install locally](#installation) if this matters.-->
@@ -62,6 +64,7 @@ If you need 3D research-grade markerless joint kinematics, consider using severa
 
 ## Contents
 1. [Installation and Demonstration](#installation-and-demonstration)
+   1. [Test it on Hugging face](#test-it-on-hugging-face)
    1. [Installation](#installation)
       1. [Quick install](#quick-install)
       2. [Full install](#full-install)
@@ -90,6 +93,15 @@ If you need 3D research-grade markerless joint kinematics, consider using severa
 <br>
 
 ## Installation and Demonstration
+
+
+### Test it on Hugging face
+
+Test an online, limited version [on Hugging Face](https://huggingface.co/spaces/DavidPagnon/sports2d): [![Hugging Face Space](https://img.shields.io/badge/HuggingFace-Sports2D-yellow?logo=huggingface)](https://huggingface.co/spaces/DavidPagnon/sports2d)
+
+<img src="Content/huggingface_demo.png" width="760">
+
+
 
 ### Installation
 
