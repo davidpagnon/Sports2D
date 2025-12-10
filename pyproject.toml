@@ -34,7 +34,7 @@ classifiers = [
 urls = {Homepage = "https://github.com/davidpagnon/Sports2D", "Bug Tracker" = "https://github.com/davidpagnon/Sports2D/issues"}
 dependencies = [
     "imageio_ffmpeg",
-    "Pose2Sim>=0.10.38"
+    "Pose2Sim>=0.10.40"
 ]
 
 [tool.setuptools_scm]
