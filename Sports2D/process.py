@@ -99,6 +99,7 @@ import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
 
 
+CORRECTION_2D_TO_3D = 1.063  # Corrective factor for height calculation: segments do not perfectly lie in the 2D plane and look shorter than in 3D
 DEFAULT_MASS = 70
 DEFAULT_HEIGHT = 1.7
 
@@ -2150,8 +2151,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         if to_meters and save_pose:
             logging.info('\nConverting pose to meters:')
             
-            # Compute height in px of the first person
-            height_px = compute_height(trc_data[0].iloc[:,1:], new_keypoints_names,
+            # Compute height of the first person in pixels
+            height_px = CORRECTION_2D_TO_3D * compute_height(trc_data[0].iloc[:,1:], new_keypoints_names,
                                         fastest_frames_to_remove_percent=fastest_frames_to_remove_percent, close_to_zero_speed=close_to_zero_speed_px, large_hip_knee_angles=large_hip_knee_angles, trimmed_extrema_percent=trimmed_extrema_percent)
 
             # Compute distance from camera to compensate for perspective effects
