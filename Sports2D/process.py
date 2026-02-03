@@ -75,8 +75,6 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, Button
 from matplotlib import patheffects
-
-from rtmlib import PoseTracker, BodyWithFeet, Wholebody, Body, Hand, Custom
 from rtmlib.tools.object_detection.post_processings import nms
 
 from Sports2D.Utilities.common import *
@@ -88,11 +86,14 @@ from Pose2Sim.triangulation import indices_of_first_last_non_nan_chunks
 from Pose2Sim.personAssociation import *
 from Pose2Sim.filtering import *
 
-# Silence numpy "RuntimeWarning: Mean of empty slice"
-import warnings
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
+np.set_printoptions(legacy='1.21') # otherwise prints np.float64(3.0) rather than 3.0
+import warnings # Silence numpy and CoreML warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning, message="Mean of empty slice")
 warnings.filterwarnings("ignore", category=RuntimeWarning, message="All-NaN slice encountered")
 warnings.filterwarnings("ignore", category=RuntimeWarning, message="invalid value encountered in scalar divide")
+warnings.filterwarnings("ignore", message=".*Input.*has a dynamic shape.*but the runtime shape.*has zero elements.*")
+
 
 # Not safe, but to be used until OpenMMLab/RTMlib's SSL certificates are updated
 import ssl
