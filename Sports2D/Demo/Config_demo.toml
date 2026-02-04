@@ -106,6 +106,10 @@ to_meters = true
 make_c3d = true
 save_calib = true
 
+# pixel to meter conversion
+convert_from = 'first_person_height' # 'first_person_height', 'line_length', or 'from_calib'
+line_length = 'on_click' # 'on_click' or [m_length, px_length] # Only used if convert_from = 'line_length'
+
 # Compensate for camera horizon 
 floor_angle = 'auto' # float, 'from_kinematics', 'from_calib', or 'auto' # 'auto' is equivalent to 'from_kinematics', ie angle calculated from foot contacts. 'from_calib' calculates it from a toml calibration file. Use float to manually specify it in degrees
 xy_origin = ['auto'] # [px_x,px_y], or ['from kinematics'], ['from_calib'], or ['auto']. # BETWEEN BRACKETS! # ['auto'] is equivalent to ['from_kinematics'], ie origin estimated at first foot contact, direction is direction of motion. ['from_calib'] calculates it from a calibration file. Use [px_x,px_y] to manually specify it in pixels (px_y points downwards)

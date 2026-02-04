@@ -1747,6 +1747,16 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         for frame_nb in frame_iterator:
             start_time = datetime.now()
             success, frame = cap.read()
+
+            # GUI to draw line, measure distance in pixels, and input real distance in meters
+            if frame_count == first_frame and convert_from == 'line_length':
+                if line_length == 'on_click':
+                    px_length, m_length = GUI
+                elif all(isinstance(x, (float, int)) for x in line_length): 
+                    px_length, m_length = line_length
+                
+                
+
             frame_count += 1
 
             # If frame not grabbed
@@ -2153,17 +2163,32 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             logging.info('\nConverting pose to meters:')
             
             # Compute height of the first person in pixels
-            height_px = CORRECTION_2D_TO_3D * compute_height(trc_data[0].iloc[:,1:], new_keypoints_names,
-                                        fastest_frames_to_remove_percent=fastest_frames_to_remove_percent, close_to_zero_speed=close_to_zero_speed_px, large_hip_knee_angles=large_hip_knee_angles, trimmed_extrema_percent=trimmed_extrema_percent)
+            if convert_from in ('first_person_height', None):
+                # Compute height of the first person in pixels
+                height_px = CORRECTION_2D_TO_3D * compute_height(trc_data[0].iloc[:,1:], new_keypoints_names,
+                                            fastest_frames_to_remove_percent=fastest_frames_to_remove_percent, close_to_zero_speed=close_to_zero_speed_px, large_hip_knee_angles=large_hip_knee_angles, trimmed_extrema_percent=trimmed_extrema_percent)
+                line_px = height_px
+                line_m = first_person_height
+            elif convert_from == 'line_length':
+                line_px = px_length
+                line_m = m_length
+
+            elif convert_from == 'from_calib':
+                line_px
+                line_m
+
+            else:
+                error
+
 
             # Compute distance from camera to compensate for perspective effects
             distance_m = get_distance_from_camera(perspective_value=perspective_value, perspective_unit=perspective_unit, 
-                                                  calib_file=calib_file, height_px=height_px, height_m=first_person_height, 
+                                                  calib_file=calib_file, height_px=line_px, height_m=line_m, 
                                                   cam_width=cam_width, cam_height=cam_height)
 
             # Compute floor angle and xy_origin to compensate for camera horizon and person position
             floor_angle_estim, xy_origin_estim, gait_direction = get_floor_params(floor_angle=floor_angle, xy_origin=xy_origin, 
-                                                    calib_file=calib_file, height_px=height_px, height_m=first_person_height, 
+                                                    calib_file=calib_file, height_px=line_px, height_m=line_m, 
                                                     fps=fps, trc_data=trc_data[0], score_data=score_data[0], toe_speed_below=1, score_threshold=average_likelihood_threshold, 
                                                     cam_width=cam_width, cam_height=cam_height)
             cx, cy = xy_origin_estim
@@ -2171,8 +2196,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                                 else 'left' if gait_direction < -0.3 \
                                 else 'front'
 
-            logging.info(f'Converting from pixels to meters using a person height of {first_person_height:.2f} in meters (manual input), and of {height_px:.2f} in pixels (calculated).')
-
+            logging using a line of length...
+            logging.info(f'Converting from pixels to meters using a person height of {line_m:.2f} in meters (manual input), and of {line_px:.2f} in pixels (calculated).')
             perspective_messages = {
                 "distance_m": f"(obtained from a manual input).",
                 "f_px": f"(calculated from a focal length of {perspective_value:.2f} m).",
@@ -2224,7 +2249,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             D = [[0.0, 0.0, 0.0, 0.0]]
 
             # Intrinsics
-            f = height_px / first_person_height * distance_m
+            f = line_px / line_m * distance_m
             cu = cam_width/2
             cv = cam_height/2
             K = np.array([[[f, 0.0, cu], [0.0, f, cv], [0.0, 0.0, 1.0]]])
@@ -2275,7 +2300,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     
 
                     # Convert to meters
-                    px_to_m_i = [convert_px_to_meters(trc_data[i][kpt_name], first_person_height, height_px, distance_m, cam_width, cam_height, cx, cy, -floor_angle_estim, visible_side=visible_side_i) for kpt_name in new_keypoints_names]
+                    px_to_m_i = [convert_px_to_meters(trc_data[i][kpt_name], line_m, line_px, distance_m, cam_width, cam_height, cx, cy, -floor_angle_estim, visible_side=visible_side_i) for kpt_name in new_keypoints_names]
                     trc_data_m_i = pd.concat([all_frames_time.rename('time')]+px_to_m_i, axis=1)
                     for c_id, c in enumerate(3*np.arange(len(trc_data_m_i.columns[3::3]))+1): # only X coordinates
                         first_run_start, last_run_end = first_run_starts_everyone[i][c_id], last_run_ends_everyone[i][c_id]
@@ -2284,7 +2309,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                         trc_data_m_i.iloc[first_run_start:last_run_end,c+2] = trc_data_m_i.iloc[first_run_start:last_run_end,c+2].ffill().bfill()
                     first_trim, last_trim = trc_data_m_i.isnull().any(axis=1).idxmin(), trc_data_m_i[::-1].isnull().any(axis=1).idxmin()
                     trc_data_m_i = trc_data_m_i.iloc[first_trim:last_trim+1,:]
-                    px_to_m_unfiltered_i = [convert_px_to_meters(trc_data_unfiltered[i][kpt_name], first_person_height, height_px, distance_m, cam_width, cam_height, cx, cy, -floor_angle_estim, visible_side=visible_side_i) for kpt_name in new_keypoints_names]
+                    px_to_m_unfiltered_i = [convert_px_to_meters(trc_data_unfiltered[i][kpt_name], line_m, line_px, distance_m, cam_width, cam_height, cx, cy, -floor_angle_estim, visible_side=visible_side_i) for kpt_name in new_keypoints_names]
                     trc_data_unfiltered_m_i = pd.concat([all_frames_time.rename('time')]+px_to_m_unfiltered_i, axis=1)
 
                     if to_meters and (show_plots or save_plots):
