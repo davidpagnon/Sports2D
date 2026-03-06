@@ -69,6 +69,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate sports2d
+          # python -m ensurepip --upgrade
           python -m pip install --upgrade pip setuptools wheel
           python -m pip install flake8 pytest
           python -m pip install git+https://github.com/${{ github.repository }}.git@${{ github.sha }}
