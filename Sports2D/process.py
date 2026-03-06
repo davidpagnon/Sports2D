@@ -1907,7 +1907,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 valid_scores.append(person_scores)
 
             # Draw keypoints and skeleton
-            if show_realtime_results:
+            if show_realtime_results and len(keypoints) > 0:
                 img = frame.copy()
                 cv2.putText(img, f"Press 'q' to stop", (cam_width-int(600*fontSize), cam_height-20), cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (255,255,255), thickness+1, cv2.LINE_AA)
                 cv2.putText(img, f"Press 'q' to stop", (cam_width-int(600*fontSize), cam_height-20), cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (0,0,255), thickness, cv2.LINE_AA)
