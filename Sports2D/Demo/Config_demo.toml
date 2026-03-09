@@ -139,7 +139,7 @@ correct_segment_angles_with_floor_angle = true # If the camera is tilted, correc
 
 [post-processing]
 interpolate = true
-interp_gap_smaller_than = 10        # Do not interpolate larger gaps
+interp_gap_smaller_than = 100       # Do not interpolate larger gaps
 fill_large_gaps_with = 'last_value' # 'last_value', 'nan', or 'zeros' 
 sections_to_keep = 'all' # 'all', 'largest', 'first', 'last'
                         # Keep 'all' valid sections even when they are interspersed with undetected chunks, or the 'largest' valid section, or the 'first' one, or the 'last' one

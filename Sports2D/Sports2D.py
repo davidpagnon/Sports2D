@@ -234,7 +234,7 @@ DEFAULT_CONFIG =   {'base': {'video_input': ['demo.mp4'],
                                 'correct_segment_angles_with_floor_angle': True
                                 },
                     'post-processing': {'interpolate': True,
-                                        'interp_gap_smaller_than': 10,
+                                        'interp_gap_smaller_than': 100,
                                         'fill_large_gaps_with': 'last_value',
                                         'sections_to_keep':'all',
                                         'min_chunk_size': 10,
