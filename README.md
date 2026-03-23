@@ -86,8 +86,7 @@ If you need 3D research-grade markerless joint kinematics, consider using severa
    11. [All the parameters](#all-the-parameters)
 3. [Go further](#go-further)
    1. [Too slow for you?](#too-slow-for-you)
-   3. [Run inverse kinematics](#run-inverse-kinematics)
-   4. [How it works](#how-it-works)
+   2. [How it works](#how-it-works)
 4. [How to cite and how to contribute](#how-to-cite-and-how-to-contribute)
 
 <br>
@@ -522,7 +521,7 @@ sports2d --help
 'keypoint_number_threshold': ["", "detected persons are not retained if number of detected keypoints is below this threshold. 0.3 if not specified, i.e., i.e., 30 percent"],
 'max_distance': ["", "If a person is detected further than max_distance from its position on the previous frame, it will be considered as a new one. in px or None, 100 by default."],
 'fastest_frames_to_remove_percent': ["", "Frames with high speed are considered as outliers. Defaults to 0.1"],
-'close_to_zero_speed_px': ["", "Sum for all keypoints: about 50 px/frame or 0.2 m/frame. Defaults to 50"],
+'slowest_frames_to_remove_percent': ["", "Frames with low speed are considered as outliers. Defaults to 0.2"],
 'large_hip_knee_angles': ["", "Hip and knee angles below this value are considered as imprecise. Defaults to 45"],
 'trimmed_extrema_percent': ["", "Proportion of the most extreme segment values to remove before calculating their mean. Defaults to 50"],
 'fontSize': ["", "font size for angle values. 0.3 if not specified"],
@@ -553,10 +552,6 @@ sports2d --help
 'remove_individual_scaling_setup': ["", "remove individual scaling setup files generated during scaling. true if not specified"],
 'remove_individual_ik_setup': ["", "remove individual IK setup files generated during IK. true if not specified"],
 'fastest_frames_to_remove_percent': ["", "Frames with high speed are considered as outliers. Defaults to 0.1"],
-'close_to_zero_speed_m': ["","Sum for all keypoints: about 0.2 m/frame. Defaults to 0.2"],
-'close_to_zero_speed_px': ["", "Sum for all keypoints: about 50 px/frame. Defaults to 50"],
-'large_hip_knee_angles': ["", "Hip and knee angles below this value are considered as imprecise and ignored. Defaults to 45"],
-'trimmed_extrema_percent': ["", "Proportion of the most extreme segment values to remove before calculating their mean. Defaults to 50"],
 'use_custom_logging': ["", "use custom logging. false if not specified"]
 ```
 

@@ -1582,8 +1582,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     fastest_frames_to_remove_percent = config_dict.get('kinematics').get('fastest_frames_to_remove_percent')
     large_hip_knee_angles = config_dict.get('kinematics').get('large_hip_knee_angles')
     trimmed_extrema_percent = config_dict.get('kinematics').get('trimmed_extrema_percent')
-    close_to_zero_speed_px = config_dict.get('kinematics').get('close_to_zero_speed_px')
-    close_to_zero_speed_m = config_dict.get('kinematics').get('close_to_zero_speed_m')
+    slowest_frames_to_remove_percent = config_dict.get('kinematics').get('slowest_frames_to_remove_percent')
     # Create a Pose2Sim dictionary and fill in missing keys
     recursivedict = lambda: defaultdict(recursivedict)
     Pose2Sim_config_dict = recursivedict()
@@ -2154,7 +2153,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             
             # Compute height of the first person in pixels
             height_px = CORRECTION_2D_TO_3D * compute_height(trc_data[0].iloc[:,1:], new_keypoints_names,
-                                        fastest_frames_to_remove_percent=fastest_frames_to_remove_percent, close_to_zero_speed=close_to_zero_speed_px, large_hip_knee_angles=large_hip_knee_angles, trimmed_extrema_percent=trimmed_extrema_percent)
+                                        fastest_frames_to_remove_percent=fastest_frames_to_remove_percent, slowest_frames_to_remove_percent=slowest_frames_to_remove_percent, large_hip_knee_angles=large_hip_knee_angles, trimmed_extrema_percent=trimmed_extrema_percent)
 
             # Compute distance from camera to compensate for perspective effects
             distance_m = get_distance_from_camera(perspective_value=perspective_value, perspective_unit=perspective_unit, 
@@ -2554,7 +2553,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 else:
                     # Provide missing data to Pose2Sim_config_dict
                     height_m_i = compute_height(trc_data_m_i.iloc[:,1:], keypoints_names,
-                        fastest_frames_to_remove_percent=fastest_frames_to_remove_percent, close_to_zero_speed=close_to_zero_speed_m, large_hip_knee_angles=large_hip_knee_angles, trimmed_extrema_percent=trimmed_extrema_percent)
+                        fastest_frames_to_remove_percent=fastest_frames_to_remove_percent, slowest_frames_to_remove_percent=slowest_frames_to_remove_percent, large_hip_knee_angles=large_hip_knee_angles, trimmed_extrema_percent=trimmed_extrema_percent)
                     mass_i = participant_masses[i] if len(participant_masses)>i else DEFAULT_MASS
                     if len(participant_masses)<=i:
                         logging.warning(f'No mass provided. Using {DEFAULT_MASS} kg as default.')
