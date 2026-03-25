@@ -657,7 +657,7 @@ def pose_plots(trc_data_unfiltered, trc_data, person_id, show=True):
     mpl.rc('figure', max_open_warning=0)
     if show:
         if os_name == 'Windows':
-            mpl.use('qt5agg') # windows
+            mpl.use('qtagg') # windows
         pw = plotWindow()
         pw.MainWindow.setWindowTitle('Person'+ str(person_id) + ' coordinates')
     else:
@@ -714,7 +714,7 @@ def angle_plots(angle_data_unfiltered, angle_data, person_id, show=True):
     mpl.rc('figure', max_open_warning=0)
     if show:
         if os_name == 'Windows':
-            mpl.use('qt5agg') # windows
+            mpl.use('qtagg') # windows
         pw = plotWindow()
         pw.MainWindow.setWindowTitle('Person'+ str(person_id) + ' angles')
     else:
