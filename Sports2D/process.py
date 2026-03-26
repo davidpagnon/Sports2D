@@ -2483,7 +2483,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         # Draw pose and angles
         first_frame, last_frame = frame_range
         if 'first_trim' not in locals():
-            first_trim, last_trim = first_frame, last_frame
+            first_trim, last_trim = all_frames_time.index.start, all_frames_time.index.stop-1
         cap = cv2.VideoCapture(video_file_path)
         cap.set(cv2.CAP_PROP_POS_FRAMES, first_frame+first_trim)
         for i in range(first_trim, last_trim):
