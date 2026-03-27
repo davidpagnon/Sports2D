@@ -209,52 +209,12 @@ def setup_video(video_file_path, vid_output_path, save_vid):
     return cap, out_vid, cam_width, cam_height, fps
 
 
-def flip_left_right_direction(person_X, L_R_direction_idx, keypoints_names, keypoints_ids):
-    '''
-    Flip the points to the right or left for more consistent angle calculation 
-    depending on which direction the person is facing
-
-    INPUTS:
-    - person_X: list of x coordinates
-    - L_R_direction_idx: list of indices of the left toe, left heel, right toe, right heel
-    - keypoints_names: list of keypoint names (see skeletons.py)
-    - keypoints_ids: list of keypoint ids (see skeletons.py)
-
-    OUTPUTS:
-    - person_X_flipped: list of x coordinates after flipping
-    '''
-
-    Ltoe_idx, LHeel_idx, Rtoe_idx, RHeel_idx = L_R_direction_idx
-    right_orientation = person_X[Rtoe_idx] - person_X[RHeel_idx]
-    left_orientation = person_X[Ltoe_idx] - person_X[LHeel_idx]
-    global_orientation = right_orientation + left_orientation
-    
-    person_X_flipped = person_X.copy()
-    if left_orientation < 0:
-        for k in keypoints_names:
-            if k.startswith('L'):
-                keypt_idx = keypoints_ids[keypoints_names.index(k)]
-                person_X_flipped[keypt_idx] = person_X_flipped[keypt_idx] * -1
-    if right_orientation < 0:
-        for k in keypoints_names:
-            if k.startswith('R'):
-                keypt_idx = keypoints_ids[keypoints_names.index(k)]
-                person_X_flipped[keypt_idx] = person_X_flipped[keypt_idx] * -1
-    if global_orientation < 0:
-        for k in keypoints_names:
-            if not k.startswith('L') and not k.startswith('R'):
-                keypt_idx = keypoints_ids[keypoints_names.index(k)]
-                person_X_flipped[keypt_idx] = person_X_flipped[keypt_idx] * -1
-    
-    return person_X_flipped
-
-
 def compute_angle(ang_name, person_X_flipped, person_Y, angle_dict, keypoints_ids, keypoints_names):
     '''
     Compute the angles from the 2D coordinates of the keypoints.
     Takes into account which side the participant is facing.
     Takes into account the offset and scaling of the angle from angle_dict.
-    Requires points_to_angles function (see common.py)
+    Requires points_to_angles function (see common.py in Pose2Sim)
 
     INPUTS:
     - ang_name: str. The name of the angle to compute
@@ -271,10 +231,7 @@ def compute_angle(ang_name, person_X_flipped, person_Y, angle_dict, keypoints_id
     ang_params = angle_dict.get(ang_name)
     if ang_params is not None:
         try:
-            if ang_name in ['pelvis', 'trunk', 'shoulders']:
-                angle_coords = [[np.abs(person_X_flipped[keypoints_ids[keypoints_names.index(kpt)]]), person_Y[keypoints_ids[keypoints_names.index(kpt)]]] for kpt in ang_params[0]]
-            else:
-                angle_coords = [[person_X_flipped[keypoints_ids[keypoints_names.index(kpt)]], person_Y[keypoints_ids[keypoints_names.index(kpt)]]] for kpt in ang_params[0]]
+            angle_coords = [[person_X_flipped[keypoints_ids[keypoints_names.index(kpt)]], person_Y[keypoints_ids[keypoints_names.index(kpt)]]] for kpt in ang_params[0]]
             ang = fixed_angles(angle_coords, ang_name)
         except:
             ang = np.nan    
@@ -308,7 +265,7 @@ def draw_dotted_line(img, start, direction, length, color=(0, 255, 0), gap=7, do
         cv2.line(img, tuple(line_start.astype(int)), tuple(line_end.astype(int)), color, thickness)
 
 
-def draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_ids, keypoints_names, angle_names, display_angle_values_on= ['body', 'list'], colors=[(255, 0, 0), (0, 255, 0), (0, 0, 255)], fontSize=0.3, thickness=1):
+def draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_ids, keypoints_names, angle_names, display_angle_values_on= ['body', 'list'], colors=[(255, 0, 0), (0, 255, 0), (0, 0, 255)], fontSize=0.3, thickness=1, visible_sides=None):
     '''
     Draw angles on the image.
     Angles are displayed as a list on the image and/or on the body.
@@ -324,6 +281,7 @@ def draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_
     - angle_names: list of angle names
     - display_angle_values_on: list of str. 'body' and/or 'list'
     - colors: list of colors to cycle through
+    - visible_sides: list of str or None. The visible side per person ('right', 'left', 'front', 'back', 'none')
 
     OUTPUT:
     - img: image with angles
@@ -332,6 +290,7 @@ def draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_
     color_cycle = it.cycle(colors)
     for person_id, (X,Y,angles, X_flipped) in enumerate(zip(valid_X, valid_Y, valid_angles, valid_X_flipped)):
         c = next(color_cycle)
+        person_vs = visible_sides[person_id] if visible_sides is not None and person_id < len(visible_sides) else None
         if not np.isnan(X).all():
             # person label
             if 'list' in display_angle_values_on:
@@ -349,10 +308,24 @@ def draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_
                         kpts = ang_params[0]
                         if not any(item not in keypoints_names+['Neck', 'Hip'] for item in kpts):
                             ang_coords = np.array([[X[keypoints_ids[keypoints_names.index(kpt)]], Y[keypoints_ids[keypoints_names.index(kpt)]]] for kpt in ang_params[0] if kpt in keypoints_names])
-                            X_flipped = np.append(X_flipped, X[len(X_flipped):])
-                            X_flipped_coords = [X_flipped[keypoints_ids[keypoints_names.index(kpt)]] for kpt in ang_params[0] if kpt in keypoints_names]
-                            flip = -1 if any(x_flipped < 0 for x_flipped in X_flipped_coords) else 1
-                            flip = 1 if ang_name in ['pelvis', 'trunk', 'shoulders'] else flip
+                            # Determine flip (horizontal reference direction) from visible_side
+                            if person_vs is not None:
+                                if person_vs in ['right', 'none']:
+                                    flip = 1
+                                elif person_vs == 'left':
+                                    flip = -1
+                                elif person_vs == 'front':
+                                    flip = -1 if ang_name.startswith('right') else 1
+                                elif person_vs == 'back':
+                                    flip = -1 if ang_name.startswith('left') else 1
+                                else:
+                                    flip = 1
+                            else:
+                                # Fallback: determine from X_flipped coordinates
+                                X_flipped = np.append(X_flipped, X[len(X_flipped):])
+                                X_flipped_coords = [X_flipped[keypoints_ids[keypoints_names.index(kpt)]] for kpt in ang_params[0] if kpt in keypoints_names]
+                                flip = -1 if any(x_flipped < 0 for x_flipped in X_flipped_coords) else 1
+                            flip = 1 if ang_name in ['pelvis', 'trunk', 'shoulders', 'head'] else flip
                             right_angle = True if ang_params[2]==90 else False
                             
                             # Draw angle
@@ -1523,7 +1496,6 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     segment_angle_names = config_dict.get('angles').get('segment_angles')
     angle_names = joint_angle_names + segment_angle_names
     angle_names = [angle_name.lower() for angle_name in angle_names]
-    flip_left_right = config_dict.get('angles').get('flip_left_right')
     correct_segment_angles_with_floor_angle = config_dict.get('angles').get('correct_segment_angles_with_floor_angle')
 
     # Post-processing settings
@@ -1703,16 +1675,16 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         logging.info(f'{"All persons are" if nb_persons_to_detect=="all" else f"{nb_persons_to_detect} persons are" if nb_persons_to_detect>1 else "1 person is"} analyzed. Person ordering method is {person_ordering_method}.')
         logging.info(f"{keypoint_likelihood_threshold=}, {average_likelihood_threshold=}, {keypoint_number_threshold=}")
 
-    if flip_left_right:
-        try:
-            Ltoe_idx = keypoints_ids[keypoints_names.index('LBigToe')]
-            LHeel_idx = keypoints_ids[keypoints_names.index('LHeel')]
-            Rtoe_idx = keypoints_ids[keypoints_names.index('RBigToe')]
-            RHeel_idx = keypoints_ids[keypoints_names.index('RHeel')]
-            L_R_direction_idx = [Ltoe_idx, LHeel_idx, Rtoe_idx, RHeel_idx]
-        except ValueError:
-            logging.warning(f"Missing 'LBigToe', 'LHeel', 'RBigToe', 'RHeel' keypoints. flip_left_right will be set to False")
-            flip_left_right = False
+    try:
+        Ltoe_idx = keypoints_ids[keypoints_names.index('LBigToe')]
+        LHeel_idx = keypoints_ids[keypoints_names.index('LHeel')]
+        Rtoe_idx = keypoints_ids[keypoints_names.index('RBigToe')]
+        RHeel_idx = keypoints_ids[keypoints_names.index('RHeel')]
+        L_R_direction_idx = [Ltoe_idx, LHeel_idx, Rtoe_idx, RHeel_idx]
+        has_toe_heel = True
+    except ValueError:
+        logging.warning(f"Missing 'LBigToe', 'LHeel', 'RBigToe', 'RHeel' keypoints. visible_side 'auto' will default to 'right', and 'front'/'back' flipping will be disabled.")
+        has_toe_heel = False
 
     if calculate_angles:
         for ang_name in angle_names:
@@ -1831,7 +1803,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             
             # Process coordinates and compute angles
             valid_X, valid_Y, valid_scores = [], [], []
-            valid_X_flipped, valid_angles_flipped, valid_angles = [], [], []
+            valid_X_flipped, valid_angles, valid_visible_sides = [], [], []
             for person_idx in range(len(keypoints)):
                 if load_trc_px:
                     person_X = keypoints[person_idx][:,0]
@@ -1863,9 +1835,34 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
 
 
 
-                # Check whether the person is looking to the left or right
-                if flip_left_right:
-                    person_X_flipped = flip_left_right_direction(person_X, L_R_direction_idx, keypoints_names, keypoints_ids)
+                # Determine whether person is looking to the right or the left and flip X coordinates accordingly
+                person_visible_side = visible_side[person_idx] if len(visible_side) > person_idx else 'auto'
+                if person_visible_side == 'auto':
+                    if has_toe_heel:
+                        right_orientation = person_X[Rtoe_idx] - person_X[RHeel_idx]
+                        left_orientation = person_X[Ltoe_idx] - person_X[LHeel_idx]
+                        global_orientation = right_orientation + left_orientation
+                        person_visible_side_frame = 'right' if global_orientation >= 0 else 'left'
+                    else:
+                        person_visible_side_frame = 'right'
+                elif person_visible_side in ['front', 'back']:
+                    person_visible_side_frame = person_visible_side
+                else:
+                    person_visible_side_frame = person_visible_side
+                
+                if person_visible_side_frame == 'right' or person_visible_side_frame == 'none':
+                    person_X_flipped = person_X.copy()
+                elif person_visible_side_frame == 'left':
+                    person_X_flipped = -person_X.copy()
+                elif person_visible_side_frame in ['front', 'back']:
+                    # Front: person's L side is on right of image (keep), R side is on left (negate)
+                    # Back: person's R side is on right of image (keep), L side is on left (negate)
+                    negate_prefix = 'R' if person_visible_side_frame == 'front' else 'L'
+                    person_X_flipped = person_X.copy()
+                    for k in keypoints_names:
+                        if k.startswith(negate_prefix):
+                            keypt_idx = keypoints_ids[keypoints_names.index(k)]
+                            person_X_flipped[keypt_idx] = -person_X_flipped[keypt_idx]
                 else:
                     person_X_flipped = person_X.copy()
                 
@@ -1890,17 +1887,17 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                             ang = np.nan
                         person_angles.append(ang)
                     
-                    # flip angles on the left side if flip_left_right false
-                    if len(visible_side) <= person_idx:
-                        visible_side += ['auto'] # set to 'auto' if list too short
-                    if visible_side[person_idx] == 'left' and not flip_left_right:
-                        person_angles_flipped = list(-np.array(person_angles))
-                    else:
-                        person_angles_flipped = person_angles.copy()
+                    # For front/back: negate joint angles on the non-X-negated body side
+                    if person_visible_side_frame == 'front':
+                        person_angles = [-ang if (ang_name.startswith('left') and angle_dict.get(ang_name, [None, 'horizontal'])[1] != 'horizontal') else ang
+                                        for ang, ang_name in zip(person_angles, angle_names)]
+                    elif person_visible_side_frame == 'back':
+                        person_angles = [-ang if (ang_name.startswith('right') and angle_dict.get(ang_name, [None, 'horizontal'])[1] != 'horizontal') else ang
+                                        for ang, ang_name in zip(person_angles, angle_names)]
 
                     valid_angles.append(person_angles)
-                    valid_angles_flipped.append(person_angles_flipped)
                     valid_X_flipped.append(person_X_flipped)
+                    valid_visible_sides.append(person_visible_side_frame)
                 valid_X.append(person_X)
                 valid_Y.append(person_Y)
                 valid_scores.append(person_scores)
@@ -1914,7 +1911,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 img = draw_keypts(img, valid_X, valid_Y, valid_scores, cmap_str='RdYlGn')
                 img = draw_skel(img, valid_X, valid_Y, pose_model)
                 if calculate_angles:
-                    img = draw_angles(img, valid_X, valid_Y, valid_angles_flipped, valid_X_flipped, new_keypoints_ids, new_keypoints_names, angle_names, display_angle_values_on=display_angle_values_on, colors=colors, fontSize=fontSize, thickness=thickness)
+                    img = draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, new_keypoints_ids, new_keypoints_names, angle_names, display_angle_values_on=display_angle_values_on, colors=colors, fontSize=fontSize, thickness=thickness, visible_sides=valid_visible_sides)
                 cv2.imshow(f'{video_file} Sports2D', img)
                 if (cv2.waitKey(1) & 0xFF) == ord('q') or (cv2.waitKey(1) & 0xFF) == 27:
                     break
@@ -2340,10 +2337,6 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             angles_path_person = angles_output_path.parent / (angles_output_path.stem + f'_person{i:02d}.mot')
             all_frames_angles_person = pd.DataFrame(all_frames_angles_homog[:,idx_person,:], columns=angle_names)
 
-            # Flip angles for left side when flip_left_right false
-            if new_visible_side[i] == 'left' and not flip_left_right: 
-                all_frames_angles_homog[:, idx_person, :] = -all_frames_angles_homog[:, idx_person, :]
-
             if not interpolate:
                 logging.info(f'- Person {i}: No interpolation.')
                 all_frames_angles_person_interp = all_frames_angles_person
@@ -2495,7 +2488,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             img = draw_keypts(img, all_frames_X_processed[i], all_frames_Y_processed[i], all_frames_scores_processed[i], cmap_str='RdYlGn')
             img = draw_skel(img, all_frames_X_processed[i], all_frames_Y_processed[i], pose_model_with_new_ids)
             if calculate_angles:
-                img = draw_angles(img, all_frames_X_processed[i], all_frames_Y_processed[i], all_frames_angles_processed[i], all_frames_X_flipped_processed[i], new_keypoints_ids, new_keypoints_names, angle_names, display_angle_values_on=display_angle_values_on, colors=colors, fontSize=fontSize, thickness=thickness)
+                img = draw_angles(img, all_frames_X_processed[i], all_frames_Y_processed[i], all_frames_angles_processed[i], all_frames_X_flipped_processed[i], new_keypoints_ids, new_keypoints_names, angle_names, display_angle_values_on=display_angle_values_on, colors=colors, fontSize=fontSize, thickness=thickness, visible_sides=new_visible_side)
 
             # Save video or images
             if save_vid:

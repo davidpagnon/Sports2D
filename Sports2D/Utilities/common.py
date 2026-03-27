@@ -36,45 +36,6 @@ __status__ = "Development"
 
 
 ## CONSTANTS
-# 4 points joint angle: between knee and ankle, and toe and heel. Add 90° offset and multiply by 1
-# 3 points joint angle: between ankle, knee, hip. -180° offset, multiply by -1
-# 2 points segment angle: between horizontal and ankle and knee, 0° offset, multiply by -1
-angle_dict = { # lowercase!
-    # joint angles
-    'right ankle': [['RKnee', 'RAnkle', 'RBigToe', 'RHeel'], 'dorsiflexion', 90, 1],
-    'left ankle': [['LKnee', 'LAnkle', 'LBigToe', 'LHeel'], 'dorsiflexion', 90, 1],
-    'right knee': [['RAnkle', 'RKnee', 'RHip'], 'flexion', -180, 1],
-    'left knee': [['LAnkle', 'LKnee', 'LHip'], 'flexion', -180, 1],
-    'right hip': [['RKnee', 'RHip', 'Hip', 'Neck'], 'flexion', 0, -1],
-    'left hip': [['LKnee', 'LHip', 'Hip', 'Neck'], 'flexion', 0, -1],
-    # 'lumbar': [['Neck', 'Hip', 'RHip', 'LHip'], 'flexion', -180, -1],
-    # 'neck': [['Head', 'Neck', 'RShoulder', 'LShoulder'], 'flexion', -180, -1],
-    'right shoulder': [['RElbow', 'RShoulder', 'Hip', 'Neck'], 'flexion', 0, -1],
-    'left shoulder': [['LElbow', 'LShoulder', 'Hip', 'Neck'], 'flexion', 0, -1],
-    'right elbow': [['RWrist', 'RElbow', 'RShoulder'], 'flexion', 180, -1],
-    'left elbow': [['LWrist', 'LElbow', 'LShoulder'], 'flexion', 180, -1],
-    'right wrist': [['RElbow', 'RWrist', 'RIndex'], 'flexion', -180, 1],
-    'left wrist': [['LElbow', 'LWrist', 'LIndex'], 'flexion', -180, 1],
-
-    # segment angles
-    'right foot': [['RBigToe', 'RHeel'], 'horizontal', 0, -1],
-    'left foot': [['LBigToe', 'LHeel'], 'horizontal', 0, -1],
-    'right shank': [['RAnkle', 'RKnee'], 'horizontal', 0, -1],
-    'left shank': [['LAnkle', 'LKnee'], 'horizontal', 0, -1],
-    'right thigh': [['RKnee', 'RHip'], 'horizontal', 0, -1],
-    'left thigh': [['LKnee', 'LHip'], 'horizontal', 0, -1],
-    'pelvis': [['LHip', 'RHip'], 'horizontal', 0, -1],
-    'trunk': [['Neck', 'Hip'], 'horizontal', 0, -1],
-    'shoulders': [['LShoulder', 'RShoulder'], 'horizontal', 0, -1],
-    'head': [['Head', 'Neck'], 'horizontal', 0, -1],
-    'right arm': [['RElbow', 'RShoulder'], 'horizontal', 0, -1],
-    'left arm': [['LElbow', 'LShoulder'], 'horizontal', 0, -1],
-    'right forearm': [['RWrist', 'RElbow'], 'horizontal', 0, -1],
-    'left forearm': [['LWrist', 'LElbow'], 'horizontal', 0, -1],
-    'right hand': [['RIndex', 'RWrist'], 'horizontal', 0, -1],
-    'left hand': [['LIndex', 'LWrist'], 'horizontal', 0, -1]
-    }
-
 marker_Z_positions = {'right':
                         {"RHip": 0.105, "RKnee": 0.0886, "RAnkle": 0.0972, "RBigToe":0.0766, "RHeel":0.0883, "RSmallToe": 0.1200, 
                         "RShoulder": 0.2016, "RElbow": 0.1613, "RWrist": 0.120, "RThumb": 0.1625, "RIndex": 0.1735, "RPinky": 0.1740, "REye": 0.0311, 
@@ -101,11 +62,6 @@ marker_Z_positions = {'right':
                         "Hip": -0.0301, "Neck": -0.0008, "Head": -0.0655, "Nose": -0.1076},
             }
 
-colors = [(255, 0, 0), (0, 0, 255), (255, 255, 0), (255, 0, 255), (0, 255, 255), (0, 0, 0), (255, 255, 255),
-            (125, 0, 0), (0, 125, 0), (0, 0, 125), (125, 125, 0), (125, 0, 125), (0, 125, 125), 
-            (255, 125, 125), (125, 255, 125), (125, 125, 255), (255, 255, 125), (255, 125, 255), (125, 255, 255), (125, 125, 125),
-            (255, 0, 125), (255, 125, 0), (0, 125, 255), (0, 255, 125), (125, 0, 255), (125, 255, 0), (0, 255, 0)]
-thickness = 1
 
 ## FUNCTIONS
 def to_dict(d):
