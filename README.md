@@ -472,7 +472,7 @@ sports2d --help
 'nb_persons_to_detect': ["n", "number of persons to detect. int or 'all'. 'all' if not specified"],
 'person_ordering_method': ["", "'on_click', 'highest_likelihood', 'largest_size', 'smallest_size', 'greatest_displacement', 'least_displacement', 'first_detected', or 'last_detected'. 'on_click' if not specified"],
 'first_person_height': ["H", "height of the reference person in meters. 1.65 if not specified. Not used if a calibration file is provided"],
-'visible_side': ["", "front, back, left, right, auto, or none. 'auto front none' if not specified. If 'auto', will be either left or right depending on the direction of the motion. If 'none', no IK for this person"],
+'visible_side': ["", "front, back, left, right, auto, or none. 'auto front none' if not specified. If 'auto', will be either left or right depending on the direction the foot points to (does not work when both feet point towards the direction opposite to the motion, eg broad jump). If 'none', no IK for this person"],
 'participant_mass': ["", "mass of the participant in kg or none. Defaults to 70 if not provided. No influence on kinematics (motion), only on kinetics (forces)"],
 'perspective_value': ["", "Either camera-to-person distance (m), or focal length (px), or field-of-view (degrees or radians), or '' if perspective_unit=='from_calib'"],
 'perspective_unit': ["", "'distance_m', 'f_px', 'fov_deg', 'fov_rad', or 'from_calib'"],
@@ -510,7 +510,6 @@ sports2d --help
 'feet_on_floor': ["", "offset marker augmentation results so that feet are at floor level. true if not specified"],
 'distortions': ["", "camera distortion coefficients [k1, k2, p1, p2, k3] or 'from_calib'. [0.0, 0.0, 0.0, 0.0, 0.0] if not specified"],
 'use_simple_model': ["", "IK 10+ times faster, but no muscles or flexible spine, no patella. false if not specified"],
-'close_to_zero_speed_m': ["","Sum for all keypoints: about 50 px/frame or 0.2 m/frame"], 
 'tracking_mode': ["", "'sports2d' or 'deepsort'. 'deepsort' is slower, harder to parametrize but can be more robust if correctly tuned"],
 'deepsort_params': ["", 'Deepsort tracking parameters: """{dictionary between 3 double quotes}""". \n\
                     Default: max_age:30, n_init:3, nms_max_overlap:0.8, max_cosine_distance:0.3, nn_budget:200, max_iou_distance:0.8, embedder_gpu: True\n\
@@ -525,7 +524,7 @@ sports2d --help
 'large_hip_knee_angles': ["", "Hip and knee angles below this value are considered as imprecise. Defaults to 45"],
 'trimmed_extrema_percent': ["", "Proportion of the most extreme segment values to remove before calculating their mean. Defaults to 50"],
 'fontSize': ["", "font size for angle values. 0.3 if not specified"],
-'flip_left_right': ["", "true or false. Flips angles when the person faces the other side. The person looks to the right if their toe keypoint is to the right of their heel. Set it to false if the person is sprinting or if you want timeseries to be continuous even when the participant switches their stance. true if not specified"],
+'flip_left_right': ["", "DEPRECATED. This parameter is ignored."],
 'correct_segment_angles_with_floor_angle': ["", "true or false. If the camera is tilted, corrects segment angles as regards to the floor angle. Set to false if it is actually the floor which is tilted, not the camera. True if not specified"],
 'interpolate': ["", "interpolate missing data. true if not specified"],
 'interp_gap_smaller_than': ["", "interpolate sequences of missing data if they are less than N frames long. 10 if not specified"],
@@ -551,7 +550,6 @@ sports2d --help
 'default_height': ["", "default height for scaling. 1.70 if not specified"],
 'remove_individual_scaling_setup': ["", "remove individual scaling setup files generated during scaling. true if not specified"],
 'remove_individual_ik_setup': ["", "remove individual IK setup files generated during IK. true if not specified"],
-'fastest_frames_to_remove_percent': ["", "Frames with high speed are considered as outliers. Defaults to 0.1"],
 'use_custom_logging': ["", "use custom logging. false if not specified"]
 ```
 
