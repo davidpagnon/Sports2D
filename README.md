@@ -4,6 +4,7 @@
 \
 [![Downloads](https://static.pepy.tech/badge/sports2d)](https://pepy.tech/project/sports2d)
 [![Stars](https://img.shields.io/github/stars/davidpagnon/sports2d)](https://github.com/davidpagnon/sports2d/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/davidpagnon/sports2d)](https://GitHub.com/davidpagnon/sports2d/forks)
 [![GitHub issues](https://img.shields.io/github/issues/davidpagnon/sports2d)](https://github.com/davidpagnon/sports2d/issues)
 [![GitHub issues-closed](https://img.shields.io/github/issues-closed/davidpagnon/sports2d)](https://GitHub.com/davidpagnon/sports2d/issues?q=is%3Aissue+is%3Aclosed)
 \
