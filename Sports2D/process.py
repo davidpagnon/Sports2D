@@ -887,9 +887,9 @@ def get_personIDs_with_greatest_displacement(all_frames_X_homog, all_frames_Y_ho
     max_dist_traveled = np.where(np.isinf(max_dist_traveled), 0, max_dist_traveled)
 
     if not reverse: # greatest to smallest displacement
-        max_dist_traveled = -max_dist_traveled
+        max_dist_traveled *= -1
     
-    selected_persons = (max_dist_traveled).argsort()[:nb_persons_to_detect]
+    selected_persons = max_dist_traveled.argsort()[:nb_persons_to_detect]
     
     return selected_persons
 
@@ -1276,9 +1276,9 @@ def get_distance_from_camera(perspective_value=10, perspective_unit='distance_m'
 
 
 def get_floor_params(floor_angle='auto', xy_origin=['auto'], 
-                     calib_file=None, height_px=1, height_m=1, 
+                     calib_file=None, height_px=170, height_m=1.7, 
                      fps=30, trc_data=pd.DataFrame(), score_data=pd.DataFrame(), toe_speed_below=1, score_threshold=0.5, 
-                     cam_width=1, cam_height=1):
+                     cam_width=1980, cam_height=1080):
     '''
     Compute the floor angle and the xy_origin based on calibration file, kinematics, or user input.
 
@@ -2246,6 +2246,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             D = [[0.0, 0.0, 0.0, 0.0]]
 
             # Intrinsics
+            # f = height_px/CORRECTION_2D_TO_3D / first_person_height * distance_m
             f = height_px / first_person_height * distance_m
             cu = cam_width/2
             cv = cam_height/2
@@ -2278,7 +2279,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     if visible_side_i == 'auto':
                         try:
                             if all(key in trc_data[i] for key in ['LBigToe', 'RBigToe']):
-                                _, _, gait_direction = compute_floor_line(trc_data[i], score_data[i], keypoint_names=['LBigToe', 'RBigToe'], score_threshold=keypoint_likelihood_threshold) # toe_speed_below=1 bu default 
+                                _, _, gait_direction = compute_floor_line(trc_data[i], score_data[i], keypoint_names=['LBigToe', 'RBigToe'], score_threshold=keypoint_likelihood_threshold) # toe_speed_below=1 m/s by default 
                             else:
                                 _, _, gait_direction = compute_floor_line(trc_data[i], score_data[i], keypoint_names=['LAnkle', 'RAnkle'], score_threshold=keypoint_likelihood_threshold)
                                 logging.warning(f'The RBigToe and LBigToe are missing from your model. Gait direction will be determined from the ankle points.')
