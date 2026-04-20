@@ -97,7 +97,8 @@ tracking_mode = 'sports2d' # 'sports2d' or 'deepsort'. 'deepsort' is slower, har
 keypoint_likelihood_threshold = 0.3 # Keypoints whose likelihood is lower will not be taken into account
 average_likelihood_threshold = 0.5  # Person will be ignored if average likelihood of good keypoints is lower than this value
 keypoint_number_threshold = 0.3     # Person will be ignored if the number of good keypoints (above keypoint_likelihood_threshold) is less than this fraction
-max_distance = 250  # in px or None # If a person is detected further than max_distance from its position on the previous frame, it will be considered as a new one
+max_distance = 250  # in px or None # Max distance a person can jump from their previous position before being considered as a new one
+max_unseen_time = 1.0 # Max number of seconds that a person can be unseen before the next person passing by is given a new ID
 
 
 [px_to_meters_conversion]
@@ -187,9 +188,7 @@ right_left_symmetry = true # true or false (lowercase) # Set to false only if yo
 
 # Choosing best frames to scale the model
 default_height = 1.7 # meters # If automatic height calculation did not work, this value is used to scale the model
-fastest_frames_to_remove_percent = 0.1 # Frames with high speed are considered as outliers
-slowest_frames_to_remove_percent = 0.2 # Frames with low speed are considered as outliers
-large_hip_knee_angles = 45 # Hip and knee angles below this value are considered as imprecise
+large_hip_knee_angles = 135 # Hip and knee angles beyond this value are considered as imprecise
 trimmed_extrema_percent = 0.5 # Proportion of the most extreme segment values to remove before calculating their mean)
 remove_individual_scaling_setup = true # true or false (lowercase) # If true, the individual scaling setup files are removed to avoid cluttering
 remove_individual_ik_setup = true # true or false (lowercase) # If true, the individual IK setup files are removed to avoid cluttering

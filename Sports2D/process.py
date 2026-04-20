@@ -1535,6 +1535,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     average_likelihood_threshold = config_dict.get('pose').get('average_likelihood_threshold')
     keypoint_number_threshold = config_dict.get('pose').get('keypoint_number_threshold')
     max_distance = config_dict.get('pose').get('max_distance', None)
+    max_unseen_time = config_dict.get('pose').get('max_unseen_time', 1.0)
 
     # Pixel to meters conversion
     to_meters = config_dict.get('px_to_meters_conversion').get('to_meters')
@@ -1618,10 +1619,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     participant_masses = config_dict.get('kinematics').get('participant_mass')
     participant_masses = participant_masses if isinstance(participant_masses, list) else [participant_masses]
     feet_on_floor = config_dict.get('kinematics').get('feet_on_floor')
-    fastest_frames_to_remove_percent = config_dict.get('kinematics').get('fastest_frames_to_remove_percent')
     large_hip_knee_angles = config_dict.get('kinematics').get('large_hip_knee_angles')
     trimmed_extrema_percent = config_dict.get('kinematics').get('trimmed_extrema_percent')
-    slowest_frames_to_remove_percent = config_dict.get('kinematics').get('slowest_frames_to_remove_percent')
     # Create a Pose2Sim dictionary and fill in missing keys
     recursivedict = lambda: defaultdict(recursivedict)
     Pose2Sim_config_dict = recursivedict()
@@ -1676,6 +1675,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         start_time = get_start_time_ffmpeg(video_file_path)
         frame_range = [int((time_range[0]-start_time) * frame_rate), int((time_range[1]-start_time) * frame_rate)] if time_range else [0, int(cap.get(cv2.CAP_PROP_FRAME_COUNT))]
         frame_iterator = tqdm(range(*frame_range)) # use a progress bar
+    max_unseen_frames = int(max_unseen_time * fps)
     if show_realtime_results:
         try: 
             screen_width, screen_height = get_screen_size()
@@ -1782,6 +1782,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             frame_count += 1
             continue
 
+        frames_since_last_seen = None
         for frame_nb in frame_iterator:
             start_time = datetime.now()
             success, frame = cap.read()
@@ -1848,7 +1849,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                         keypoints, scores = sort_people_deepsort(keypoints, scores, deepsort_tracker, frame, frame_count)
                     if tracking_mode == 'sports2d': 
                         if 'prev_keypoints' not in locals(): prev_keypoints = keypoints
-                        prev_keypoints, keypoints, scores = sort_people_sports2d(prev_keypoints, keypoints, scores=scores, max_dist=max_distance)
+                        prev_keypoints,  keypoints, scores, frames_since_last_seen = sort_people_sports2d(prev_keypoints, keypoints, scores=scores, max_dist=max_distance, max_unseen_frames=max_unseen_frames, frames_since_last_seen=frames_since_last_seen)
                     else:
                         pass
                     
@@ -2175,9 +2176,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             logging.info('\nConverting pose to meters:')
             
             # Compute height of the first person in pixels
-            height_px = CORRECTION_2D_TO_3D * compute_height(trc_data[0].iloc[:,1:], new_keypoints_names,
-                                        fastest_frames_to_remove_percent=fastest_frames_to_remove_percent, slowest_frames_to_remove_percent=slowest_frames_to_remove_percent, large_hip_knee_angles=large_hip_knee_angles, trimmed_extrema_percent=trimmed_extrema_percent)
-
+            height_px = CORRECTION_2D_TO_3D * compute_height(trc_data[0].iloc[:,1:], 
+                                                            large_hip_knee_angles=large_hip_knee_angles, trimmed_extrema_percent=trimmed_extrema_percent)
             # Compute distance from camera to compensate for perspective effects
             distance_m = get_distance_from_camera(perspective_value=perspective_value, perspective_unit=perspective_unit, 
                                                   calib_file=calib_file, height_px=height_px, height_m=first_person_height, 
@@ -2604,7 +2604,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 else:
                     # Provide missing data to Pose2Sim_config_dict
                     height_m_i = compute_height(trc_data_m_i.iloc[:,1:], keypoints_names,
-                        fastest_frames_to_remove_percent=fastest_frames_to_remove_percent, slowest_frames_to_remove_percent=slowest_frames_to_remove_percent, large_hip_knee_angles=large_hip_knee_angles, trimmed_extrema_percent=trimmed_extrema_percent)
+                                                large_hip_knee_angles=large_hip_knee_angles, trimmed_extrema_percent=trimmed_extrema_percent)
                     mass_i = participant_masses[i] if len(participant_masses)>i else DEFAULT_MASS
                     if len(participant_masses)<=i:
                         logging.warning(f'No mass provided. Using {DEFAULT_MASS} kg as default.')
