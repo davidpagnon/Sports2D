@@ -2603,8 +2603,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     logging.info(f'Skipping marker augmentation and inverse kinematics because visible_side is "none".')
                 else:
                     # Provide missing data to Pose2Sim_config_dict
-                    height_m_i = compute_height(trc_data_m_i.iloc[:,1:], keypoints_names,
-                                                large_hip_knee_angles=large_hip_knee_angles, trimmed_extrema_percent=trimmed_extrema_percent)
+                    height_m_i = compute_height(trc_data_m_i.iloc[:,1:], large_hip_knee_angles=large_hip_knee_angles, trimmed_extrema_percent=trimmed_extrema_percent)
                     mass_i = participant_masses[i] if len(participant_masses)>i else DEFAULT_MASS
                     if len(participant_masses)<=i:
                         logging.warning(f'No mass provided. Using {DEFAULT_MASS} kg as default.')
