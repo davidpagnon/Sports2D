@@ -149,7 +149,7 @@ reject_outliers = true  # Hampel filter for outlier rejection before other filte
 filter = true
 show_graphs = true         # Show plots of raw and processed results
 save_graphs = true         # Save position and angle plots of raw and processed results
-filter_type = 'butterworth'     # butterworth, kalman, gcv_spline, gaussian, loess, median, butterworth_on_speed
+filter_type = 'butterworth'     # butterworth, acc_minimizing, kalman, one_euro, gcv_spline, gaussian, LOESS, median, butterworth_on_speed
    
    # Most intuitive and standard filter in biomechanics
    [post-processing.butterworth]
@@ -162,20 +162,32 @@ filter_type = 'butterworth'     # butterworth, kalman, gcv_spline, gaussian, loe
    trust_ratio = 500 # = measurement_trust/process_trust ~= process_noise/measurement_noise
    smooth = true # should be true, unless you need real-time filtering
 
-   # Automatically determines optimal parameters for each point, which is good when some move faster than others (eg fingers vs hips).
-   [post-processing.gcv_spline]
-   gcv_cut_off_frequency = 'auto' # 'auto' or int # If int, behaves like a Butterworth filter. 'auto' is usually better, unless the signal is too short (noise can then be considered as signal -> trajectories not filtered)
-   gcv_smoothing_factor = 0.1 # >=0, ignored if cut_off_frequency != 'auto'. Biases results towards more smoothing (>1) or more fidelity to data (<1) 
+   # Simpler and even faster alternative to Kalman filter for real-time, but tends to blunt RoM. Similar to a 1st order Butterworth but with adaptive cut-off frequency. This one is zero-phase
+   [filtering.one_euro]
+   cut_off_frequency = 4 # Hz # cutoff frequency, similar to Butterworth but adapts to velocity (with beta)
+   beta = 1.5 # cutoff adaptation to velocity: cut_off_frequency = cut_off_frequency + beta*velocity
+   d_cut_off_frequency = 1.0 # Hz # cutoff frequency for derivative (1.0 is usually good)
 
-   [post-processing.loess]
+   # Automatically determines optimal parameters for each point, which is good when some move faster than others (eg fingers vs hips)
+   [filtering.gcv_spline]
+   cut_off_frequency = 'auto' # 'auto' or int # If int, behaves like a Butterworth filter. 'auto' is usually better, unless the signal is too short or you got a triangular wave + drift (eg pelvis Y coordinates of a subject walking uphill)
+   smoothing_factor = 1.0 # >=0, ignored if cut_off_frequency != 'auto'. Biases results towards more smoothing (>1) or more fidelity to data (<1) 
+
+   # Produces smooth velocities and accelerations, which is important for force estimations but blunts the peaks
+   # Recommended use: on IK rather than on triangulated data
+   # Whittaker-Henderson filter (acceleration-minimizing), inspired by AddBiomechanics
+   [filtering.acc_minimizing]
+   cut_off_frequency = 6 # Hz
+
+   [filtering.loess]
    nb_values_used = 5 # = fraction of data used * nb frames
-   [post-processing.gaussian]
+   [filtering.gaussian]
    sigma_kernel = 1 #px
-   [post-processing.median]
+   [filtering.median]
    kernel_size = 3
-   [post-processing.butterworth_on_speed]
-   order = 4 
+   [filtering.butterworth_on_speed]
    cut_off_frequency = 10 # Hz
+   order = 4
 
 
 [kinematics]
@@ -184,11 +196,14 @@ use_augmentation = false  # true or false (lowercase) # Set to true if you want 
 feet_on_floor = false # true or false (lowercase) # Set to false if you want to use the model with feet not on the floor (e.g. running, jumping, etc.)
 use_simple_model = false # true or false # IK 10+ times faster, but no muscles or flexible spine, no patella
 participant_mass = [55.0, 67.0] # kg # defaults to 70 if not provided. No influence on kinematics (motion), only on kinetics (forces)
-right_left_symmetry = true # true or false (lowercase) # Set to false only if you have good reasons to think the participant is not symmetrical (e.g. prosthetic limb)
+filter_ik = false # true or false # Useful for force estimations if results are noisy 
+ik_filter_type = 'acc_minimizing' # butterworth, acc_minimizing, kalman, one_euro, gcv_spline, gaussian, LOESS, median, butterworth_on_speed
+                               # see and edit the filtering parameters in the [filtering] section
 
-# Choosing best frames to scale the model
+right_left_symmetry = true # true or false (lowercase) # Set to false only if you have good reasons to think the participant is not symmetrical (e.g. prosthetic limb)
 default_height = 1.7 # meters # If automatic height calculation did not work, this value is used to scale the model
-large_hip_knee_angles = 135 # Hip and knee angles beyond this value are considered as imprecise
+# Choosing best frames to scale the model
+large_hip_knee_angles =90 # Hip and knee angles beyond this value are considered as imprecise
 trimmed_extrema_percent = 0.5 # Proportion of the most extreme segment values to remove before calculating their mean)
 remove_individual_scaling_setup = true # true or false (lowercase) # If true, the individual scaling setup files are removed to avoid cluttering
 remove_individual_ik_setup = true # true or false (lowercase) # If true, the individual IK setup files are removed to avoid cluttering

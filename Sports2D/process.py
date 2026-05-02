@@ -1580,10 +1580,14 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     filter_type = config_dict.get('post-processing').get('filter_type')
     butterworth_filter_order = config_dict.get('post-processing').get('butterworth', {}).get('order')
     butterworth_filter_cutoff = config_dict.get('post-processing').get('butterworth', {}).get('cut_off_frequency')
-    gcv_filter_cutoff = config_dict.get('post-processing').get('gcv_spline', {}).get('gcv_cut_off_frequency')
-    gcv_smoothing_factor = config_dict.get('post-processing').get('gcv_spline', {}).get('gcv_smoothing_factor')
     kalman_filter_trust_ratio = config_dict.get('post-processing').get('kalman', {}).get('trust_ratio')
     kalman_filter_smooth = config_dict.get('post-processing').get('kalman', {}).get('smooth')
+    oneeuro_filter_cutoff = config_dict.get('post-processing').get('one_euro', {}).get('oneeuro_cut_off_frequency')
+    oneeuro_beta = config_dict.get('post-processing').get('one_euro', {}).get('oneeuro_beta')
+    oneeuro_d_cut_off_frequency = config_dict.get('post-processing').get('one_euro', {}).get('oneeuro_d_cut_off_frequency')
+    gcv_filter_cutoff = config_dict.get('post-processing').get('gcv_spline', {}).get('gcv_cut_off_frequency')
+    gcv_smoothing_factor = config_dict.get('post-processing').get('gcv_spline', {}).get('gcv_smoothing_factor')
+    accminimizing_filter_cutoff = config_dict.get('post-processing').get('acc_minimizing', {}).get('accminimizing_cut_off_frequency')
     gaussian_filter_kernel = config_dict.get('post-processing').get('gaussian', {}).get('sigma_kernel')
     loess_filter_kernel = config_dict.get('post-processing').get('loess', {}).get('nb_values_used')
     median_filter_kernel = config_dict.get('post-processing').get('median', {}).get('kernel_size')
@@ -1649,12 +1653,16 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         Pose2Sim_config_dict['filtering']['reject_outliers'] = reject_outliers
         Pose2Sim_config_dict['filtering']['filter'] = do_filter
         Pose2Sim_config_dict['filtering']['type'] = filter_type
-        Pose2Sim_config_dict['filtering']['gcv_spline']['cut_off_frequency'] = gcv_filter_cutoff
-        Pose2Sim_config_dict['filtering']['gcv_spline']['smoothing_factor'] = gcv_smoothing_factor
         Pose2Sim_config_dict['filtering']['butterworth']['cut_off_frequency'] = butterworth_filter_cutoff
         Pose2Sim_config_dict['filtering']['butterworth']['order'] = butterworth_filter_order
         Pose2Sim_config_dict['filtering']['kalman']['trust_ratio'] = kalman_filter_trust_ratio
         Pose2Sim_config_dict['filtering']['kalman']['smooth'] = kalman_filter_smooth
+        Pose2Sim_config_dict['filtering']['one_euro']['cut_off_frequency'] = oneeuro_filter_cutoff
+        Pose2Sim_config_dict['filtering']['one_euro']['beta'] = oneeuro_beta
+        Pose2Sim_config_dict['filtering']['one_euro']['d_cut_off_frequency'] = oneeuro_d_cut_off_frequency
+        Pose2Sim_config_dict['filtering']['gcv_spline']['cut_off_frequency'] = gcv_filter_cutoff
+        Pose2Sim_config_dict['filtering']['gcv_spline']['smoothing_factor'] = gcv_smoothing_factor
+        Pose2Sim_config_dict['filtering']['acc_minimizing']['cut_off_frequency'] = accminimizing_filter_cutoff
         Pose2Sim_config_dict['filtering']['gaussian']['sigma_kernel'] = gaussian_filter_kernel
         Pose2Sim_config_dict['filtering']['loess']['nb_values_used'] = loess_filter_kernel
         Pose2Sim_config_dict['filtering']['median']['kernel_size'] = median_filter_kernel
@@ -2115,10 +2123,14 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     filt_type = 'Butterworth' if filter_type == 'butterworth' else 'Butterworth on speed'
                     args = f'{filt_type} filter, {butterworth_filter_order}th order, {butterworth_filter_cutoff} Hz.'
                     frame_rate = fps
-                elif filter_type == 'gcv_spline':
-                    args = f'GVC Spline filter, which automatically evaluates the best trade-off between smoothness and fidelity to data.'
                 elif filter_type == 'kalman':
                     args = f'Kalman filter, trusting measurement {kalman_filter_trust_ratio} times more than the process matrix.'
+                elif filter_type == 'one_euro':
+                    args = f'One-Euro filter, with {oneeuro_filter_cutoff} Hz cut-off frequency, {oneeuro_beta} cutoff adaptation to velocity, and {oneeuro_d_cut_off_frequency} Hz cutoff frequency for derivatives.'
+                elif filter_type == 'gcv_spline':
+                    args = f'GVC Spline filter, which automatically evaluates the best trade-off between smoothness and fidelity to data.'
+                elif filter_type == 'acc_minimizing':
+                    args = f'Acceleration-minimizing filter, with {accminimizing_filter_cutoff} Hz cut-off frequency.'
                 elif filter_type == 'gaussian':
                     args = f'Gaussian filter, Sigma kernel {gaussian_filter_kernel}.'
                 elif filter_type == 'loess':
@@ -2446,10 +2458,14 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     filt_type = 'Butterworth' if filter_type == 'butterworth' else 'Butterworth on speed'
                     args = f'{filt_type} filter, {butterworth_filter_order}th order, {butterworth_filter_cutoff} Hz.'
                     frame_rate = fps
-                elif filter_type == 'gcv_spline':
-                    args = f'GVC Spline filter, which automatically evaluates the best trade-off between smoothness and fidelity to data.'
                 elif filter_type == 'kalman':
                     args = f'Kalman filter, trusting measurement {kalman_filter_trust_ratio} times more than the process matrix.'
+                elif filter_type == 'one_euro':
+                    args = f'One-Euro filter, with {oneeuro_filter_cutoff} Hz cut-off frequency, {oneeuro_beta} cutoff adaptation to velocity, and {oneeuro_d_cut_off_frequency} Hz cutoff frequency for derivatives.'
+                elif filter_type == 'gcv_spline':
+                    args = f'GVC Spline filter, which automatically evaluates the best trade-off between smoothness and fidelity to data.'
+                elif filter_type == 'acc_minimizing':
+                    args = f'Acceleration-minimizing filter, with {accminimizing_filter_cutoff} Hz cut-off frequency.'
                 elif filter_type == 'gaussian':
                     args = f'Gaussian filter, Sigma kernel {gaussian_filter_kernel}.'
                 elif filter_type == 'loess':
