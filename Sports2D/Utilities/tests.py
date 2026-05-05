@@ -108,6 +108,7 @@ def test_workflow():
     # With a time range, inverse kinematics, marker augmentation, perspective value in fov
     demo_cmd4 = ["sports2d", "--person_ordering_method", "greatest_displacement", "--show_realtime_results", "False", "--show_graphs", "False", "--save_graphs", "False",
                  "--time_range", "1.2", "2.7",
+                 "--pose_model", "lower_body",
                  "--perspective_value", "40", "--perspective_unit", "fov_deg",
                  "--do_ik", "True", "--use_augmentation", "True", 
                  "--nb_persons_to_detect", "all", "--first_person_height", "1.65",
