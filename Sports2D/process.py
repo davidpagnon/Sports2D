@@ -1694,7 +1694,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
     # Select the appropriate model based on the model_type
     logging.info('\nEstimating pose...')
     pose_model_name = pose_model
-    pose_model, ModelClass, mode = setup_model_class_mode(pose_model, mode, config_dict)
+    skeleton_model, ModelClass, mode = setup_model_class_mode(pose_model, mode, config_dict)
     
     # Select device and backend
     backend, device = setup_backend_device(backend=backend, device=device)
@@ -1711,7 +1711,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
         keypoints_ids = [i for i in range(len(keypoints_names))]
         keypoints_all, scores_all = load_pose_file(Q_coords)
 
-        for pre, _, node in RenderTree(pose_model):
+        for pre, _, node in RenderTree(skeleton_model):
             if node.name in keypoints_names:
                 node.id = keypoints_names.index(node.name)
         if time_range:
@@ -1722,8 +1722,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
     
     else:
         # Retrieve keypoint names from model
-        keypoints_ids = [node.id for _, _, node in RenderTree(pose_model) if node.id!=None]
-        keypoints_names = [node.name for _, _, node in RenderTree(pose_model) if node.id!=None]
+        keypoints_ids = [node.id for _, _, node in RenderTree(skeleton_model) if node.id!=None]
+        keypoints_names = [node.name for _, _, node in RenderTree(skeleton_model) if node.id!=None]
         t0 = 0
         tf = (cap.get(cv2.CAP_PROP_FRAME_COUNT)-1) / fps if cap.get(cv2.CAP_PROP_FRAME_COUNT)>0 else float('inf')
         kpt_id_max = max(keypoints_ids)+1
@@ -1909,11 +1909,11 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
 
 
 
-                # Add Neck and Hip if not provided
+                # Add Shoulder, Neck and Hip if not provided
                 new_keypoints_names, new_keypoints_ids = keypoints_names.copy(), keypoints_ids.copy()
-                for kpt in ['Hip', 'Neck']:
+                for kpt in ['RShoulder', 'LShoulder', 'Hip', 'Neck']:
                     if kpt not in new_keypoints_names:
-                        person_X, person_Y, person_scores = add_neck_hip_coords(kpt, person_X, person_Y, person_scores, new_keypoints_ids, new_keypoints_names)
+                        person_X, person_Y, person_scores = add_shoulder_neck_hip_coords(kpt, person_X, person_Y, person_scores, new_keypoints_ids, new_keypoints_names)
                         new_keypoints_names.append(kpt)
                         new_keypoints_ids.append(len(person_X)-1)
 
@@ -1942,7 +1942,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
                 cv2.putText(img, f"Press 'q' to stop", (cam_width-int(600*fontSize), cam_height-20), cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (0,0,255), thickness, cv2.LINE_AA)
                 img = draw_bounding_box(img, valid_X, valid_Y, colors=colors, fontSize=fontSize, thickness=thickness)
                 img = draw_keypts(img, valid_X, valid_Y, valid_scores, cmap_str='RdYlGn')
-                img = draw_skel(img, valid_X, valid_Y, pose_model)
+                img = draw_skel(img, valid_X, valid_Y, skeleton_model)
                 if calculate_angles:
                     img = draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, new_keypoints_ids, new_keypoints_names, angle_names, display_angle_values_on=display_angle_values_on, colors=colors, fontSize=fontSize, thickness=thickness, visible_sides=valid_visible_sides)
                 cv2.imshow(f'{video_file} Sports2D', img)
@@ -2532,14 +2532,14 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
             all_frames_angles_processed = all_frames_angles_processed[:,selected_persons,:]
 
         # Reorder keypoints ids
-        pose_model_with_new_ids = copy.deepcopy(pose_model)
+        skeleton_model_with_new_ids = copy.deepcopy(skeleton_model)
         new_id = 0
-        for node in PreOrderIter(pose_model_with_new_ids):
+        for node in PreOrderIter(skeleton_model_with_new_ids):
             if node.id!=None:
                 node.id = new_id
                 new_id+=1
-        max_id = max(node.id for node in PreOrderIter(pose_model_with_new_ids) if node.id is not None)
-        for node in PreOrderIter(pose_model_with_new_ids):
+        max_id = max(node.id for node in PreOrderIter(skeleton_model_with_new_ids) if node.id is not None)
+        for node in PreOrderIter(skeleton_model_with_new_ids):
             if node.id==None:
                 node.id = max_id+1
                 max_id+=1
@@ -2558,7 +2558,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
             img = frame.copy()
             img = draw_bounding_box(img, all_frames_X_processed[i], all_frames_Y_processed[i], colors=colors, fontSize=fontSize, thickness=thickness)
             img = draw_keypts(img, all_frames_X_processed[i], all_frames_Y_processed[i], all_frames_scores_processed[i], cmap_str='RdYlGn')
-            img = draw_skel(img, all_frames_X_processed[i], all_frames_Y_processed[i], pose_model_with_new_ids)
+            img = draw_skel(img, all_frames_X_processed[i], all_frames_Y_processed[i], skeleton_model_with_new_ids)
             if calculate_angles:
                 img = draw_angles(img, all_frames_X_processed[i], all_frames_Y_processed[i], all_frames_angles_processed[i], all_frames_X_flipped_processed[i], new_keypoints_ids, new_keypoints_names, angle_names, display_angle_values_on=display_angle_values_on, colors=colors, fontSize=fontSize, thickness=thickness, visible_sides=new_visible_side)
 

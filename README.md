@@ -496,7 +496,7 @@ sports2d --help
 'calculate_angles': ["c", "calculate joint and segment angles. true if not specified"],
 'save_angles': ["A", "save angles as mot files. true if not specified"],
 'slowmo_factor': ["", "slow-motion factor. For a video recorded at 240 fps and exported to 30 fps, it would be 240/30 = 8. 1 if not specified"],
-'pose_model': ["p", "body_with_feet, whole_body_wrist, whole_body, or body. body_with_feet if not specified"],
+'pose_model': ["p", "body_with_feet, whole_body_wrist, whole_body, lower_body, body, hand, face, animal. body_with_feet if not specified"],
 'mode': ["m", 'light, balanced, performance, or a """{dictionary within triple quote}""". balanced if not specified. Use a dictionary to specify your own detection and/or pose estimation models (more about in the documentation).'],
 'det_frequency': ["f", "run person detection only every N frames, and inbetween track previously detected bounding boxes. keypoint detection is still run on all frames.\n\
                   Equal to or greater than 1, can be as high as you want in simple uncrowded cases. Much faster, but might be less accurate. 1 if not specified: detection runs on all frames"],
