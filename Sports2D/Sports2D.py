@@ -520,16 +520,25 @@ def process(config='Config_demo.toml'):
     else:
         config_dict = read_config_file(config)
     video_dir, video_files, frame_rates, time_ranges, result_dir = base_params(config_dict)
-    use_custom_logging = config_dict.get('logging').get('use_custom_logging')
-        
     result_dir.mkdir(parents=True, exist_ok=True)
-    if not use_custom_logging: 
-        with open(result_dir / 'logs.txt', 'a+') as log_f: pass
-        logging.basicConfig(format='%(message)s', level=logging.INFO, force=True, 
-            handlers = [logging.handlers.TimedRotatingFileHandler(result_dir / 'logs.txt', when='D', interval=7), logging.StreamHandler()]) 
+    use_custom_logging = config_dict.get('logging').get('use_custom_logging')
     
     for video_file, time_range, frame_rate in zip(video_files, time_ranges, frame_rates):
+        # Create output directory
         currentDateAndTime = datetime.now()
+        if video_file == "webcam":
+            current_date = currentDateAndTime.strftime("%Y%m%d_%H%M%S")
+            output_dir = result_dir / f'webcam_{current_date}_Sports2D'
+        else:
+            output_dir = result_dir / f'{video_file.stem}_Sports2D'    
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        # Set up logging
+        if not use_custom_logging: 
+            log_file_path = output_dir / 'logs.txt'
+            logging.basicConfig(format='%(message)s', level=logging.INFO, force=True, 
+                handlers = [logging.handlers.TimedRotatingFileHandler(log_file_path, when='D', interval=7), logging.StreamHandler()]) 
+
         time_range_str = f' from {time_range[0]} to {time_range[1]} seconds' if time_range else ''
 
         logging.info("\n\n---------------------------------------------------------------------")
@@ -537,7 +546,7 @@ def process(config='Config_demo.toml'):
         logging.info(f"On {currentDateAndTime.strftime('%A %d. %B %Y, %H:%M:%S')}")
         logging.info("---------------------------------------------------------------------")
 
-        process_fun(config_dict, video_file, time_range, frame_rate, result_dir)
+        process_fun(config_dict, video_file, time_range, frame_rate, output_dir)
 
         elapsed_time = (datetime.now() - currentDateAndTime).total_seconds()
         logging.info(f'\nProcessing {video_file} took {elapsed_time:.2f} s.')

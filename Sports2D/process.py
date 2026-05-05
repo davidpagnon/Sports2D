@@ -1429,7 +1429,7 @@ def convert_px_to_meters(Q_coords_kpt, first_person_height, height_px, distance_
     return Q_coords_kpt_m
 
 
-def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
+def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
     '''
     Detect 2D joint centers from a video or a webcam with RTMLib.
     Compute selected joint and segment angles. 
@@ -1598,13 +1598,11 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     if video_file == "webcam":
         current_date = datetime.now().strftime("%Y%m%d_%H%M%S")
         video_file_stem = f'webcam_{current_date}'
-        output_dir_name = f'{video_file_stem}_Sports2D'
-        video_file_path = result_dir / output_dir_name / f'webcam_{current_date}_raw.mp4'
+        video_file_path = output_dir / f'{video_file_stem}_raw.mp4'
     else:
         video_file_stem = video_file.stem
-        output_dir_name = f'{video_file_stem}_Sports2D'    
         video_file_path = video_dir / video_file
-    output_dir = result_dir / output_dir_name
+    output_dir_name = output_dir.stem
     plots_output_dir = output_dir / f'{output_dir_name}_graphs'
     img_output_dir = output_dir / f'{output_dir_name}_img'
     vid_output_path = output_dir / f'{output_dir_name}.mp4'
