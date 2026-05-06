@@ -1650,6 +1650,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
     
     if do_filter or filter_ik:
         Pose2Sim_config_dict['personAssociation']['handle_LR_swap'] = handle_LR_swap
+        Pose2Sim_config_dict['filtering']['display_figures'] = show_plots
+        Pose2Sim_config_dict['filtering']['save_filt_plots'] = save_plots
         Pose2Sim_config_dict['filtering']['reject_outliers'] = reject_outliers
         Pose2Sim_config_dict['filtering']['filter'] = do_filter
         Pose2Sim_config_dict['filtering']['type'] = filter_type

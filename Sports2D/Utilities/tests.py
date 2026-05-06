@@ -88,14 +88,16 @@ def test_workflow():
     subprocess.run(demo_cmd, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace')
 
     # With loading a trc file, visible_side 'front', first_person_height '1.76", floor_angle 0, xy_origin [0, 928]
-    demo_cmd2 = ["sports2d", "--show_realtime_results", "False", "--show_graphs", "False", "--save_graphs", "False",
+    demo_cmd2 = ["sports2d", "--show_realtime_results", "False", "--show_graphs", "False", 
+                 "--save_graphs", "False", "--save_img", "False", "--save_vid", "False",
                  "--load_trc_px", os.path.join(root_dir, "demo_Sports2D", "demo_Sports2D_px_person01.trc"),
                  "--visible_side", "front", "--first_person_height", "1.76", "--time_range", "1.2", "2.7",
                  "--floor_angle", "0", "--xy_origin", "0", "928"]
     subprocess.run(demo_cmd2, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace')
 
     # With no pixels to meters conversion, one person to select, lightweight mode, detection frequency, slowmo factor, gaussian filter, RTMO body pose model
-    demo_cmd3 = ["sports2d", "--show_realtime_results", "False", "--show_graphs", "False", "--save_graphs", "False",
+    demo_cmd3 = ["sports2d", "--show_realtime_results", "False", "--show_graphs", "False", 
+                 "--save_graphs", "False", "--save_img", "False", "--save_vid", "False",
                  "--floor_angle", "from_calib", "--xy_origin", "from_calib", "--perspective_unit", "from_calib", "--calib_file", os.path.join(root_dir, "demo_Sports2D", "demo_Sports2D_calib.toml"), 
                  "--nb_persons_to_detect", "1", "--person_ordering_method", "greatest_displacement", 
                  "--mode", "lightweight", "--det_frequency", "50", 
@@ -106,7 +108,8 @@ def test_workflow():
     subprocess.run(demo_cmd3, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace')
     
     # With a time range,  perspective value in fov, marker augmentation, inverse kinematics, IK filtering
-    demo_cmd4 = ["sports2d", "--person_ordering_method", "greatest_displacement", "--show_realtime_results", "False", "--show_graphs", "False", "--save_graphs", "False",
+    demo_cmd4 = ["sports2d", "--person_ordering_method", "greatest_displacement", "--show_realtime_results", "False", "--show_graphs", "False", 
+                 "--save_graphs", "False", "--save_img", "False", "--save_vid", "False",
                  "--time_range", "1.2", "2.7",
                  "--pose_model", "lower_body",
                  "--perspective_value", "40", "--perspective_unit", "fov_deg",
