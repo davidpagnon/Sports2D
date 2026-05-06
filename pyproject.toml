@@ -34,7 +34,7 @@ classifiers = [
 urls = {Homepage = "https://github.com/davidpagnon/Sports2D", "Bug Tracker" = "https://github.com/davidpagnon/Sports2D/issues"}
 dependencies = [
     "imageio_ffmpeg",
-    "Pose2Sim @ git+https://github.com/perfanalytics/Pose2Sim.git@670bc7c7cceb502f02258e91240c33b1c488257f"
+    "Pose2Sim @ git+https://github.com/perfanalytics/Pose2Sim.git@05b3da257096cb9349ad23915ebc50b8483a9f56"
     # "Pose2Sim>=0.10.43"
 ]
 

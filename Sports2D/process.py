@@ -1591,8 +1591,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
     gaussian_filter_kernel = config_dict.get('post-processing').get('gaussian', {}).get('sigma_kernel')
     loess_filter_kernel = config_dict.get('post-processing').get('loess', {}).get('nb_values_used')
     median_filter_kernel = config_dict.get('post-processing').get('median', {}).get('kernel_size')
-    butterworthspeed_filter_order = config_dict.get('post-processing').get('butterworth_on_speed', {}).get('order')
-    butterworthspeed_filter_cutoff = config_dict.get('post-processing').get('butterworth_on_speed', {}).get('cut_off_frequency')
+    butterworthspeed_filter_order = config_dict.get('post-processing').get('butterworth_on_speed', {}).get('butterspeed_order')
+    butterworthspeed_filter_cutoff = config_dict.get('post-processing').get('butterworth_on_speed', {}).get('butterspeed_cut_off_frequency')
 
     # Create output directories
     if video_file == "webcam":
@@ -1617,6 +1617,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
 
     # Inverse kinematics settings
     do_ik = config_dict.get('kinematics').get('do_ik')
+    filter_ik = config_dict.get('kinematics').get('filter_ik')
+    ik_filter_type = config_dict.get('kinematics').get('ik_filter_type')
     use_augmentation = config_dict.get('kinematics').get('use_augmentation')
     participant_masses = config_dict.get('kinematics').get('participant_mass')
     participant_masses = participant_masses if isinstance(participant_masses, list) else [participant_masses]
@@ -1646,7 +1648,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
         kinematics_dir = Path(output_dir) / 'kinematics'
         kinematics_dir.mkdir(parents=True, exist_ok=True)
     
-    if do_filter:
+    if do_filter or filter_ik:
         Pose2Sim_config_dict['personAssociation']['handle_LR_swap'] = handle_LR_swap
         Pose2Sim_config_dict['filtering']['reject_outliers'] = reject_outliers
         Pose2Sim_config_dict['filtering']['filter'] = do_filter
@@ -1655,12 +1657,12 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
         Pose2Sim_config_dict['filtering']['butterworth']['order'] = butterworth_filter_order
         Pose2Sim_config_dict['filtering']['kalman']['trust_ratio'] = kalman_filter_trust_ratio
         Pose2Sim_config_dict['filtering']['kalman']['smooth'] = kalman_filter_smooth
-        Pose2Sim_config_dict['filtering']['one_euro']['oneeuro_cut_off_frequency'] = oneeuro_filter_cutoff
-        Pose2Sim_config_dict['filtering']['one_euro']['oneeuro_beta'] = oneeuro_beta
-        Pose2Sim_config_dict['filtering']['one_euro']['oneeuro_d_cut_off_frequency'] = oneeuro_d_cut_off_frequency
-        Pose2Sim_config_dict['filtering']['gcv_spline']['gcv_cut_off_frequency'] = gcv_filter_cutoff
-        Pose2Sim_config_dict['filtering']['gcv_spline']['gcv_smoothing_factor'] = gcv_smoothing_factor
-        Pose2Sim_config_dict['filtering']['acc_minimizing']['accminimizing_cut_off_frequency'] = accminimizing_filter_cutoff
+        Pose2Sim_config_dict['filtering']['one_euro']['cut_off_frequency'] = oneeuro_filter_cutoff
+        Pose2Sim_config_dict['filtering']['one_euro']['beta'] = oneeuro_beta
+        Pose2Sim_config_dict['filtering']['one_euro']['d_cut_off_frequency'] = oneeuro_d_cut_off_frequency
+        Pose2Sim_config_dict['filtering']['gcv_spline']['cut_off_frequency'] = gcv_filter_cutoff
+        Pose2Sim_config_dict['filtering']['gcv_spline']['smoothing_factor'] = gcv_smoothing_factor
+        Pose2Sim_config_dict['filtering']['acc_minimizing']['cut_off_frequency'] = accminimizing_filter_cutoff
         Pose2Sim_config_dict['filtering']['gaussian']['sigma_kernel'] = gaussian_filter_kernel
         Pose2Sim_config_dict['filtering']['loess']['nb_values_used'] = loess_filter_kernel
         Pose2Sim_config_dict['filtering']['median']['kernel_size'] = median_filter_kernel
@@ -2642,6 +2644,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
                     logging.warning(f'Skipping inverse kinematics because save_angles or calculate_angles is set to False.')
                 else:
                     logging.info('Running inverse kinematics...')
+                    Pose2Sim_config_dict['kinematics']['filter_ik'] = filter_ik
+                    Pose2Sim_config_dict['kinematics']['ik_filter_type'] = ik_filter_type
                     kinematics_all(Pose2Sim_config_dict)
                     for mot_file in kinematics_dir.glob('*.mot'):
                         if (mot_file.parent/(mot_file.stem+'_ik.mot')).exists():
@@ -2652,9 +2656,11 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
             # Move all files in pose-3d and kinematics to the output_dir
             osim.Logger.removeFileSink()
             for directory in [pose3d_dir, kinematics_dir]:
-                for file in directory.glob('*'):
-                    if (output_dir/file.name).exists():
-                        os.remove(output_dir/file.name)
-                    shutil.move(file, output_dir)
-            pose3d_dir.rmdir()
-            kinematics_dir.rmdir()
+                for item in directory.glob('*'):
+                    if item.is_file():
+                        shutil.move(item, output_dir / item.name)
+                    elif item.is_dir():
+                        for sub_item in item.glob('*'):
+                            shutil.move(sub_item, plots_output_dir / sub_item.name)
+            shutil.rmtree(pose3d_dir, ignore_errors=True)
+            shutil.rmtree(kinematics_dir, ignore_errors=True)

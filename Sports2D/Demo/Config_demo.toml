@@ -192,8 +192,11 @@ filter_type = 'butterworth'     # butterworth, acc_minimizing, kalman, one_euro,
 
 
 [kinematics]
-do_ik = false # Do scaling and inverse kinematics?
 use_augmentation = false  # true or false (lowercase) # Set to true if you want to use the model with augmented markers
+do_ik = false # Do scaling and inverse kinematics?
+filter_ik = false # true or false # Useful for force estimations if results are noisy 
+ik_filter_type = 'acc_minimizing' # butterworth, acc_minimizing, kalman, one_euro, gcv_spline, gaussian, LOESS, median, butterworth_on_speed
+                               # see and edit the filtering parameters in the [filtering] section
 feet_on_floor = false # true or false (lowercase) # Set to false if you want to use the model with feet not on the floor (e.g. running, jumping, etc.)
 use_simple_model = false # true or false # IK 10+ times faster, but no muscles or flexible spine, no patella
 participant_mass = [55.0, 67.0] # kg # defaults to 70 if not provided. No influence on kinematics (motion), only on kinetics (forces)
