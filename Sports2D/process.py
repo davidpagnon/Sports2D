@@ -1619,18 +1619,19 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
     do_ik = config_dict.get('kinematics').get('do_ik')
     filter_ik = config_dict.get('kinematics').get('filter_ik')
     ik_filter_type = config_dict.get('kinematics').get('ik_filter_type')
-    use_augmentation = config_dict.get('kinematics').get('use_augmentation')
+    do_augmentation = config_dict.get('kinematics').get('do_augmentation')
+    if not do_augmentation: do_augmentation = config_dict.get('kinematics').get('use_augmentation') # for backward compatibility with older config files
     participant_masses = config_dict.get('kinematics').get('participant_mass')
     participant_masses = participant_masses if isinstance(participant_masses, list) else [participant_masses]
     feet_on_floor = config_dict.get('kinematics').get('feet_on_floor')
-    large_hip_knee_angles = config_dict.get('kinematics').get('large_hip_knee_angles')
-    trimmed_extrema_percent = config_dict.get('kinematics').get('trimmed_extrema_percent')
+    large_hip_knee_angles = config_dict.get('kinematics').get('large_hip_knee_angles', 90)
+    trimmed_extrema_percent = config_dict.get('kinematics').get('trimmed_extrema_percent', 50)
     # Create a Pose2Sim dictionary and fill in missing keys
     recursivedict = lambda: defaultdict(recursivedict)
     Pose2Sim_config_dict = recursivedict()
-    if do_ik or use_augmentation:
+    if do_ik or do_augmentation:
         try:
-            if use_augmentation:
+            if do_augmentation:
                 from Pose2Sim.markerAugmentation import augment_markers_all
             if do_ik:
                 from Pose2Sim.kinematics import kinematics_all
@@ -1640,7 +1641,9 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
         
         # Fill Pose2Sim dictionary (height and mass will be filled later)
         Pose2Sim_config_dict['project']['project_dir'] = str(output_dir)
+        Pose2Sim_config_dict['markerAugmentation']['feet_on_floor'] = feet_on_floor
         Pose2Sim_config_dict['markerAugmentation']['make_c3d'] = make_c3d
+        Pose2Sim_config_dict['project']['multi_person'] = True # Required to run parallel kinematic optimization
         Pose2Sim_config_dict['kinematics'] = config_dict.get('kinematics')
         # Temporarily recreate Pose2Sim file hierarchy
         pose3d_dir = Path(output_dir) / 'pose-3d'
@@ -2588,7 +2591,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
     #%% ==================================================
     # OpenSim inverse kinematics (and optional marker augmentation)
     # ====================================================
-    if do_ik or use_augmentation:
+    if do_ik or do_augmentation:
         import opensim as osim
         logging.info('\nPost-processing angles (with inverse kinematics):')
         if not to_meters:
@@ -2607,9 +2610,9 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
             heights_m, masses = [], []
             for i in range(len(trc_data_m)):
                 trc_data_m_i = trc_data_m[i]
-                if do_ik and not use_augmentation:
-                    logging.info(f'- Person {i}: Running scaling and inverse kinematics without marker augmentation. Set use_augmentation to True if you need it.') 
-                elif not do_ik and use_augmentation:
+                if do_ik and not do_augmentation:
+                    logging.info(f'- Person {i}: Running scaling and inverse kinematics without marker augmentation. Set do_augmentation to True if you need it.') 
+                elif not do_ik and do_augmentation:
                     logging.info(f'- Person {i}: Running marker augmentation without inverse kinematics. Set do_ik to True if you need it.')
                 else:
                     logging.info(f'- Person {i}: Running marker augmentation and inverse kinematics.')
@@ -2631,13 +2634,12 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
             Pose2Sim_config_dict['project']['participant_height'] = heights_m
             Pose2Sim_config_dict['project']['participant_mass'] = masses
             Pose2Sim_config_dict['project']['frame_range'] = 'all'
-            Pose2Sim_config_dict['markerAugmentation']['feet_on_floor'] = feet_on_floor
             Pose2Sim_config_dict['pose']['pose_model'] = pose_model_name.upper()
             Pose2Sim_config_dict = to_dict(Pose2Sim_config_dict)
 
             # Marker augmentation
-            if use_augmentation:
-                logging.info('Running marker augmentation...')
+            if do_augmentation:
+                logging.info('\nRunning marker augmentation...')
                 augment_markers_all(Pose2Sim_config_dict)
                 logging.info(f'Augmented trc results saved to {pose3d_dir.resolve()}.\n')
 

@@ -224,7 +224,7 @@ The Demo video is voluntarily challenging to demonstrate the robustness of the p
 2. **Visualize point coordinates:**\
    **File -> Preview experimental data:** Open your trc file (e.g., `coords_m.trc`) from your `result_dir` folder.
 3. **Visualize angles:**\
-   To open an animated model and run further biomechanical analysis, make sure you first set `--do_ik True` ([full install](#full-install) required). See [inverse kinematics](#run-inverse-kinematics) section for more details. 
+   To open an animated model and run further biomechanical analysis, make sure you first set `--do_ik True`. See [inverse kinematics](#run-inverse-kinematics) section for more details. 
    - **File -> Open Model:** Open your scaled model (e.g., `Model_Pose2Sim_LSTM.osim`).
    - **File -> Load Motion:** Open your motion file (e.g., `angles.mot`).
 
@@ -342,8 +342,8 @@ Optionally again, you can [visualize the overlaid results in Blender](#visualize
 
 ```cmd
 sports2d --time_range 1.2 2.7 `
-         --do_ik true --first_person_height 1.65 --visible_side left front `
-         --use_augmentation True --participant_mass 55.0 67.0 `
+         --do_augmentation True --do_ik true `
+         --participant_mass 55.0 67.0 --first_person_height 1.65 --visible_side left front `
          --calib_file Calib_demo.toml
 ```
 
@@ -480,7 +480,7 @@ sports2d --help
 'participant_mass': ["", "mass of the participant in kg or none. Defaults to 70 if not provided. No influence on kinematics (motion), only on kinetics (forces)"],
 'perspective_value': ["", "Either camera-to-person distance (m), or focal length (px), or field-of-view (degrees or radians), or '' if perspective_unit=='from_calib'"],
 'perspective_unit': ["", "'distance_m', 'f_px', 'fov_deg', 'fov_rad', or 'from_calib'"],
-'use_augmentation': ["", "Use LSTM marker augmentation. false if not specified"],
+'do_augmentation': ["", "Use LSTM marker augmentation. false if not specified"],
 'do_ik': ["", "do inverse kinematics. false if not specified"],
 'filter_ik': ["", "Useful for force estimations if results are noisy. false if not specified"],
 'ik_filter_type': ["", "'acc_minimizing', 'butterworth', 'kalman', 'one_euro', 'gcv_spline', 'gaussian', 'loess', 'median', or 'butterworth_on_speed'. 'acc_minimizing' if not specified"],

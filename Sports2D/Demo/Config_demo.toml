@@ -192,7 +192,7 @@ filter_type = 'butterworth'     # butterworth, acc_minimizing, kalman, one_euro,
 
 
 [kinematics]
-use_augmentation = false  # true or false (lowercase) # Set to true if you want to use the model with augmented markers
+do_augmentation = false  # true or false (lowercase) # Set to true if you want to use the model with augmented markers
 do_ik = false # Do scaling and inverse kinematics?
 filter_ik = false # true or false # Useful for force estimations if results are noisy 
 ik_filter_type = 'acc_minimizing' # butterworth, acc_minimizing, kalman, one_euro, gcv_spline, gaussian, LOESS, median, butterworth_on_speed
@@ -204,11 +204,12 @@ participant_mass = [55.0, 67.0] # kg # defaults to 70 if not provided. No influe
 # ik_filter_type = 'acc_minimizing' # butterworth, acc_minimizing, kalman, one_euro, gcv_spline, gaussian, LOESS, median, butterworth_on_speed
 #                                # see and edit the filtering parameters in the [filtering] section
 
+parallel_workers_kinematics = 'auto' # 'auto', int, or false # One worker per person, uses CPU. Only available in multi-person mode
 right_left_symmetry = true # true or false (lowercase) # Set to false only if you have good reasons to think the participant is not symmetrical (e.g. prosthetic limb)
 default_height = 1.7 # meters # If automatic height calculation did not work, this value is used to scale the model
 # Choosing best frames to scale the model
 large_hip_knee_angles =90 # Hip and knee angles beyond this value are considered as imprecise
-trimmed_extrema_percent = 0.5 # Proportion of the most extreme segment values to remove before calculating their mean)
+trimmed_extrema_percent = 50 # Proportion of the most extreme segment values to remove before calculating their mean)
 remove_individual_scaling_setup = true # true or false (lowercase) # If true, the individual scaling setup files are removed to avoid cluttering
 remove_individual_ik_setup = true # true or false (lowercase) # If true, the individual IK setup files are removed to avoid cluttering
 

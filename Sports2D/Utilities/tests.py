@@ -104,7 +104,7 @@ def test_workflow():
                  "--mode", "lightweight", "--det_frequency", "50", 
                  "--slowmo_factor", "4",
                  "--filter_type", "acc_minimizing", "--accminimizing_cut_off_frequency", "4",
-                "--use_augmentation", "False", "--do_ik", "False",
+                "--do_augmentation", "False", "--do_ik", "False",
                  "--pose_model", "body", "--mode", """{'pose_class':'RTMO', 'pose_model':'https://download.openmmlab.com/mmpose/v1/projects/rtmo/onnx_sdk/rtmo-m_16xb16-600e_body7-640x640-39e78cc4_20231211.zip', 'pose_input_size':[640, 640]}"""]
     subprocess.run(demo_cmd3, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace')
     
@@ -114,7 +114,7 @@ def test_workflow():
                  "--time_range", "1.2", "2.7",
                  "--pose_model", "lower_body",
                  "--perspective_value", "40", "--perspective_unit", "fov_deg",
-                 "--use_augmentation", "True", 
+                 "--do_augmentation", "True", 
                  "--do_ik", "True", "--filter_ik", "True", "--ik_filter_type", "acc_minimizing", "--accminimizing_cut_off_frequency", "4",
                  "--nb_persons_to_detect", "all", "--first_person_height", "1.65",
                  "--visible_side", "auto", "front", "--participant_mass", "55.0", "67.0"]
