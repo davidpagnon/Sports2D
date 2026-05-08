@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=45", "wheel", "setuptools-scm"] # PEP 508 specs
+requires = ["setuptools>=45", "setuptools-scm"] # PEP 508 specs
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -13,7 +13,7 @@ maintainers = [
 ]
 description = "Compute 2D human pose and angles from a video or a webcam."
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 keywords = ["markerless", "kinematics", "OpenPose", "OpenSim", "Mocap", "biomechanics", "sports coaching", "pose estimation", "joint angles", "sports analytics", "kinovea"]
 license = "BSD-3-Clause"
 license-files = ["LICENSE"]
@@ -34,11 +34,14 @@ classifiers = [
 urls = {Homepage = "https://github.com/davidpagnon/Sports2D", "Bug Tracker" = "https://github.com/davidpagnon/Sports2D/issues"}
 dependencies = [
     "imageio_ffmpeg",
-    "Pose2Sim @ git+https://github.com/perfanalytics/Pose2Sim.git@05b3da257096cb9349ad23915ebc50b8483a9f56"
-    # "Pose2Sim>=0.10.43"
+    "Pose2Sim @ git+https://github.com/perfanalytics/Pose2Sim.git@eb052dc00a6213004d9fca0ff3f735def8a1f7cb"
+    # "Pose2Sim>=0.10.44"
 ]
 
-[tool.setuptools_scm]
+[project.optional-dependencies]
+gui = ["PySide6"] # install with pip install -e .[gui] or pip install pose2sim[gui]
+
+[tool.setuptools_scm] # automatically generate version from git tags
 
 [tool.setuptools]
 packages = {find = {}}

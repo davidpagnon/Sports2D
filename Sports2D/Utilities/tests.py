@@ -84,7 +84,8 @@ def test_workflow():
     #############################
 
     # Default
-    demo_cmd = ["sports2d", "--person_ordering_method", "highest_likelihood", "--show_realtime_results", "False", "--show_graphs", "False", "--save_graphs", "False"]
+    demo_cmd = ["sports2d", "--person_ordering_method", "highest_likelihood", 
+                "--show_realtime_results", "False", "--show_graphs", "False", "--save_graphs", "False"]
     subprocess.run(demo_cmd, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace')
 
     # With loading a trc file, visible_side 'front', first_person_height '1.76", floor_angle 0, xy_origin [0, 928]
@@ -103,7 +104,7 @@ def test_workflow():
                  "--mode", "lightweight", "--det_frequency", "50", 
                  "--slowmo_factor", "4",
                  "--filter_type", "acc_minimizing", "--accminimizing_cut_off_frequency", "4",
-                 "--use_augmentation", "False",
+                "--use_augmentation", "False", "--do_ik", "False",
                  "--pose_model", "body", "--mode", """{'pose_class':'RTMO', 'pose_model':'https://download.openmmlab.com/mmpose/v1/projects/rtmo/onnx_sdk/rtmo-m_16xb16-600e_body7-640x640-39e78cc4_20231211.zip', 'pose_input_size':[640, 640]}"""]
     subprocess.run(demo_cmd3, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace')
     

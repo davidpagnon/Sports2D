@@ -27,6 +27,7 @@
 </br>
 
 > **`Announcements:`**
+> - Easier, lighter, faster installation, with marker augmentation and inverse kinematics available by default! **New in v0.8.31!**
 > - Compensate for floor angle, floor height, depth perspective effects, generate a calibration file **New in v0.8.25!** 
 > - Select only the persons you want to analyze **New in v0.8!** 
 > - MarkerAugmentation and Inverse Kinematics for accurate 3D motion with OpenSim. **New in v0.7!** 
@@ -37,9 +38,9 @@
 > - Better visualization output 
 > - More flexible, easier to run
 >
-> Run `pip install sports2d pose2sim -U` to get the latest version.
+> Run `uv pip install sports2d --upgrade` to get the latest version.
 
-***N.B.:*** As always, I am more than happy to welcome contributions (see [How to contribute](#how-to-contribute-and-to-do-list))!
+***N.B.:*** If you want to contribute to Sports2D or Pose2Sim, please see [How to contribute](#how-to-contribute-and-to-do-list) or join the Discord community! [![Discord](https://img.shields.io/discord/1183750225471492206?logo=Discord&label=Discord%20community)](https://discord.com/invite/4mXUdSFjmt)
 <!--User-friendly Colab version released! (and latest issues fixed, too)\
 Works on any smartphone!**\
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://bit.ly/Sports2D_Colab)-->
@@ -66,9 +67,7 @@ If you need 3D research-grade markerless joint kinematics, consider using severa
 ## Contents
 1. [Installation and Demonstration](#installation-and-demonstration)
    1. [Test it on Hugging face](#test-it-on-hugging-face)
-   1. [Local installation](#local-installation)
-      1. [Quick install](#quick-install)
-      2. [Full install](#full-install)
+   1. [Installation](#installation)
    2. [Demonstration](#demonstration)
       1. [Run the demo](#run-the-demo)
       2. [Visualize in OpenSim](#visualize-in-opensim)
@@ -103,7 +102,7 @@ Test an online, limited version [on Hugging Face](https://huggingface.co/spaces/
 
 
 
-### Local installation
+### Installation
 
 <!--- OPTION 0: **Use Colab** \
   User-friendly (but full) version, also works on a phone or a tablet.\
@@ -113,48 +112,61 @@ Test an online, limited version [on Hugging Face](https://huggingface.co/spaces/
   
 -->
 
-#### Quick install
+> N.B.: If you'd rather use conda, you can still use the old [installation procedure](https://github.com/davidpagnon/Sports2D/tree/d3f28aacfa939416aba335e08cf1ae435c88cd80#full-install). Still works fine but not recommended, since uv is faster, lighter, better at handling dependencies, and generally more modern. 
 
-> N.B.: Full install is required for OpenSim inverse kinematics.
+<br>
 
-Open a terminal. Type `python -V` to make sure python >=3.10 <=3.12 is installed. If not, install it [from there](https://www.python.org/downloads/). 
-
-Run:
-``` cmd
-pip install sports2d
+***N.B.:*** If you have already installed Pose2Sim, skip the installation step. \
+Just activate your pose2sim environment (see [here](#1-set-up-a-uv-environment)) and run:
 ```
-
-Alternatively, build from source to test the last changes:
-``` cmd
-git clone https://github.com/davidpagnon/sports2d.git
-cd sports2d
-pip install .
+uv pip install sports2d --upgrade
 ```
 
 <br>
 
-#### Full install
+#### 1. Set up a uv environment:
 
-> **N.B.:** Only needed if you want to run inverse kinematics (`--do_ik True`).\
-> **N.B.:** If you already have a Pose2Sim conda environment, you can skip this step. Just run `conda activate Pose2Sim` and `pip install sports2d`.
+  Open a terminal (conda, powershell, bash, or zsh).
 
-- Install Anaconda or [Miniconda](https://docs.conda.io/en/latest/miniconda.html):\
-  Open an Anaconda prompt and create a virtual environment:
-  ``` cmd
-  conda create -n Sports2D python=3.12 -y
-  conda activate Sports2D
-  ```
-- **Install OpenSim**:\
-  Install the OpenSim Python API (if you do not want to install via conda, refer [to this page](https://opensimconfluence.atlassian.net/wiki/spaces/OpenSim/pages/53085346/Scripting+in+Python#ScriptinginPython-SettingupyourPythonscriptingenvironment(ifnotusingconda))):
-    ```
-    conda install -c opensim-org opensim -y
-    ```
-   
-- **Install Sports2D with Pose2Sim**:
-  ``` cmd
-  pip install sports2d
+  *On Windows:*
+  ``` powershell
+    # Install uv
+    powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+    # Create uv environment
+    uv venv "$env:USERPROFILE\.venv\pose2sim" --python 3.13 # or 3.11, or 3.13 
+    # Activate the uv environment
+    & "$env:USERPROFILE\.venv\pose2sim\Scripts\Activate.ps1"
   ```
 
+  *On Linux or MacOS:*
+  ``` bash
+    # Install uv
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    # Create uv environment
+    uv venv ~/.venv/pose2sim --python 3.13 # or 3.11, or 3.13 
+    # Activate the uv environment
+    source ~/.venv/pose2sim/bin/activate
+  ```
+
+***Pro Tip:*** Remembering the command for activating the uv environment can be a pain. Just type **Ctrl+R** in your terminal and start typing `venv` to find it.
+
+<br>
+
+#### 2. Install Sports2D:
+
+   Open a terminal (*conda, powershell, bash, or zsh*).\
+   Activate your environment (see [here](#1-set-up-a-uv-environment)).
+
+   - OPTION 1: **Latest stable version:** 
+       ``` cmd
+       uv pip install sports2d --upgrade
+       ```
+   - OPTION 2: **For developers who want to test and edit the bleeding edge version:**
+       ``` cmd
+       git clone --depth 1 https://github.com/davidpagnon/sports2d.git
+       cd sports2d
+       uv pip install -e .
+       ```
 
 <br>
 
@@ -162,16 +174,14 @@ pip install .
 
 #### Run the demo:
 
-Just open a command line and run:
+Open a terminal (*conda, powershell, bash, or zsh*), activate your environment (see [here](#1-set-up-a-uv-environment)), and run:
 ``` cmd
 sports2d
 ```
 
 You should see the joint positions and angles being displayed in real time.
 
-Check the folder where you run that command line to find the resulting `video`, `images`, `TRC pose` and `MOT angle` files (which can be opened with any spreadsheet software), and `logs`.
-
-***Important:*** If you ran the conda install, you first need to activate the environment: run `conda activate sports2d` in the Anaconda prompt.
+Check the folder where you run that command line to find the resulting files: `video`, pose `TRC`, angle `MOT` (which can be opened with any spreadsheet software), scaled `OSIM` OpenSim model, and `logs`.
 
 <img src="Content/Demo_results.png" width="760">
 <img src="Content/Demo_plots.png" width="760">
@@ -198,7 +208,6 @@ The Demo video is voluntarily challenging to demonstrate the robustness of the p
    **OpenSim data -> Markers**: Open your trc file(e.g., `demo_Sports2D_m_person00.trc`) from your `result_dir` folder.\
    This will optionally create **an animated rig** based on the motion of the captured person.
 3. **Open your animated skeleton:**\
-   Make sure you first set `--do_ik True` ([full install](#full-install) required). See [inverse kinematics](#run-inverse-kinematics) section for more details.
    - **OpenSim data -> Model**: Open your scaled model (e.g., `demo_Sports2D_m_person00_LSTM.osim`). 
    - **OpenSim data -> Motion**: Open your motion file (e.g., `demo_Sports2D_m_person00_LSTM_ik.mot`). 
 
@@ -229,6 +238,7 @@ The Demo video is voluntarily challenging to demonstrate the robustness of the p
 
 For a full list of the available parameters, see [this section](#all-the-parameters) of the documentation, check the [Config_Demo.toml](https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Demo/Config_demo.toml) file, or type `sports2d --help`. All non specified are set to default values.
 
+***N.B.:*** Remember to first activate your environment (see [here](#1-set-up-a-uv-environment)).
 <br>
 
 
@@ -312,14 +322,12 @@ sports2d --first_person_height 1.65 `
 
 
 #### Run inverse kinematics:
-> N.B.: [Full install](#full-install) required.
-
-> **N.B.:** The person needs to be moving on a single plane for the whole selected time range.
+> **N.B.:** The persons need to be moving on a single plane for the whole selected time range.
 
 OpenSim inverse kinematics allows you to set joint constraints, joint angle limits, to constrain the bones to keep the same length all along the motion and potentially to have equal sizes on left and right side. Most generally, it gives more biomechanically accurate results. It can also give you the opportunity to compute joint torques, muscle forces, ground reaction forces, and more, [with MoCo](https://opensim-org.github.io/opensim-moco-site/) for example.
 
 This is done via [Pose2Sim](https://github.com/perfanalytics/pose2sim).\
-Model scaling is done according to the mean of the segment lengths, across a subset of frames. We remove the 10% fastest frames (potential outliers), the frames where the speed is 0 (person probably out of frame), the frames where the average knee and hip flexion angles are above 45° (pose estimation is not precise when the person is crouching) and the 20% most extreme segment values after the previous operations (potential outliers). All these parameters can be edited in your Config.toml file.
+Model scaling is done according to the mean of the segment lengths, across a subset of frames. We remove the frames where the average knee and hip flexion angles are above 90° (pose estimation is not precise when the person is crouching) and the 50% most extreme segment values after the previous operations (potential outliers). These parameters can be edited in your Config.toml file.
 
 **N.B.: This will not work on sections where the person is not moving in a single plane. You can split your video into several time ranges if needed.**
 
@@ -364,7 +372,7 @@ sports2d --video_input demo.mp4 other_video.mp4 --time_range 1.2 2.7 0 3.5
   ``` cmd
   sports2d --config Config_demo.toml
   ```
-- Run within Python, for example:\
+- Run within Python, for example:
   - Edit `Demo/Config_demo.toml` and run:
     ```python
     from Sports2D import Sports2D
@@ -407,18 +415,13 @@ sports2d --video_input demo.mp4 other_video.mp4 --time_range 1.2 2.7 0 3.5
   ```cmd
   sports2d --calculate_angles false
   ```
-- Flip angles when the person faces the other side.\
-  **N.B.: Set to false when sprinting.** *We consider that each limb "looks" to the right if the toe keypoint is to the right of the heel one. This is not always true, particularly during the swing phase of sprinting. Set it to false if you want timeseries to be continuous even when the participant switches their stance.*
-  ```cmd
-  sports2d --flip_left_right true # Default
-  ```
 - Correct segment angles according to the estimated camera tilt angle.\
   **N.B.:** *The camera tilt angle is automatically estimated. Set to false if it is actually the floor which is tilted rather than the camera.*
   ```cmd
   sports2d --correct_segment_angles_with_floor_angle true # Default
   ```
 
-- To run **inverse kinematics with OpenSim**, check [this section](#run-inverse-kinematics)
+- To run optimized **inverse kinematics with OpenSim**, check [this section](#run-inverse-kinematics)
 
 <br>
 

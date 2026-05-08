@@ -44,9 +44,7 @@ jobs:
         run: |
           uv venv
           uv pip install flake8 pytest
-          uv pip install opensim
           uv pip install git+https://github.com/${{ github.repository }}.git@${{ github.sha }}
-          # uv pip install torch torchvision
       
       - name: Lint with flake8
         run: |
