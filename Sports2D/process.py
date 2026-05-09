@@ -1732,7 +1732,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
         keypoints_ids = [node.id for _, _, node in RenderTree(skeleton_model) if node.id!=None]
         keypoints_names = [node.name for _, _, node in RenderTree(skeleton_model) if node.id!=None]
         t0 = 0
-        tf = (cap.get(cv2.CAP_PROP_FRAME_COUNT)-1) / fps if cap.get(cv2.CAP_PROP_FRAME_COUNT)>0 else float('inf')
+        tf = (cap.get(cv2.CAP_PROP_FRAME_COUNT)-1) / fps if cap.get(cv2.CAP_PROP_FRAME_COUNT)>0 else sys.maxsize
         kpt_id_max = max(keypoints_ids)+1
 
         # Set up pose tracker

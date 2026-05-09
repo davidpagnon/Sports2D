@@ -98,6 +98,8 @@ If you need 3D research-grade markerless joint kinematics, consider using severa
 
 Test an online, limited version [on Hugging Face](https://huggingface.co/spaces/DavidPagnon/sports2d): [![Hugging Face Space](https://img.shields.io/badge/HuggingFace-Sports2D-yellow?logo=huggingface)](https://huggingface.co/spaces/DavidPagnon/sports2d)
 
+Now runs marker augmentation and inverse kinematics, too!
+
 <img src="Content/huggingface_demo.png" width="760">
 
 <br>
