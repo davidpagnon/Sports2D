@@ -100,7 +100,7 @@ Test an online, limited version [on Hugging Face](https://huggingface.co/spaces/
 
 <img src="Content/huggingface_demo.png" width="760">
 
-
+<br>
 
 ### Installation
 
@@ -133,7 +133,7 @@ uv pip install sports2d --upgrade
     # Install uv
     powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
     # Create uv environment
-    uv venv "$env:USERPROFILE\.venv\pose2sim" --python 3.13 # or 3.11, or 3.13 
+    uv venv "$env:USERPROFILE\.venv\pose2sim" --python 3.13 # or 3.11, or 3.12 
     # Activate the uv environment
     & "$env:USERPROFILE\.venv\pose2sim\Scripts\Activate.ps1"
   ```
@@ -143,7 +143,7 @@ uv pip install sports2d --upgrade
     # Install uv
     curl -LsSf https://astral.sh/uv/install.sh | sh
     # Create uv environment
-    uv venv ~/.venv/pose2sim --python 3.13 # or 3.11, or 3.13 
+    uv venv ~/.venv/pose2sim --python 3.13 # or 3.11, or 3.12 
     # Activate the uv environment
     source ~/.venv/pose2sim/bin/activate
   ```
