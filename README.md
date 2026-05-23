@@ -1,4 +1,3 @@
-
 [![Continuous integration](https://github.com/davidpagnon/sports2d/actions/workflows/continuous-integration.yml/badge.svg?branch=main)](https://github.com/davidpagnon/sports2d/actions/workflows/continuous-integration.yml)
 [![PyPI version](https://badge.fury.io/py/Sports2D.svg)](https://badge.fury.io/py/Sports2D)
 \
@@ -64,7 +63,7 @@ If you need 3D research-grade markerless joint kinematics, consider using severa
 <!--`Know issue`: Results won't be good with some iPhone videos in portrait mode (unless you are working on Colab). This is solved by priorly converting them with `ffmpeg -i video_input.mov video_output.mp4`, or even more simply with any random online video converter such as https://video-converter.com.-->
 
 
-## Contents
+# Contents
 1. [Installation and Demonstration](#installation-and-demonstration)
    1. [Test it on Hugging face](#test-it-on-hugging-face)
    1. [Installation](#installation)
@@ -91,10 +90,10 @@ If you need 3D research-grade markerless joint kinematics, consider using severa
 
 <br>
 
-## Installation and Demonstration
+# Installation and Demonstration
 
 
-### Test it on Hugging face
+## Test it on Hugging face
 
 Test an online, limited version [on Hugging Face](https://huggingface.co/spaces/DavidPagnon/sports2d): [![Hugging Face Space](https://img.shields.io/badge/HuggingFace-Sports2D-yellow?logo=huggingface)](https://huggingface.co/spaces/DavidPagnon/sports2d)
 
@@ -104,7 +103,7 @@ Now runs marker augmentation and inverse kinematics, too!
 
 <br>
 
-### Installation
+## Installation
 
 <!--- OPTION 0: **Use Colab** \
   User-friendly (but full) version, also works on a phone or a tablet.\
@@ -126,7 +125,7 @@ uv pip install sports2d --upgrade
 
 <br>
 
-#### 1. Set up a uv environment:
+### 1. Set up a uv environment:
 
   Open a terminal (conda, powershell, bash, or zsh).
 
@@ -154,7 +153,7 @@ uv pip install sports2d --upgrade
 
 <br>
 
-#### 2. Install Sports2D:
+### 2. Install Sports2D:
 
    Open a terminal (*conda, powershell, bash, or zsh*).\
    Activate your environment (see [here](#1-set-up-a-uv-environment)).
@@ -172,9 +171,9 @@ uv pip install sports2d --upgrade
 
 <br>
 
-### Demonstration
+## Demonstration
 
-#### Run the demo:
+### Run the demo:
 
 Open a terminal (*conda, powershell, bash, or zsh*), activate your environment (see [here](#1-set-up-a-uv-environment)), and run:
 ``` cmd
@@ -198,7 +197,7 @@ The Demo video is voluntarily challenging to demonstrate the robustness of the p
 <br>
 
 
-#### Visualize in Blender
+### Visualize in Blender
 
 1. **Install the Pose2Sim_Blender add-on.**\
    Follow instructions on the [Pose2Sim_Blender](https://github.com/davidpagnon/Pose2Sim_Blender) add-on page.
@@ -220,7 +219,7 @@ The Demo video is voluntarily challenging to demonstrate the robustness of the p
 <br>
 
 
-#### Visualize in OpenSim
+### Visualize in OpenSim
 
 1. Install **[OpenSim GUI](https://simtk.org/frs/index.php?group_id=91)**.
 2. **Visualize point coordinates:**\
@@ -236,7 +235,7 @@ The Demo video is voluntarily challenging to demonstrate the robustness of the p
 
 
 
-### Play with the parameters
+## Play with the parameters
 
 For a full list of the available parameters, see [this section](#all-the-parameters) of the documentation, check the [Config_Demo.toml](https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Demo/Config_demo.toml) file, or type `sports2d --help`. All non specified are set to default values.
 
@@ -244,7 +243,7 @@ For a full list of the available parameters, see [this section](#all-the-paramet
 <br>
 
 
-#### Run on a custom video or on a webcam:
+### Run on a custom video or on a webcam:
 ``` cmd
 sports2d --video_input path_to_video.mp4
 ```
@@ -255,7 +254,7 @@ sports2d --video_input webcam
 
 <br>
 
-#### Run for a specific time range:
+### Run for a specific time range:
 ```cmd
 sports2d --time_range 1.2 2.7
 ```
@@ -263,7 +262,7 @@ sports2d --time_range 1.2 2.7
 <br>
 
 
-#### Select the persons you are interested in:
+### Select the persons you are interested in:
 If you only want to analyze a subset of the detected persons, you can use the `--nb_persons_to_detect` and `--person_ordering_method` parameters. The order matters if you want to [convert coordinates in meters](#get-coordinates-in-meters) or [run inverse kinematics](#run-inverse-kinematics). 
 
 
@@ -287,7 +286,7 @@ sports2d --person_ordering_method on_click
 <br>
 
 
-#### Get coordinates in meters: 
+### Get coordinates in meters: 
 > **N.B.:** The Z coordinate (depth) should not be overly trusted. 
 
 To convert from pixels to meters, you need a minima the height of a participant. Better results can be obtained by also providing an information on depth. The camera horizon angle and the floor height are generally automatically estimated. **N.B.: A calibration file will be generated.** 
@@ -323,7 +322,7 @@ sports2d --first_person_height 1.65 `
 <br>
 
 
-#### Run inverse kinematics:
+### Run inverse kinematics:
 > **N.B.:** The persons need to be moving on a single plane for the whole selected time range.
 
 OpenSim inverse kinematics allows you to set joint constraints, joint angle limits, to constrain the bones to keep the same length all along the motion and potentially to have equal sizes on left and right side. Most generally, it gives more biomechanically accurate results. It can also give you the opportunity to compute joint torques, muscle forces, ground reaction forces, and more, [with MoCo](https://opensim-org.github.io/opensim-moco-site/) for example.
@@ -352,7 +351,7 @@ sports2d --time_range 1.2 2.7 `
 <br>
 
 
-#### Run on several videos at once:
+### Run on several videos at once:
 ``` cmd
 sports2d --video_input demo.mp4 other_video.mp4
 ```
@@ -368,7 +367,7 @@ sports2d --video_input demo.mp4 other_video.mp4 --time_range 1.2 2.7 0 3.5
 <br>
 
 
-#### Use the configuration file or run within Python:
+### Use the configuration file or run within Python:
 
 - Run with a configuration file:
   ``` cmd
@@ -403,7 +402,7 @@ sports2d --video_input demo.mp4 other_video.mp4 --time_range 1.2 2.7 0 3.5
 <br>
 
 
-#### Get the angles the way you want:
+### Get the angles the way you want:
 
 - Choose which angles you need:
   ```cmd
@@ -428,7 +427,7 @@ sports2d --video_input demo.mp4 other_video.mp4 --time_range 1.2 2.7 0 3.5
 <br>
 
 
-#### Customize your output:
+### Customize your output:
 - Choose whether you want video, images, trc pose file, angle mot file, real-time display, and plots:
   ```cmd
   sports2d --save_vid false --save_img true `
@@ -443,7 +442,7 @@ sports2d --video_input demo.mp4 other_video.mp4 --time_range 1.2 2.7 0 3.5
 <br>
 
 
-#### Use a custom pose estimation model:
+### Use a custom pose estimation model:
 - Retrieve hand motion:
   ``` cmd
   sports2d --pose_model whole_body 
@@ -462,7 +461,7 @@ sports2d --video_input demo.mp4 other_video.mp4 --time_range 1.2 2.7 0 3.5
 <br>
 
 
-#### All the parameters
+### All the parameters
 
 For a full list of the available parameters, have a look at the [Config_Demo.toml](https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Demo/Config_demo.toml) file or type:
 
@@ -567,9 +566,9 @@ sports2d --help
 <br>
 
 
-## Go further
+# Go further
 
-### Too slow for you?
+## Too slow for you?
 
 **Quick fixes:**
 - Use ` --save_vid false --save_img false --show_realtime_results false`: Will not save images or videos, and will not display the results in real time. 
@@ -636,7 +635,7 @@ VIDEO THERE
 
 
 
-### How it works
+## How it works
 
 Sports2D:
 - Detects 2D joint centers from a video or a webcam with RTMLib.
@@ -706,9 +705,9 @@ Angles are measured anticlockwise between the horizontal and the segment.
 
 <br> 
 
-## How to cite and how to contribute
+# How to cite and how to contribute
 
-### How to cite
+## How to cite
 If you use Sports2D, please cite [Pagnon, 2024](https://joss.theoj.org/papers/10.21105/joss.06849).
 
      @article{Pagnon_Sports2D_Compute_2D_2024,
@@ -725,7 +724,7 @@ If you use Sports2D, please cite [Pagnon, 2024](https://joss.theoj.org/papers/10
      }
      
 
-### How to contribute
+## How to contribute
 I would happily welcome any proposal for new features, code improvement, and more!\
 If you want to contribute to Sports2D or Pose2Sim, please see [this issue](https://github.com/perfanalytics/pose2sim/issues/40).\
 You will be proposed a to-do list, but please feel absolutely free to propose your own ideas and improvements.

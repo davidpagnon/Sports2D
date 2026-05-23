@@ -1948,7 +1948,10 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
                 cv2.putText(img, f"Press 'q' to stop", (cam_width-int(600*fontSize), cam_height-20), cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (255,255,255), thickness+1, cv2.LINE_AA)
                 cv2.putText(img, f"Press 'q' to stop", (cam_width-int(600*fontSize), cam_height-20), cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (0,0,255), thickness, cv2.LINE_AA)
                 img = draw_bounding_box(img, valid_X, valid_Y, colors=colors, fontSize=fontSize, thickness=thickness)
-                img = draw_keypts(img, valid_X, valid_Y, valid_scores, cmap_str='RdYlGn')
+                try:
+                    img = draw_keypts(img, valid_X, valid_Y, valid_scores, cmap_str='RdYlGn')
+                except:
+                    pass
                 img = draw_skel(img, valid_X, valid_Y, skeleton_model)
                 if calculate_angles:
                     img = draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, new_keypoints_ids, new_keypoints_names, angle_names, display_angle_values_on=display_angle_values_on, colors=colors, fontSize=fontSize, thickness=thickness, visible_sides=valid_visible_sides)
