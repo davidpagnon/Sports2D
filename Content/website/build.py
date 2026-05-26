@@ -339,10 +339,10 @@ HTML_TEMPLATE = """\
                 <a href="https://perfanalytics.github.io/pose2sim/#pose2sim" 
                    class="docs-switch" title="Pose2Sim documentation">Pose2Sim</a>
                 <span class="docs-switch-sep">|</span>
-                <a href="https://davidpagnon.github.io/Sports2D/"
+                <a href="https://davidpagnon.github.io/Sports2D/#sports2d"
                    class="docs-switch active" title="Sports2D documentation">Sports2D</a>
                 <span class="docs-switch-sep">|</span>
-                <a href="https://davidpagnon.github.io/Pose2Sim_Blender/"
+                <a href="https://davidpagnon.github.io/Pose2Sim_Blender/#pose2sim-blender"
                    class="docs-switch" title="Pose2Sim Blender add-on documentation">Blender add-on</a>
             </div>
             <div class="theme-toggle">
