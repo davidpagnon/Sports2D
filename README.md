@@ -13,6 +13,7 @@
 \
 [![Discord](https://img.shields.io/discord/1183750225471492206?logo=Discord&label=Discord%20community)](https://discord.com/invite/4mXUdSFjmt)
 [![Hugging Face Space](https://img.shields.io/badge/HuggingFace-Sports2D-yellow?logo=huggingface)](https://huggingface.co/spaces/DavidPagnon/sports2d)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/davidpagnon/Sports2D)
 
 
 <!-- [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://bit.ly/Sports2D_Colab)-->
@@ -20,6 +21,12 @@
 
 
 # Sports2D
+
+https://github.com/user-attachments/assets/2ce62012-f28c-4e23-b3b8-f68931bacb77
+
+<!-- https://github.com/user-attachments/assets/6a444474-4df1-4134-af0c-e9746fa433ad -->
+
+<!-- https://github.com/user-attachments/assets/1c6e2d6b-d0cf-4165-864e-d9f01c0b8a0e -->
 
 **`Sports2D` automatically computes 2D joint positions, as well as joint and segment angles from a video or a webcam.**
 
@@ -48,11 +55,6 @@ Works on any smartphone!**\
 </br>
 
 
-https://github.com/user-attachments/assets/2ce62012-f28c-4e23-b3b8-f68931bacb77
-
-<!-- https://github.com/user-attachments/assets/6a444474-4df1-4134-af0c-e9746fa433ad -->
-
-<!-- https://github.com/user-attachments/assets/1c6e2d6b-d0cf-4165-864e-d9f01c0b8a0e -->
 
 `Warning:` Angle estimation is only as good as the pose estimation algorithm, i.e., it is not perfect.\
 `Warning:` Results are acceptable only if the persons move in the 2D plane (sagittal or frontal). The persons need to be filmed as parallel as possible to the motion plane.\
