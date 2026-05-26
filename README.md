@@ -931,15 +931,18 @@ Run `uv pip install sports2d --upgrade` to get the latest version.
 - [x] Run again without pose estimation with the option `--load_trc_px` for px .trc file.
 - [x] **Convert positions to meters** by providing the person height, a calibration file, or 3D points [to click on the image](https://stackoverflow.com/questions/74248955/how-to-display-the-coordinates-of-the-points-clicked-on-the-image-in-google-cola)
 - [x] Support any detection and/or pose estimation model.
-- [x]  Optionally let user select the persons of interest.
+- [x] Optionally let user select the persons of interest.
 - [x] Perform **Inverse kinematics and dynamics** with OpenSim (cf. [Pose2Sim](https://github.com/perfanalytics/pose2sim), but in 2D). Update [this model](https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Utilities/2D_gait.osim) (add arms, markers, remove muscles and contact spheres). Add pipeline example.
+- [ ] Animal pose estimation and inverse kinematics. Would require adding animal models to the OpenSim setup, and supporting animal pose estimation models in Sports2D.
+- [ ] Take distortions into account
+- [ ] Fix leg swaps
+- [ ] Split ugly big process() function into smaller ones, and make the code more modular and easier to read.
+
+</br>
 
 - [ ] Run with the option `--compare_to` to visually compare motion with a trc file. If run with a webcam input, the user can follow the motion of the trc file. Further calculation can then be done to compare specific variables.
 - [ ] **Colab version**: more user-friendly, usable on a smartphone.
 - [ ] **GUI applications** for Windows, Mac, and Linux, as well as for Android and iOS.
-
-</br>
-
 - [ ] **Track other points and angles** with classic tracking methods (cf. [Kinovea](https://www.kinovea.org/features.html)), or by training a model (cf. [DeepLabCut](https://deeplabcut.github.io/DeepLabCut/README.html)).
 - [ ] **Pose refinement**. Click and move badly estimated 2D points. See [DeepLabCut](https://www.youtube.com/watch?v=bEuBKB7eqmk) for inspiration.
 - [ ] Add tools for annotating images, undistort them, take perspective into account, etc. (cf. [Kinovea](https://www.kinovea.org/features.html)).
