@@ -26,7 +26,7 @@ GITHUB_RAW  = "https://raw.githubusercontent.com/davidpagnon/sports2d/main/"
 
 try:
     import pymdownx  # noqa: F401
-    MD_EXTENSIONS = ["tables", "pymdownx.superfences", "md_in_html", "sane_lists", "attr_list"]
+    MD_EXTENSIONS = ["tables", "pymdownx.superfences", "pymdownx.tasklist", "md_in_html", "sane_lists", "attr_list"]
 except ImportError:
     MD_EXTENSIONS = ["tables", "fenced_code", "md_in_html", "sane_lists", "attr_list"]
 

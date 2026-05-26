@@ -750,6 +750,22 @@ li {
 }
 .sidebar-overlay.visible { display: block; }
 
+/* Task lists */
+.step-content .task-list-item {
+    list-style: none;
+    margin-left: -1.2em;
+}
+.step-content .task-list-item input[type="checkbox"] {
+    margin-right: 6px;
+    accent-color: var(--primary-color);
+    width: 15px;
+    height: 15px;
+    vertical-align: middle;
+    position: relative;
+    top: -1px;
+    cursor: default;
+}
+
 /* Links */
 a {
     color: var(--primary-color);
