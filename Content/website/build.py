@@ -55,7 +55,7 @@ def clean_title(text: str) -> str:
 
 # Map admonition type → (CSS class, label)
 ADMON_CSS  = {"NOTE": "info-box",    "TIP": "success-box",
-              "WARNING": "warning-box", "IMPORTANT": "warning-box"}
+              "WARNING": "warning-box", "IMPORTANT": "important-box"}
 ADMON_ICON = {"NOTE": "📝 Note", "TIP": "💡 Tip",
               "WARNING": "⚠️ Warning", "IMPORTANT": "❗ Important"}
 
@@ -296,7 +296,7 @@ HTML_TEMPLATE = """\
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pose2Sim Documentation</title>
+    <title>Sports2D Documentation</title>
     <link rel="icon" type="image/x-icon" href="Pose2Sim_favicon.ico"> 
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark-dimmed.min.css">
@@ -322,6 +322,10 @@ HTML_TEMPLATE = """\
     <!-- Google Translate Widget -->
     <div class="translate-widget">
         <div id="google_translate_element"></div>
+        <button class="theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme()">
+            <span class="theme-icon" id="themeIcon">☀️</span>
+            <span id="themeLabel">Light mode</span>
+        </button>
     </div>
 
     <!-- Hamburger button (mobile only) -->
@@ -344,12 +348,6 @@ HTML_TEMPLATE = """\
                 <span class="docs-switch-sep">|</span>
                 <a href="https://davidpagnon.github.io/Pose2Sim_Blender/#pose2sim-blender"
                    class="docs-switch" title="Pose2Sim Blender add-on documentation">Blender add-on</a>
-            </div>
-            <div class="theme-toggle">
-                <button class="theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme()">
-                    <span class="theme-icon" id="themeIcon">☀️</span>
-                    <span id="themeLabel">Light mode</span>
-                </button>
             </div>
         </div>
         <nav class="nav-menu">
