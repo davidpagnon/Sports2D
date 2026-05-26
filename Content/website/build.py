@@ -321,11 +321,11 @@ HTML_TEMPLATE = """\
 
     <!-- Google Translate Widget -->
     <div class="translate-widget">
-        <div id="google_translate_element"></div>
         <button class="theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme()">
             <span class="theme-icon" id="themeIcon">☀️</span>
             <span id="themeLabel">Light mode</span>
         </button>
+        <div id="google_translate_element"></div>
     </div>
 
     <!-- Hamburger button (mobile only) -->

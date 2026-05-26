@@ -28,37 +28,43 @@ https://github.com/user-attachments/assets/2ce62012-f28c-4e23-b3b8-f68931bacb77
 
 <!-- https://github.com/user-attachments/assets/1c6e2d6b-d0cf-4165-864e-d9f01c0b8a0e -->
 
-**`Sports2D` automatically computes 2D joint positions, as well as joint and segment angles from a video or a webcam.**
+**`Sports2D` automatically computes 2D keypoint trajectories, as well as joint and segment angles from a single video or a webcam.**
 
-</br>
+> [!NOTE]
+> **Features:**
+> 
+> - 📈 Joint trajectories and angles 
+> - 📹 Any Cameras (phones, webcams, GoPros...)
+> - 👥 Multi-Person Support  (track multiple people simultaneously)
+> - 🤸 Full OpenSim kinematics (complete skeletal analysis with joint angles)
+> 
+> **Use cases:**
+> 
+> - 🏀 Sports Analysis (field-based 2D motion capture)
+> - 🏥 Clinical Assessment (gait analysis in doctor's office)
+> - 🔬 Research (biomechanics studies with multiple participants)
 
-> **`Announcements:`**
-> - Easier, lighter, faster installation, with marker augmentation and inverse kinematics available by default! **New in v0.8.31!**
-> - Compensate for floor angle, floor height, depth perspective effects, generate a calibration file **New in v0.8.25!** 
-> - Select only the persons you want to analyze **New in v0.8!** 
-> - MarkerAugmentation and Inverse Kinematics for accurate 3D motion with OpenSim. **New in v0.7!** 
-> - Any detector and pose estimation model can be used. **New in v0.6!**
-> - Results in meters rather than pixels. **New in v0.5!**
-> - Faster, more accurate
-> - Works from a webcam
-> - Better visualization output 
-> - More flexible, easier to run
->
-> Run `uv pip install sports2d --upgrade` to get the latest version.
 
-***N.B.:*** If you want to contribute to Sports2D or Pose2Sim, please see [How to contribute](#how-to-contribute-and-to-do-list) or join the Discord community! [![Discord](https://img.shields.io/discord/1183750225471492206?logo=Discord&label=Discord%20community)](https://discord.com/invite/4mXUdSFjmt)
+> [!WARNING]
+> - Angle estimation is only as good as the pose estimation algorithm, i.e., it is not perfect.
+> - Results are acceptable only if the persons move in the 2D plane (sagittal or frontal). The persons need to be filmed as parallel as possible to the motion plane.
+> - If you need 3D research-grade markerless joint kinematics, consider using several cameras with **[Pose2Sim](https://github.com/perfanalytics/pose2sim)**.
+
+<br>
+
+> [!IMPORTANT]
+> If you like it, ⭐ please leave a star ⭐ on the [Sports2D GitHub repository](https://github.com/perfanalytics/sports2d)!\
+> This project is completely free: this is your chance to support the project and make it more visible to the community.
+
+> [!IMPORTANT]
+> If you want to contribute to Sports2D or Pose2Sim, please see [How to contribute](#how-to-contribute-and-to-do-list) or join the Discord community! [![Discord](https://img.shields.io/discord/1183750225471492206?logo=Discord&label=Discord%20community)](https://discord.com/invite/4mXUdSFjmt)
+
 <!--User-friendly Colab version released! (and latest issues fixed, too)\
 Works on any smartphone!**\
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://bit.ly/Sports2D_Colab)-->
 
-
 </br>
 
-
-
-`Warning:` Angle estimation is only as good as the pose estimation algorithm, i.e., it is not perfect.\
-`Warning:` Results are acceptable only if the persons move in the 2D plane (sagittal or frontal). The persons need to be filmed as parallel as possible to the motion plane.\
-If you need 3D research-grade markerless joint kinematics, consider using several cameras with **[Pose2Sim](https://github.com/perfanalytics/pose2sim)**.
 
 <!--`Warning:` Google Colab does not follow the European GDPR requirements regarding data privacy. [Install locally](#installation) if this matters.-->
 
@@ -70,9 +76,7 @@ If you need 3D research-grade markerless joint kinematics, consider using severa
    1. [Test it on Hugging face](#test-it-on-hugging-face)
    1. [Installation](#installation)
    2. [Demonstration](#demonstration)
-      1. [Run the demo](#run-the-demo)
-      2. [Visualize in OpenSim](#visualize-in-opensim)
-      3. [Visualize in Blender](#visualize-in-blender)
+   3. [Visualize in OpenSim or Blender](#visualize-in-opensim-or-blender)
 2. [Play with the parameters](#play-with-the-parameters)
    1. [Run on a custom video or on a webcam](#run-on-a-custom-video-or-on-a-webcam)
    2. [Run for a specific time range](#run-for-a-specific-time-range)
@@ -97,11 +101,29 @@ If you need 3D research-grade markerless joint kinematics, consider using severa
 
 ## Test it on Hugging face
 
+> Test it on Hugging Face without installing anything!
+
 Test an online, limited version [on Hugging Face](https://huggingface.co/spaces/DavidPagnon/sports2d): [![Hugging Face Space](https://img.shields.io/badge/HuggingFace-Sports2D-yellow?logo=huggingface)](https://huggingface.co/spaces/DavidPagnon/sports2d)
 
-Now runs marker augmentation and inverse kinematics, too!
+<br>
+
+Just drop your video, click Run Analysis, and look at the output video. You can also download the full results:
+
+- Annotated video (.mp4)
+- Joint and segment angles (.mot), OpenSim scaled model (.osim)
+- Keypoint trajectories in meters (.trc and .c3d)
+- Trajectory and angle plots (.png)
+- Camera calibration file (.toml)
+
+**Now runs marker augmentation and inverse kinematics, too!**
+
+<br>
 
 <img src="Content/huggingface_demo.png" width="760">
+
+> [!TIP]
+> Install locally for the full experience!\
+> You'll be able to select persons manually, have a faster runtime, and access many more features.
 
 <br>
 
@@ -115,208 +137,278 @@ Now runs marker augmentation and inverse kinematics, too!
   
 -->
 
-> N.B.: If you'd rather use conda, you can still use the old [installation procedure](https://github.com/davidpagnon/Sports2D/tree/d3f28aacfa939416aba335e08cf1ae435c88cd80#full-install). Still works fine but not recommended, since uv is faster, lighter, better at handling dependencies, and generally more modern. 
+> **Let's get started!**
 
 <br>
 
-***N.B.:*** If you have already installed Pose2Sim, skip the installation step. \
-Just activate your pose2sim environment (see [here](#1-set-up-a-uv-environment)) and run:
-```
-uv pip install sports2d --upgrade
-```
+> [!NOTE]
+> If you'd rather use conda, you can still use the old [installation procedure](https://github.com/perfanalytics/pose2sim/tree/b1a8b84a59759946b321f8f243d19dcc31f7b5d6#installation). Still works fine but not recommended, since uv is faster, lighter, better at handling dependencies, and generally more modern. 
+
+> [!TIP]
+> If you have already installed Pose2Sim, skip the installation step. \
+> Just activate your pose2sim environment (see [here](#1-set-up-a-uv-environment)) and run:
+> ```
+> uv pip install sports2d --upgrade
+> ```
 
 <br>
 
 ### 1. Set up a uv environment:
 
-  Open a terminal (conda, powershell, bash, or zsh).
+Open a terminal (conda, powershell, bash, or zsh).
 
-  *On Windows:*
-  ``` powershell
-    # Install uv
-    powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-    # Create uv environment
-    uv venv "$env:USERPROFILE\.venv\pose2sim" --python 3.13 # or 3.11, or 3.12 
-    # Activate the uv environment
-    & "$env:USERPROFILE\.venv\pose2sim\Scripts\Activate.ps1"
-  ```
+*On Windows:*
 
-  *On Linux or MacOS:*
-  ``` bash
-    # Install uv
-    curl -LsSf https://astral.sh/uv/install.sh | sh
-    # Create uv environment
-    uv venv ~/.venv/pose2sim --python 3.13 # or 3.11, or 3.12 
-    # Activate the uv environment
-    source ~/.venv/pose2sim/bin/activate
-  ```
+```powershell
+  # Install uv
+  powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+  # Create uv environment
+  uv venv "$env:USERPROFILE\.venv\pose2sim" --python 3.13 # or 3.11, or 3.12 
+  # Activate the uv environment
+  & "$env:USERPROFILE\.venv\pose2sim\Scripts\Activate.ps1"
+```
 
-***Pro Tip:*** Remembering the command for activating the uv environment can be a pain. Just type **Ctrl+R** in your terminal and start typing `venv` to find it.
+<br>
+
+*On Linux or MacOS:*
+
+```bash
+  # Install uv
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  # Create uv environment
+  uv venv ~/.venv/pose2sim --python 3.13 # or 3.11, or 3.12 
+  # Activate the uv environment
+  source ~/.venv/pose2sim/bin/activate
+```
+
+> [!TIP]
+> Remembering the command for activating the uv environment can be a pain. Just type **Ctrl+R** in your terminal and start typing `activate` to find it.
 
 <br>
 
 ### 2. Install Sports2D:
 
-   Open a terminal (*conda, powershell, bash, or zsh*).\
-   Activate your environment (see [here](#1-set-up-a-uv-environment)).
+Open a terminal (*conda, powershell, bash, or zsh*).\
+Activate your environment (see [here](#1-set-up-a-uv-environment)).
 
-   - OPTION 1: **Latest stable version:** 
-       ``` cmd
-       uv pip install sports2d --upgrade
-       ```
-   - OPTION 2: **For developers who want to test and edit the bleeding edge version:**
-       ``` cmd
-       git clone --depth 1 https://github.com/davidpagnon/sports2d.git
-       cd sports2d
-       uv pip install -e .
-       ```
+- OPTION 1: **Latest stable version:** 
+
+  ```bash
+    uv pip install sports2d --upgrade
+  ```
+
+- OPTION 2: **For developers who want to test and edit the bleeding edge version:**
+
+  ```bash
+    git clone --depth 1 https://github.com/davidpagnon/sports2d.git
+    cd sports2d
+    uv pip install -e .
+  ```
 
 <br>
 
 ## Demonstration
 
-### Run the demo:
+> **Test the pipeline!**
 
-Open a terminal (*conda, powershell, bash, or zsh*), activate your environment (see [here](#1-set-up-a-uv-environment)), and run:
-``` cmd
+<br>
+
+Open a terminal (*conda, powershell, bash, or zsh*), activate your environment (see [here](#1-set-up-a-uv-environment)) and run:
+
+``` bash
 sports2d
 ```
 
 You should see the joint positions and angles being displayed in real time.
 
-Check the folder where you run that command line to find the resulting files: `video`, pose `TRC`, angle `MOT` (which can be opened with any spreadsheet software), scaled `OSIM` OpenSim model, and `logs`.
+The output files are in your current directory: 
+
+- `.mp4` video
+- `.trc` and `.c3d` pose, 
+- `.mot` angles (can be opened with any spreadsheet software), 
+- `.toml` calibration file,
+- `.txt` logs.
 
 <img src="Content/Demo_results.png" width="760">
 <img src="Content/Demo_plots.png" width="760">
 <img src="Content/Demo_terminal.png" width="760">
 
-***Note:***\
-The Demo video is voluntarily challenging to demonstrate the robustness of the process after sorting, interpolation and filtering. It contains:
-- One person walking in the sagittal plane
-- One person doing jumping jacks in the frontal plane. This person then performs a flip while being backlit, both of which are challenging for the pose detection algorithm
-- One tiny person flickering in the background who needs to be ignored
+> [!NOTE]
+> Marker augmentation and inverse kinematics are not run by default, as they require the persons to be moving in a single plane for the whole selected time range. See [this section](#run-inverse-kinematics) for more detail.
+
+> [!NOTE]
+> The Demo video is voluntarily challenging to demonstrate the robustness of the process after sorting, interpolation and filtering. It contains:
+> 
+> - One person walking in the sagittal plane
+> - One person doing jumping jacks in the frontal plane. This person then performs a flip while being backlit, both of which are challenging for the pose detection algorithm
+> - One tiny person flickering in the background who needs to be ignored
 
 <br>
 
 
-### Visualize in Blender
+## Visualize in OpenSim or Blender
 
-1. **Install the Pose2Sim_Blender add-on.**\
-   Follow instructions on the [Pose2Sim_Blender](https://github.com/davidpagnon/Pose2Sim_Blender) add-on page.
-2. **Import the camera and video.**
-    - **Cameras -> Import**: Open your `demo_calib.toml` file from your `result_dir` folder.
-    - **Images/Videos -> Show**: open your video file (e.g., `demo_Sports2D.mp4`).\
-    -> **Other tools -> See through camera**
-2. **Open your point coordinates.**\
-   **OpenSim data -> Markers**: Open your trc file(e.g., `demo_Sports2D_m_person00.trc`) from your `result_dir` folder.\
-   This will optionally create **an animated rig** based on the motion of the captured person.
-3. **Open your animated skeleton:**\
-   - **OpenSim data -> Model**: Open your scaled model (e.g., `demo_Sports2D_m_person00_LSTM.osim`). 
-   - **OpenSim data -> Motion**: Open your motion file (e.g., `demo_Sports2D_m_person00_LSTM_ik.mot`). 
+> _**Visualize your results and look in detail for potential areas of improvement.**_ 
 
-   The OpenSim skeleton is not rigged yet. **[Feel free to contribute!](https://github.com/perfanalytics/pose2sim/issues/40)** [![Discord](https://img.shields.io/discord/1183750225471492206?logo=Discord&label=Discord%20community)](https://discord.com/invite/4mXUdSFjmt)
+### Basic visualization with the OpenSim GUI
 
-<img src="Content/sports2d_blender.gif" width="760">
-
-<br>
-
-
-### Visualize in OpenSim
-
-1. Install **[OpenSim GUI](https://simtk.org/frs/index.php?group_id=91)**.
-2. **Visualize point coordinates:**\
-   **File -> Preview experimental data:** Open your trc file (e.g., `coords_m.trc`) from your `result_dir` folder.
-3. **Visualize angles:**\
-   To open an animated model and run further biomechanical analysis, make sure you first set `--do_ik True`. See [inverse kinematics](#run-inverse-kinematics) section for more details. 
-   - **File -> Open Model:** Open your scaled model (e.g., `Model_Pose2Sim_LSTM.osim`).
-   - **File -> Load Motion:** Open your motion file (e.g., `angles.mot`).
+- **Install OpenSim GUI:**\
+  Download the executable [there](https://simtk.org/projects/opensim).
+- **Visualize point coordinates:**\
+  `File > Preview Experimental Data`: Open your 3D marker .trc file (e.g., `demo_Sports2D_m_person00.trc`) from your `result_dir` folder.
+- **Visualize angles:**\
+  To open an animated model and run further biomechanical analysis, make sure you first set `--do_ik True`. See [inverse kinematics](#run-inverse-kinematics) section for more details.
+  - `File > Open Model`: Open your scaled .osim model (e.g., `demo_Sports2D_m_person00_LSTM.osim`).
+  - `File > Load Motion`: Open your joint angle .mot file (e.g., `demo_Sports2D_m_person00_LSTM_ik.mot`).
 
 <img src="Content/sports2d_opensim.gif" width="760">
 
 <br>
 
+### Further investigation with the Pose2Sim Blender add-on
 
+1. **Install the add-on.**\
+   Follow instructions on the [Pose2Sim_Blender](https://github.com/davidpagnon/Pose2Sim_Blender) add-on page.
 
-## Play with the parameters
+2. **Import the camera and video.**
 
-For a full list of the available parameters, see [this section](#all-the-parameters) of the documentation, check the [Config_Demo.toml](https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Demo/Config_demo.toml) file, or type `sports2d --help`. All non specified are set to default values.
+   - **Cameras -> Import**: Open your `demo_calib.toml` file from your `result_dir` folder.
+   - **Images/Videos -> Show**: open your video file (e.g., `demo_Sports2D.mp4`).\
+   -> **Other tools -> See through camera**
 
-***N.B.:*** Remember to first activate your environment (see [here](#1-set-up-a-uv-environment)).
+2. **Open your point coordinates.**\
+   **OpenSim data -> Markers**: Open your trc file(e.g., `demo_Sports2D_m_person00.trc`) from your `result_dir` folder.\
+   This will optionally create **an animated rig** based on the motion of the captured person.
+
+3. **Open your animated skeleton:**
+
+   - **OpenSim data -> Model**: Open your scaled model (e.g., `demo_Sports2D_m_person00_LSTM.osim`). 
+   - **OpenSim data -> Motion**: Open your motion file (e.g., `demo_Sports2D_m_person00_LSTM_ik.mot`). 
+
+<img src="Content/sports2d_blender.gif" width="760">
+
+> [!NOTE]
+> The OpenSim skeleton is not rigged yet. **[Feel free to contribute!](https://github.com/perfanalytics/pose2sim/issues/40)** [![Discord](https://img.shields.io/discord/1183750225471492206?logo=Discord&label=Discord%20community)](https://discord.com/invite/4mXUdSFjmt)
+
 <br>
 
 
-### Run on a custom video or on a webcam:
-``` cmd
-sports2d --video_input path_to_video.mp4
-```
+# Play with the parameters
 
-``` cmd
-sports2d --video_input webcam
+> [!TIP]
+> For a full list of the available parameters:
+> 
+> - See [this section](#all-the-parameters) of the documentation, 
+> - Check the [Config_Demo.toml](https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Demo/Config_demo.toml) file, or 
+> - Type `sports2d --help`. Note: if an argument is not specified, it is set to its default value.
+
+> [!TIP]
+> Remember to first activate your environment (see [here](#1-set-up-a-uv-environment)).
+
+<br>
+
+
+## Run on a custom video or on a webcam
+
+Try:
+
+``` bash
+ sports2d --video_input path_to_video.mp4
+ # or
+ sports2d --video_input webcam
 ```
 
 <br>
 
-### Run for a specific time range:
-```cmd
+## Run for a specific time range
+
+Try:
+
+```bash
 sports2d --time_range 1.2 2.7
 ```
  
 <br>
 
 
-### Select the persons you are interested in:
-If you only want to analyze a subset of the detected persons, you can use the `--nb_persons_to_detect` and `--person_ordering_method` parameters. The order matters if you want to [convert coordinates in meters](#get-coordinates-in-meters) or [run inverse kinematics](#run-inverse-kinematics). 
+## Select the persons you are interested in
+
+If you only want to analyze a subset of the detected persons, you can use the `--nb_persons_to_detect` and `--person_ordering_method` parameters. The ordering of persons matters if you want to [convert coordinates in meters](#get-coordinates-in-meters) or [run inverse kinematics](#run-inverse-kinematics). 
 
 
-``` cmd
+``` bash
 sports2d --nb_persons_to_detect 2 --person_ordering_method highest_likelihood
 ```
 
-We recommend using the `on_click` method if you can afford a manual input. This lets the user handle both the person number and their order in the same stage. When prompted, select the persons you are interested in in the desired order. In our case, lets slide to a frame where both people are visible, and select the woman first, then the man.
+<br>
 
-Otherwise, if you want to run Sports2D automatically for example, you can choose other ordering methods such as 'highest_likelihood', 'largest_size', 'smallest_size',  'greatest_displacement', 'least_displacement', 'first_detected', or 'last_detected'.
+> [!TIP]
+> **Recommended ordering method if you can afford a manual input:** `on_click`.\
+> When prompted, select the persons you are interested in in the desired order.\
+> Here, lets slide to a frame where both people are visible, and select the woman first, then the man.
+> 
+> If you want to run Sports2D without a screen, you can choose other ordering methods such as:
+>
+> - 'highest_likelihood', 
+> - 'largest_size', 
+> - 'smallest_size', 
+> - 'greatest_displacement', 
+> - 'least_displacement', 
+> - 'first_detected', or 
+> - 'last_detected'
 
-``` cmd
+``` bash
 sports2d --person_ordering_method on_click
 ```
 
-
-
 <img src="Content/Person_selection.png" width="760">
-
 
 <br>
 
 
-### Get coordinates in meters: 
-> **N.B.:** The Z coordinate (depth) should not be overly trusted. 
+## Get coordinates in meters
 
-To convert from pixels to meters, you need a minima the height of a participant. Better results can be obtained by also providing an information on depth. The camera horizon angle and the floor height are generally automatically estimated. **N.B.: A calibration file will be generated.** 
+> [!WARNING]
+>  The Z coordinate (depth) should not be overly trusted. 
 
-- The pixel-to-meters scale is computed from the ratio between the height of the participant in meters and in pixels. The height in pixels is automatically calculated; use the `--first_person_height` parameter to specify the height in meters.
-- Depth perspective effects can be compensated either with the camera-to-person distance (m), or focal length (px), or field-of-view (degrees or radians), or from a calibration file. Use the `--perspective_unit` ('distance_m', 'f_px', 'fov_deg', 'fov_rad', or 'from_calib') and `--perspective_value` parameters (resp. in m, px, deg, rad, or '').
-- The camera horizon angle can be estimated from kinematics (`auto`), from a calibration file (`from_calib`), or manually (float). Use the `--floor_angle` parameter.
-- Likewise for the floor level. Use the `--xy_origin` parameter.
+> [!NOTE]
+> To convert from pixels to meters, you need a minima the height of a participant. 
 
-If one of these parameters is set to `from_calib`, then use `--calib_file`.
+**How does it work?**
 
+- The pixel-to-meters scale is computed from the ratio between the height of the participant in meters and in pixels.\
+  The height in pixels is automatically calculated; use the `--first_person_height` parameter to specify the height in meters.
+- The camera horizon angle can be estimated with the `--floor_angle` argument, from kinematics (`auto`), from a calibration file (`from_calib`), or manually (float). 
+- Likewise for the floor level, with the `--xy_origin` parameter, which can be determined from kinematics (`auto`), from a calibration file (`from_calib`), or manually (int, int). 
+- Depth perspective effects can be compensated with the `--perspective_unit` and `--perspective_value` arguments, either with: 
+  - The camera-to-person distance (`distance_m`, m), 
+  - The focal length (`f_px`, px), 
+  - The field-of-view (`fov_deg`, `fov_rad`, degrees or radians), 
+  - A calibration file (`from_calib`, ''). 
 
-``` cmd
+If one of these parameters is set to `from_calib`, then use the `--calib_file` argument (path).\
+**N.B.: A calibration file will be generated anyway.** 
+
+<br>
+
+Try:
+``` bash
 sports2d --first_person_height 1.65
 ```
-``` cmd
+
+``` bash
 sports2d --first_person_height 1.65 `
         --floor_angle auto `
         --xy_origin auto`
         --perspective_unit distance_m --perspective_value 10
 ```
-``` cmd
+``` bash
 sports2d --first_person_height 1.65 `
         --floor_angle 0 `
         --xy_origin from_calib`
         --perspective_unit from_calib --calib_file Sports2D\Demo\Calib_demo.toml
 ```
-``` cmd
+``` bash
 sports2d --first_person_height 1.65 `
         --perspective_unit f_px --perspective_value 2520
 ```
@@ -324,26 +416,32 @@ sports2d --first_person_height 1.65 `
 <br>
 
 
-### Run inverse kinematics:
-> **N.B.:** The persons need to be moving on a single plane for the whole selected time range.
+## Run inverse kinematics
 
-OpenSim inverse kinematics allows you to set joint constraints, joint angle limits, to constrain the bones to keep the same length all along the motion and potentially to have equal sizes on left and right side. Most generally, it gives more biomechanically accurate results. It can also give you the opportunity to compute joint torques, muscle forces, ground reaction forces, and more, [with MoCo](https://opensim-org.github.io/opensim-moco-site/) for example.
+> [!WARNING]
+> This requires the analyzed persons to be moving on a single plane for the whole selected time range. You can split your video into several time ranges if needed.
 
-This is done via [Pose2Sim](https://github.com/perfanalytics/pose2sim).\
+> [!NOTE]
+> Scaling and inverse kinematics are done leveraging [Pose2Sim](https://github.com/perfanalytics/pose2sim).
+
+OpenSim inverse kinematics allows you to set joint constraints and joint angle limits, to constrain the bones to have a fixed length, and potentially to have equal sizes on left and right side. Most generally, it gives more biomechanically accurate results. It can also give you the opportunity to compute joint torques, muscle forces, ground reaction forces, and more, [with MoCo](https://opensim-org.github.io/opensim-moco-site/) for example.
+
 Model scaling is done according to the mean of the segment lengths, across a subset of frames. We remove the frames where the average knee and hip flexion angles are above 90° (pose estimation is not precise when the person is crouching) and the 50% most extreme segment values after the previous operations (potential outliers). These parameters can be edited in your Config.toml file.
 
-**N.B.: This will not work on sections where the person is not moving in a single plane. You can split your video into several time ranges if needed.**
-
-```cmd
+```bash
 sports2d --time_range 1.2 2.7 `
          --do_ik true --first_person_height 1.65 --visible_side auto front
 ```
 
-You can optionally use the LSTM marker augmentation to improve the quality of the output motion.\
-You can also optionally give the participants proper masses. Mass has no influence on motion, only on forces (if you decide to further pursue kinetics analysis).\
-Optionally again, you can [visualize the overlaid results in Blender](#visualize-in-blender). The automatic calibration won't be accurate with such a small time range, so you need to use the provided calibration file (or one that has been generated from the full walk).
+<br>
 
-```cmd
+> [!TIP]
+> 
+> - You can optionally use the [Stanford LSTM model](https://github.com/antoinefalisse/marker-augmentation) to estimate the position of 47 virtual markers.
+> - You can also optionally give the participants proper masses. Mass has no influence on motion, only on forces (if you decide to further pursue kinetics analysis).
+> - You can optionally [visualize the overlaid results in Blender](#visualize-in-blender). The automatic calibration won't be accurate with such a small time range, so you need to use the provided calibration file (or one that has been generated from the full walk).
+
+```bash
 sports2d --time_range 1.2 2.7 `
          --do_augmentation True --do_ik true `
          --participant_mass 55.0 67.0 --first_person_height 1.65 --visible_side left front `
@@ -353,125 +451,174 @@ sports2d --time_range 1.2 2.7 `
 <br>
 
 
-### Run on several videos at once:
-``` cmd
+## Run on several videos at once
+
+Try:
+
+``` bash
 sports2d --video_input demo.mp4 other_video.mp4
 ```
-All videos analyzed with the same time range.
-```cmd
+
+<br>
+
+Analyze all videos with the same time range:
+
+```bash
 sports2d --video_input demo.mp4 other_video.mp4 --time_range 1.2 2.7
 ```
-Different time ranges for each video.
-```cmd
+
+<br>
+
+Analyze different videos with time ranges:
+```bash
 sports2d --video_input demo.mp4 other_video.mp4 --time_range 1.2 2.7 0 3.5
 ```
 
 <br>
 
 
-### Use the configuration file or run within Python:
+## Use the configuration file or run within Python
 
-- Run with a configuration file:
-  ``` cmd
-  sports2d --config Config_demo.toml
-  ```
-- Run within Python, for example:
-  - Edit `Demo/Config_demo.toml` and run:
-    ```python
-    from Sports2D import Sports2D
-    from pathlib import Path
-    import toml
+If you have a lot of parameters to set, it can be more convenient to use a configuration file or to run within Python.
 
-    config_path = Path(Sports2D.__file__).parent / 'Demo'/'Config_demo.toml'
-    config_dict = toml.load(config_path)
-    Sports2D.process(config_dict)
-    ```
-  - Or you can pass the non default values only: 
-    ```python
-    from Sports2D import Sports2D
-    config_dict = {
-      'base': {
-        'nb_persons_to_detect': 1,
-        'person_ordering_method': 'greatest_displacement'
-        },
-      'pose': {
-        'mode': 'lightweight', 
-        'det_frequency': 50
-        }}
-    Sports2D.process(config_dict)
-    ```
+Use a configuration file:
+
+``` bash
+sports2d --config Config_demo.toml
+```
+
+<br>
+
+Run within Python, with a configuration file. If needed, edit `Demo/Config_demo.toml` and run:
+```python
+from Sports2D import Sports2D
+from pathlib import Path
+import toml
+
+config_path = Path(Sports2D.__file__).parent / 'Demo'/'Config_demo.toml'
+config_dict = toml.load(config_path)
+Sports2D.process(config_dict)
+```
+
+<br>
+
+Run within Python with a dictionary of parameters (only non-default values need to be specified): 
+```python
+from Sports2D import Sports2D
+config_dict = {
+  'base': {
+    'nb_persons_to_detect': 1,
+    'person_ordering_method': 'greatest_displacement'
+    },
+  'pose': {
+    'mode': 'lightweight', 
+    'det_frequency': 50
+    }}
+Sports2D.process(config_dict)
+```
+
+<br>
+
+## Get the angles the way you want
+
+Choose which angles you need:
+
+```bash
+sports2d --joint_angles 'right knee' 'left knee' --segment_angles None
+```
+
+<br>
+
+Choose where to display the angles.\
+Either as a list on the upper-left of the image, or near the joint/segment, or both:
+
+```bash
+sports2d --display_angle_values_on body # OR none, or list
+```
+
+<br>
+
+You can also decide not to calculate and display angles at all:
+
+```bash
+sports2d --calculate_angles false
+```
+
+<br>
+
+Compensate for the estimated camera tilt angle when calculating segment angles:
+
+```bash
+sports2d --correct_segment_angles_with_floor_angle true # Default
+```
+
+> [!TIP]
+> The camera tilt angle is automatically estimated. Set to false if the floor is actually tilted (rather than the camera) and you don't want to compensate for it.
+
+<br>
+
+> [!TIP]
+> To run optimized **inverse kinematics with OpenSim** and potentially obtain more accurate angles, check [this section](#run-inverse-kinematics)
+
+<br>
+
+## Customize your output
+
+Choose whether you want video, images, trc pose file, angle mot file, real-time display, and plots:
+
+```bash
+sports2d --save_vid false --save_img true `
+         --save_pose false --save_angles true `
+         --show_realtime_results false --show_graphs false
+```
+
+<br> 
+
+Save results to a custom directory, specify the slow-motion factor:
+
+``` bash
+sports2d --result_dir path_to_result_dir
+```
 
 <br>
 
 
-### Get the angles the way you want:
+## Use a custom pose estimation model
 
-- Choose which angles you need:
-  ```cmd
-  sports2d --joint_angles 'right knee' 'left knee' --segment_angles None
-  ```
-- Choose where to display the angles: either as a list on the upper-left of the image, or near the joint/segment, or both:
-  ```cmd
-  sports2d --display_angle_values_on body # OR none, or list
-  ```
-- You can also decide not to calculate and display angles at all:
-  ```cmd
-  sports2d --calculate_angles false
-  ```
-- Correct segment angles according to the estimated camera tilt angle.\
-  **N.B.:** *The camera tilt angle is automatically estimated. Set to false if it is actually the floor which is tilted rather than the camera.*
-  ```cmd
-  sports2d --correct_segment_angles_with_floor_angle true # Default
-  ```
+Retrieve hand motion:
 
-- To run optimized **inverse kinematics with OpenSim**, check [this section](#run-inverse-kinematics)
+``` bash
+sports2d --pose_model whole_body 
+```
+
+<br>
+
+Use any custom (deployed) MMPose model:
+
+``` bash
+sports2d --pose_model BodyWithFeet : `
+         --mode """{'det_class':'YOLOX', `
+                'det_model':'https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/onnx_sdk/yolox_m_8xb8-300e_humanart-c2c7a14a.zip', `
+                'det_input_size':[640, 640], `
+                'pose_class':'RTMPose', `
+                'pose_model':'https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/onnx_sdk/rtmpose-m_simcc-body7_pt-body7-halpe26_700e-256x192-4d3e73dd_20230605.zip', `
+                'pose_input_size':[192,256]}"""
+```
 
 <br>
 
 
-### Customize your output:
-- Choose whether you want video, images, trc pose file, angle mot file, real-time display, and plots:
-  ```cmd
-  sports2d --save_vid false --save_img true `
-           --save_pose false --save_angles true `
-           --show_realtime_results false --show_graphs false
-  ```
-- Save results to a custom directory, specify the slow-motion factor:
-  ``` cmd
-  sports2d --result_dir path_to_result_dir
-  ```
-
-<br>
-
-
-### Use a custom pose estimation model:
-- Retrieve hand motion:
-  ``` cmd
-  sports2d --pose_model whole_body 
-  ```
-- Use any custom (deployed) MMPose model
-  ``` cmd
-  sports2d --pose_model BodyWithFeet : `
-           --mode """{'det_class':'YOLOX', `
-                  'det_model':'https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/onnx_sdk/yolox_m_8xb8-300e_humanart-c2c7a14a.zip', `
-                  'det_input_size':[640, 640], `
-                  'pose_class':'RTMPose', `
-                  'pose_model':'https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/onnx_sdk/rtmpose-m_simcc-body7_pt-body7-halpe26_700e-256x192-4d3e73dd_20230605.zip', `
-                  'pose_input_size':[192,256]}"""
-  ```
-
-<br>
-
-
-### All the parameters
+## All the parameters
 
 For a full list of the available parameters, have a look at the [Config_Demo.toml](https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Demo/Config_demo.toml) file or type:
 
-``` cmd
+``` bash
 sports2d --help
 ```
 
-``` 
+<br>
+
+```bash
 'config': ["C", "path to a toml configuration file"],
 
 'video_input': ["i", "webcam, or video_path.mp4, or video1_path.avi video2_path.mp4 ... Beware that images won't be saved if paths contain non ASCII characters"],
@@ -573,9 +720,12 @@ sports2d --help
 ## Too slow for you?
 
 **Quick fixes:**
-- Use ` --save_vid false --save_img false --show_realtime_results false`: Will not save images or videos, and will not display the results in real time. 
-- Use `--mode lightweight`: Will use a lighter version of RTMPose, which is faster but less accurate.\
-Note that any detection and pose models can be used (first [deploy them with MMPose](https://mmpose.readthedocs.io/en/latest/user_guides/how_to_deploy.html#onnx) if you do not have their .onnx or .zip files), with the following formalism:
+
+- Use ` --save_vid false --save_img false --show_realtime_results false`.\
+  Processed images and videos won't be saved, and real-time results won't be displayed. 
+- Use `--mode lightweight`.\
+  Will use a lighter version of RTMPose, which is faster but less accurate.\
+  Note that any detection and pose models can be used (if you do not have their .onnx or .zip files, first [deploy them with MMPose](https://mmpose.readthedocs.io/en/latest/user_guides/how_to_deploy.html#onnx)):
   ```
   --mode """{'det_class':'YOLOX',
           'det_model':'https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/onnx_sdk/yolox_nano_8xb8-300e_humanart-40f6f0d0.zip',
@@ -584,9 +734,12 @@ Note that any detection and pose models can be used (first [deploy them with MMP
           'pose_model':'https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/onnx_sdk/rtmpose-t_simcc-body7_pt-body7_420e-256x192-026a1439_20230504.zip',
           'pose_input_size':[192,256]}"""
   ```
-- Use `--det_frequency 50`: Rtmlib is (by default) a top-down method: detects bounding boxes for every person in the frame, and then detects keypoints inside of each box. The person detection stage is much slower. You can choose to detect persons only every 50 frames (for example), and track bounding boxes inbetween, which is much faster.
-- Use `--load_trc_px <path_to_file_px.trc>`: Will use pose estimation results from a file. Useful if you want to use different parameters for pixel to meter conversion or angle calculation without running detection and pose estimation all over.
-- Make sure you use `--tracking_mode sports2d`: Will use the default Sports2D tracker. Unlike DeepSort, it is faster, does not require any parametrization, and is as good in non-crowded scenes. 
+- Use `--det_frequency 50` (or more).\
+  Rtmlib is (by default) a top-down method: detects bounding boxes for every person in the frame, and then detects keypoints inside of each box. The person detection stage is much slower. You can choose to detect persons only every 50 frames (for example), and track bounding boxes inbetween, which is much faster.
+- Use `--load_trc_px <path_to_file_px.trc>`.\
+  Will use pose estimation results from a trc file (in pixels). Useful if you want to quickly compare results using different parameters for pixel to meter conversion, angle calculation, or more, without running detection and pose estimation all over.
+- Make sure you use `--tracking_mode sports2d`.\
+  Will use the default Sports2D tracker. Unlike DeepSort, it is faster, does not require any parametrization, and is as good in non-crowded scenes. 
 
 <br> 
 
@@ -596,7 +749,7 @@ Will be much faster, with no impact on accuracy. However, the installation takes
 1. Run `nvidia-smi` in a terminal. If this results in an error, your GPU is probably not compatible with CUDA. If not, note the "CUDA version": it is the latest version your driver is compatible with (more information [on this post](https://stackoverflow.com/questions/60987997/why-torch-cuda-is-available-returns-false-even-after-installing-pytorch-with)).
 
    Then go to the [ONNXruntime requirement page](https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html#requirements), note the latest compatible CUDA and cuDNN requirements. Next, go to the [pyTorch website](https://pytorch.org/get-started/previous-versions/) and install the latest version that satisfies these requirements (beware that torch 2.4 ships with cuDNN 9, while torch 2.3 installs cuDNN 8). For example:
-   ``` cmd
+   ``` bash
    pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
    ```
 
@@ -617,12 +770,6 @@ Will be much faster, with no impact on accuracy. However, the installation takes
    ```
    <!-- print(f'torch version: {torch.__version__}, cuda version: {torch.version.cuda}, cudnn version: {torch.backends.cudnn.version()}, onnxruntime version: {ort.__version__}') -->
 
-<br>
-
-
-
-
-
 
 <!--
 
@@ -639,38 +786,56 @@ VIDEO THERE
 
 ## How it works
 
-Sports2D:
-- Detects 2D joint centers from a video or a webcam with RTMLib.
-- Converts pixel coordinates to meters.
-- Computes selected joint and segment angles. 
-- Optionally performs kinematic optimization via OpenSim.
-- Optionally saves processed image and video files. 
+> [!NOTE]
+> Sports2D:
+> 
+> - Detects 2D joint centers from a video or a webcam with RTMLib.
+> - Converts pixel coordinates to meters.
+> - Computes selected joint and segment angles. 
+> - Optionally performs kinematic optimization via OpenSim.
+> - Optionally saves processed image and video files. 
 
-<br>
+### Okay but how does it work, really?
 
-**Okay but how does it work, really?**\
-Sports2D:
+Alright, here is more detail. Sports2D:
 
-1. **Reads stream from a webcam, from one video, or from a list of videos**. Selects the specified time range to process.
+1. **Reads stream from a webcam, from one video, or from a list of videos**.\
+Optionally selects the specified time range to process.
 
-2. **Sets up pose estimation with RTMLib.** It can be run in lightweight, balanced, or performance mode, and for faster inference, the person bounding boxes can be tracked instead of detected every frame. Any RTMPose model can be used. 
+2. **Sets up pose estimation with RTMLib.**\
+It can be run in lightweight, balanced, or performance mode, and for faster inference, the person bounding boxes can be tracked instead of detected for every frame. Any RTMPose model can be used. 
 
-3. **Tracks people** so that their IDs are consistent across frames. A person is associated to another in the next frame when they are at a small distance. IDs remain consistent even if the person disappears from a few frames, thanks to the 'sports2D' tracker. [See Release notes of v0.8.22 for more information](https://github.com/davidpagnon/Sports2D/releases/tag/v0.8.22). 
+3. **Tracks people** so that their IDs are consistent across frames.\
+A person is associated to another in the next frame when they are at a small distance. IDs remain consistent even if the person disappears from a few frames, thanks to the 'sports2D' tracker. [See Release notes of v0.8.22 for more information](https://github.com/davidpagnon/Sports2D/releases/tag/v0.8.22). 
 
-4. **Chooses which persons to analyze.** In single-person mode, only keeps the person with the highest average scores over the sequence. In multi-person mode, you can choose the number of persons to analyze (`nb_persons_to_detect`), and how to order them (`person_ordering_method`). The ordering method can be 'on_click', 'highest_likelihood', 'largest_size', 'smallest_size', 'greatest_displacement', 'least_displacement', 'first_detected', or 'last_detected'. `on_click` is default and lets the user click on the persons they are interested in, in the desired order.
+4. **Chooses which persons to analyze.**\
+You can choose the number of persons to analyze (`nb_persons_to_detect`), and how to order them (`person_ordering_method`).\
+The ordering method can be 'on_click', 'highest_likelihood', 'largest_size', 'smallest_size', 'greatest_displacement', 'least_displacement', 'first_detected', or 'last_detected'. `on_click` is default and lets the user click on the persons they are interested in, in the desired order.
 
-4. **Converts the pixel coordinates to meters.** The user can provide the size of a specified person to scale results accordingly. The camera horizon angle and the floor level can either be detected automatically from the gait sequence, be manually specified, or obtained frmm a calibration file. The depth perspective effects are compensated thanks with the distance from the camera to the subject, the focal length, the field of view, or from a calibration file. [See Release notes of v0.8.25 for more information](https://github.com/davidpagnon/Sports2D/releases/tag/v0.8.25). 
+4. **Converts the pixel coordinates to meters.**
 
-5. **Computes the selected joint and segment angles**, and flips them on the left/right side if the respective foot is pointing to the left/right. 
+  - The user can provide the size of a specified person to scale results accordingly.
+  - The camera horizon angle and the floor level can either be detected automatically from the gait sequence, be manually specified, or obtained frmm a calibration file.
+  - The depth perspective effects are compensated with the distance from the camera to the subject, the focal length, the field of view, or from a calibration file. [See Release notes of v0.8.25 for more information](https://github.com/davidpagnon/Sports2D/releases/tag/v0.8.25). 
 
-5. **Draws the results on the image:**\
-  Draws bounding boxes around each person and writes their IDs\
-  Draws the skeleton and the keypoints, with a green to red color scale to account for their confidence\
-  Draws joint and segment angles on the body, and writes the values either near the joint/segment, or on the upper-left of the image with a progress bar
+5. **Computes the selected joint and segment angles**, and flips them if the person is changing direction. 
 
-6. **Interpolates and filters results:** (1) Swaps between right and left limbs are corrected, (2) Missing pose and angle sequences are interpolated unless gaps are too large, (3) Outliers are rejected with a Hampel filter, and finally (4) Results are filtered, by default with a 6 Hz Butterworth filter. All of the above can be configured or deactivated, and other filters such as Kalman, GCV, Gaussian, LOESS, Median, and Butterworth on speeds are also available (see [Config_Demo.toml](https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Demo/Config_demo.toml))
+5. **Draws the results on the image:**
 
-7. **Optionally show** processed images, saves them, or saves them as a video\
+  - Draws bounding boxes around each person and writes their IDs.\
+  - Draws the skeleton and the keypoints, with a green to red color scale to account for their confidence.\
+  - Draws joint and segment angles on the body, and writes the values either near the joint/segment, or on the upper-left of the image with a progress bar.
+
+6. **Interpolates and filters results:**
+
+   1. Right/Left swaps are not corrected yet (working on it), 
+   2. Missing pose and angle sequences are interpolated unless gaps are too large, 
+   3. Outliers are rejected with a Hampel filter, 
+   4. Results are filtered, by default with a 6 Hz Butterworth filter. 
+   
+   All of the above can be configured or deactivated, and other filters such as Kalman, GCV, Gaussian, LOESS, Median, and Butterworth on speeds are also available (see [Config_Demo.toml](https://github.com/davidpagnon/Sports2D/blob/main/Sports2D/Demo/Config_demo.toml))
+
+7. **Optionally shows** processed images, saves them, or saves them as a video\
   **Optionally plots** pose and angle data before and after processing for comparison\
   **Optionally saves** poses for each person as a TRC file in pixels and meters, angles as a MOT file, and calibration data as a [Pose2Sim](https://github.com/perfanalytics/pose2sim) TOML file 
 
@@ -678,7 +843,10 @@ Sports2D:
 
 <br>
 
+### Angle conventions
+
 **Joint angle conventions:**
+
 - Ankle dorsiflexion: Between heel and big toe, and ankle and knee.\
   *-90° when the foot is aligned with the shank.*
 - Knee flexion: Between hip, knee, and ankle.\
@@ -692,6 +860,7 @@ Sports2D:
 
 **Segment angle conventions:**\
 Angles are measured anticlockwise between the horizontal and the segment.
+
 - Foot: Between heel and big toe
 - Shank: Between ankle and knee
 - Thigh: Between hip and knee
@@ -709,7 +878,7 @@ Angles are measured anticlockwise between the horizontal and the segment.
 
 # How to cite and how to contribute
 
-## How to cite
+### How to cite
 If you use Sports2D, please cite [Pagnon, 2024](https://joss.theoj.org/papers/10.21105/joss.06849).
 
      @article{Pagnon_Sports2D_Compute_2D_2024,
@@ -726,12 +895,32 @@ If you use Sports2D, please cite [Pagnon, 2024](https://joss.theoj.org/papers/10
      }
      
 
-## How to contribute
-I would happily welcome any proposal for new features, code improvement, and more!\
-If you want to contribute to Sports2D or Pose2Sim, please see [this issue](https://github.com/perfanalytics/pose2sim/issues/40).\
-You will be proposed a to-do list, but please feel absolutely free to propose your own ideas and improvements.
+### How to contribute
 
-*Here is a to-do list: feel free to complete it:*
+> [!TIP]
+> If you want to contribute to Sports2D or Pose2Sim, please see [this issue](https://github.com/perfanalytics/pose2sim/issues/40) or join the Discord community! [![Discord](https://img.shields.io/discord/1183750225471492206?logo=Discord&label=Discord%20community)](https://discord.com/invite/4mXUdSFjmt)
+
+</br>
+
+**Sports2D releases (details [here](https://github.com/davidpagnon/sports2d))**
+
+- [x] More flexible, easier to run
+- [x] Better visualization output 
+- [x] Works from a webcam
+- [x] Faster, more accurate
+- [x] Results in meters rather than pixels. **New in v0.5!**
+- [x] Any detector and pose estimation model can be used. **New in v0.6!**
+- [x] MarkerAugmentation and Inverse Kinematics for accurate 3D motion with OpenSim. **New in v0.7!** 
+- [x] Select only the persons you want to analyze **New in v0.8!** 
+- [x] Compensate for floor angle, floor height, depth perspective effects, generate a calibration file **New in v0.8.25!** 
+- [x] Easier, lighter, faster installation, with marker augmentation and inverse kinematics available by default! **New in v0.8.31!**
+
+Run `uv pip install sports2d --upgrade` to get the latest version.
+
+</br>
+
+**Main to-do list:**
+
 - [x] Compute **segment angles**.
 - [x] **Multi-person** detection, consistent over time.
 - [x] **Only interpolate small gaps**.
