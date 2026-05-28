@@ -1,3 +1,17 @@
+# Visit the website!
+
+Please visit the website! (after leaving a **⭐star⭐**! 😇)
+
+[https://davidpagnon.github.io/Sports2D](https://davidpagnon.github.io/Sports2D)
+
+
+<br>
+
+---
+
+<br>
+
+
 [![Continuous integration](https://github.com/davidpagnon/sports2d/actions/workflows/continuous-integration.yml/badge.svg?branch=main)](https://github.com/davidpagnon/sports2d/actions/workflows/continuous-integration.yml)
 [![PyPI version](https://badge.fury.io/py/Sports2D.svg)](https://badge.fury.io/py/Sports2D)
 \
