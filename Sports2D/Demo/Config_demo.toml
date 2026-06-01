@@ -164,29 +164,29 @@ filter_type = 'butterworth'     # butterworth, acc_minimizing, kalman, one_euro,
    smooth = true # should be true, unless you need real-time filtering
 
    # Simpler and even faster alternative to Kalman filter for real-time, but tends to blunt RoM. Similar to a 1st order Butterworth but with adaptive cut-off frequency. This one is zero-phase
-   [filtering.one_euro]
+   [post-processing.one_euro]
    oneeuro_cut_off_frequency = 4 # Hz # cutoff frequency, similar to Butterworth but adapts to velocity (with beta)
    oneeuro_beta = 1.5 # cutoff adaptation to velocity: cut_off_frequency = cut_off_frequency + beta*velocity
    oneeuro_d_cut_off_frequency = 1.0 # Hz # cutoff frequency for derivative (1.0 is usually good)
 
    # Automatically determines optimal parameters for each point, which is good when some move faster than others (eg fingers vs hips)
-   [filtering.gcv_spline]
+   [post-processing.gcv_spline]
    gcv_cut_off_frequency = 'auto' # 'auto' or int # If int, behaves like a Butterworth filter. 'auto' is usually better, unless the signal is too short or you got a triangular wave + drift (eg pelvis Y coordinates of a subject walking uphill)
    gcv_smoothing_factor = 1.0 # >=0, ignored if cut_off_frequency != 'auto'. Biases results towards more smoothing (>1) or more fidelity to data (<1) 
 
    # Produces smooth velocities and accelerations, which is important for force estimations but blunts the peaks
    # Recommended use: on IK rather than on triangulated data
    # Whittaker-Henderson filter (acceleration-minimizing), inspired by AddBiomechanics
-   [filtering.acc_minimizing]
+   [post-processing.acc_minimizing]
    accminimizing_cut_off_frequency = 6 # Hz
 
-   [filtering.loess]
+   [post-processing.loess]
    nb_values_used = 5 # = fraction of data used * nb frames
-   [filtering.gaussian]
+   [post-processing.gaussian]
    sigma_kernel = 1 #px
-   [filtering.median]
+   [post-processing.median]
    kernel_size = 3
-   [filtering.butterworth_on_speed]
+   [post-processing.butterworth_on_speed]
    cut_off_frequency = 10 # Hz
    order = 4
 

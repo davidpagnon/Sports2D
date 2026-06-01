@@ -384,7 +384,7 @@ def read_config_file(config):
     Read configation file.
     '''
 
-    config_dict = rtoml.load(config)
+    config_dict = rtoml.load(Path(config))
     return config_dict
 
 
@@ -611,7 +611,7 @@ def main():
 
     # If config.toml file is provided, load it, else, use default config
     if args.config:
-        new_config = rtoml.load(args.config)
+        new_config = rtoml.load(Path(args.config))
     else:
         new_config = DEFAULT_CONFIG.copy()
         if not args.video_input: 
