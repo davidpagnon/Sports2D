@@ -137,7 +137,7 @@ Just drop your video, click Run Analysis, and look at the output video. You can 
 
 > [!TIP]
 > Install locally for the full experience!\
-> You'll be able to select persons manually, have a faster runtime, and access many more features.
+> You'll be able to select persons manually, have a faster runtime, and access many more features, while keeping your data private.
 
 <br>
 
@@ -160,7 +160,7 @@ Just drop your video, click Run Analysis, and look at the output video. You can 
 
 > [!TIP]
 > If you have already installed Pose2Sim, skip the installation step. \
-> Just activate your pose2sim environment (see [here](#1-set-up-a-uv-environment)) and run:
+> Just [activate your environment](#activate-your-environment) and run:
 > ```
 > uv pip install sports2d --upgrade
 > ```
@@ -196,6 +196,7 @@ Open a terminal (conda, powershell, bash, or zsh).
 ```
 
 > [!TIP]
+> #### Activate your environment
 > Remembering the command for activating the uv environment can be a pain. Just type **Ctrl+R** in your terminal and start typing `activate` to find it.
 
 <br>
@@ -203,7 +204,7 @@ Open a terminal (conda, powershell, bash, or zsh).
 ### 2. Install Sports2D:
 
 Open a terminal (*conda, powershell, bash, or zsh*).\
-Activate your environment (see [here](#1-set-up-a-uv-environment)).
+[Activate your environment](#activate-your-environment).
 
 - OPTION 1: **Latest stable version:** 
 
@@ -227,7 +228,7 @@ Activate your environment (see [here](#1-set-up-a-uv-environment)).
 
 <br>
 
-Open a terminal (*conda, powershell, bash, or zsh*), activate your environment (see [here](#1-set-up-a-uv-environment)) and run:
+Open a terminal (*conda, powershell, bash, or zsh*), [activate your environment](#activate-your-environment) and run:
 
 ``` bash
 sports2d
@@ -317,7 +318,7 @@ The output files are in your current directory:
 > - Type `sports2d --help`. Note: if an argument is not specified, it is set to its default value.
 
 > [!TIP]
-> Remember to first activate your environment (see [here](#1-set-up-a-uv-environment)).
+> Remember to first [activate your environment](#activate-your-environment).
 
 <br>
 
@@ -331,6 +332,29 @@ Try:
  # or
  sports2d --video_input webcam
 ```
+
+<br>
+
+> [!TIP]
+> #### Minimize storage use:
+> 
+> The main drawback of working with videos is the size of the files. Here are some example settings (inspired by [Hardy et al, 2026](https://cvbw2026.github.io/assets/papers/4.pdf)) to significantly reduce storage use with little impact on accuracy:
+> 
+> - **Compress videos:** Increasing crf from 20 to 30 has virtually no impact on accuracy, and *decreases storage use by up to 10 times*.
+> - **Decrease resolution:** Decreasing from HD (1080 x 1920) to SD (720 x 1280) has little impact, and *decreases storage use by about 8 times*.
+> - **Audio does not matter:** Audio tracks take between 1 and (rarely) 10% of the file size.
+> - **Face blurring:** Preserves privacy with little impact on accuracy. Use this [Utility script](https://github.com/perfanalytics/pose2sim/blob/main/Pose2Sim/Utilities/face_blurring.py).
+> - **Keep high framerate:** Framerates below 60 Hz lead to accuracy drops, especially for fast motions.
+> 
+> In practice, here is how you can compress your video and decrease its resolution with ffmpeg:
+> ```cmd
+> ffmpeg -i original_vid.MP4 `
+>   -vcodec libx264 -crf 30 -preset fast `
+>   -vf "scale='min(1280,iw)':'min(720,ih)':force_original_aspect_ratio=decrease" \
+>   -r 30 `
+>   -movflags +faststart `
+>   lighter_vid.mp4
+> ```
 
 <br>
 
@@ -388,7 +412,7 @@ sports2d --person_ordering_method on_click
 > [!NOTE]
 > To convert from pixels to meters, you need a minima the height of a participant. 
 
-**How does it work?**
+#### How does it work?
 
 - The pixel-to-meters scale is computed from the ratio between the height of the participant in meters and in pixels.\
   The height in pixels is automatically calculated; use the `--first_person_height` parameter to specify the height in meters.
@@ -733,7 +757,7 @@ sports2d --help
 
 ## Too slow for you?
 
-**Quick fixes:**
+#### Quick fixes
 
 - Use ` --save_vid false --save_img false --show_realtime_results false`.\
   Processed images and videos won't be saved, and real-time results won't be displayed. 
@@ -757,7 +781,7 @@ sports2d --help
 
 <br> 
 
-**Use your GPU**:\
+#### Use your GPU
 Will be much faster, with no impact on accuracy. However, the installation takes about 6 GB of additional storage space.
 
 1. Run `nvidia-smi` in a terminal. If this results in an error, your GPU is probably not compatible with CUDA. If not, note the "CUDA version": it is the latest version your driver is compatible with (more information [on this post](https://stackoverflow.com/questions/60987997/why-torch-cuda-is-available-returns-false-even-after-installing-pytorch-with)).
