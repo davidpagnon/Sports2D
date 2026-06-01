@@ -2583,8 +2583,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
             out_vid.release()
             if video_file == 'webcam':
                 actual_framerate = len(frame_processing_times) / sum(frame_processing_times)
-                logging.info(f"Rewriting webcam video based on the averate framerate {actual_framerate}.")
-                resample_video(vid_output_path, fps, actual_framerate)
+                logging.info(f"Rewriting webcam video based on the average framerate {actual_framerate}.")
+                resample_video(vid_output_path, desired_framerate=actual_framerate, fps=fps)
                 fps = actual_framerate
             logging.info(f"Processed video saved to {vid_output_path.resolve()}.")
         if save_img:

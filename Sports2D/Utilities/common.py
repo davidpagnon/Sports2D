@@ -16,12 +16,11 @@
 
 ## INIT
 from importlib.metadata import version
-import subprocess
 from pathlib import Path
 import logging
 from collections import defaultdict
 import numpy as np
-import imageio_ffmpeg as ffmpeg
+import av
 
 
 ## AUTHORSHIP INFORMATION
@@ -139,34 +138,49 @@ def make_homogeneous(list_of_arrays):
 
 def get_start_time_ffmpeg(video_path):
     '''
-    Get the start time of a video using FFmpeg.
+    Get the start time of a video using av (PyAV).
     '''
 
     try:
-        ffmpeg_path = ffmpeg.get_ffmpeg_exe()
+        with av.open(str(video_path)) as container:
+            # container.start_time is in AV_TIME_BASE units (microseconds)
+            if container.start_time is not None:
+                return container.start_time / 1_000_000
+            return 0.0
     except Exception as e:
-        logging.warning(f"No ffmpeg exe could be found. Starting time set to 0.0. Error: {e}")
+        logging.warning(f"Could not determine video start time. Starting time set to 0.0. Error: {e}")
         return 0.0
-    
-    cmd = [ffmpeg_path, "-i", video_path]
-    result = subprocess.run(cmd, stderr=subprocess.PIPE, stdout=subprocess.DEVNULL, text=True)
-    for line in result.stderr.splitlines():
-        if "start:" in line:
-            parts = line.split("start:")
-            if len(parts) > 1:
-                start_time = parts[1].split(",")[0].strip()
-                return float(start_time)
-    return 0.0  # Default to 0 if not found
 
 
-def resample_video(vid_output_path, fps, desired_framerate):
+def resample_video(vid_output_path, desired_framerate=30, fps=240):
     '''
-    Resample video to the desired fps using ffmpeg.
+    Resample video to the desired fps using av (PyAV).
     '''
-   
-    ffmpeg_path = ffmpeg.get_ffmpeg_exe()
-    new_vid_path = vid_output_path.parent / Path(vid_output_path.stem+'_2'+vid_output_path.suffix)
-    subprocess.run([ffmpeg_path, '-i', vid_output_path, '-filter:v', f'setpts={fps/desired_framerate}*PTS', '-r', str(desired_framerate), new_vid_path])
+
+    vid_output_path = Path(vid_output_path)
+    new_vid_path = vid_output_path.parent / Path(vid_output_path.stem + '_2' + vid_output_path.suffix)
+    pts_factor = fps / desired_framerate
+
+    with av.open(str(vid_output_path)) as in_container:
+        in_stream = in_container.streams.video[0]
+        codec_name = in_stream.codec_context.name
+        pix_fmt = in_stream.pix_fmt or 'yuv420p'
+
+        with av.open(str(new_vid_path), mode='w') as out_container:
+            out_stream = out_container.add_stream(codec_name, rate=desired_framerate)
+            out_stream.width = in_stream.width
+            out_stream.height = in_stream.height
+            out_stream.pix_fmt = pix_fmt
+
+            for frame in in_container.decode(video=0):
+                if frame.pts is not None:
+                    frame.pts = int(frame.pts * pts_factor)
+                frame.dts = None
+                for packet in out_stream.encode(frame):
+                    out_container.mux(packet)
+            for packet in out_stream.encode():
+                out_container.mux(packet)
+
     vid_output_path.unlink()
     new_vid_path.rename(vid_output_path)
 

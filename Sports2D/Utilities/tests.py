@@ -14,8 +14,9 @@
 
 ## INIT
 from importlib.metadata import version
+from pathlib import Path
 import os
-import toml
+import rtoml
 import subprocess
 from pathlib import Path
 
@@ -38,7 +39,7 @@ def test_workflow():
     '''
 
     from Sports2D import Sports2D
-    root_dir = os.path.dirname(os.path.abspath(__file__))
+    root_dir = Path(__file__).resolve().parent.parent
     os.chdir(root_dir)
 
     #############################
@@ -47,7 +48,7 @@ def test_workflow():
 
     # Default from the demo config file
     config_path = Path(__file__).resolve().parent.parent / 'Demo' / 'Config_demo.toml'
-    config_dict = toml.load(config_path)
+    config_dict = rtoml.load(config_path)
     video_dir = Path(__file__).resolve().parent.parent / 'Demo'
     config_dict.get("base").update({"video_dir": str(video_dir)})
     config_dict.get("base").update({"person_ordering_method": "highest_likelihood"})
@@ -122,11 +123,11 @@ def test_workflow():
     
     # From config file
     config_path = Path(__file__).resolve().parent.parent / 'Demo' / 'Config_demo.toml'
-    config_dict = toml.load(config_path)
+    config_dict = rtoml.load(config_path)
     video_dir = Path(__file__).resolve().parent.parent / 'Demo'
     config_dict.get("base").update({"video_dir": str(video_dir)})
     config_dict.get("base").update({"person_ordering_method": "highest_likelihood"})
-    with open(config_path, 'w') as f: toml.dump(config_dict, f)
+    with open(config_path, 'w') as f: rtoml.dump(config_dict, f)
     demo_cmd5 = ["sports2d", "--config", str(config_path), "--show_realtime_results", "False", "--show_graphs", "False", "--save_graphs", "False",]
     subprocess.run(demo_cmd5, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace')
 
