@@ -507,10 +507,10 @@ Run within Python, with a configuration file. If needed, edit `Demo/Config_demo.
 ```python
 from Sports2D import Sports2D
 from pathlib import Path
-import toml
+import rtoml
 
 config_path = Path(Sports2D.__file__).parent / 'Demo'/'Config_demo.toml'
-config_dict = toml.load(config_path)
+config_dict = rtoml.load(config_path)
 Sports2D.process(config_dict)
 ```
 
