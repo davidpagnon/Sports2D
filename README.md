@@ -36,6 +36,11 @@ Please visit the website! (after leaving a **⭐star⭐**! 😇)
 
 # Sports2D
 
+
+> [!WARNING]
+> Since yesterday (7th June, 2026), the openmmlab website has been down and you cannot download their models anymore. This is a known issue, and I'm working to find a fix.
+
+
 https://github.com/user-attachments/assets/2ce62012-f28c-4e23-b3b8-f68931bacb77
 
 <!-- https://github.com/user-attachments/assets/6a444474-4df1-4134-af0c-e9746fa433ad -->
