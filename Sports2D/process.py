@@ -1400,6 +1400,9 @@ def convert_px_to_meters(Q_coords_kpt, first_person_height, height_px, distance_
     cu = cam_width / 2
     cv = cam_height / 2
 
+    # pixel-to_meters factor
+    scaling_factor = first_person_height / height_px
+
     # Normative Z coordinates
     marker_name = Q_coords_kpt.columns[0]
     if 'marker_Z_positions' in globals() and visible_side!='none' and marker_name in marker_Z_positions[visible_side].keys():
@@ -1409,20 +1412,27 @@ def convert_px_to_meters(Q_coords_kpt, first_person_height, height_px, distance_
         Z = np.zeros_like(u)
 
     ## Compute X and Y coordinates in meters
-    # X =   first_person_height / height_px * (u-cu)
-    # Y = - first_person_height / height_px * (v-cv)
+    # X =   scaling_factor * (u-cu)
+    # Y = - scaling_factor * (v-cv)
     ## With floor angle and level correction:
-    # X =   first_person_height / height_px * ((u-cx)*np.cos(floor_angle) + (v-cy)*np.sin(floor_angle))
-    # Y = - first_person_height / height_px * ((v-cy)*np.cos(floor_angle) + (u-cx)*np.sin(floor_angle))
+    # X =   scaling_factor * ((u-cx)*np.cos(floor_angle) + (v-cy)*np.sin(floor_angle))
+    # Y = - scaling_factor * ((v-cy)*np.cos(floor_angle) + (u-cx)*np.sin(floor_angle))
     ## With floor angle and level correction, and depth perspective correction:
-    scaling_factor = first_person_height / height_px
-    X = scaling_factor * ( \
-            ((u-cx) - Z/distance_m * (u-cu)) * np.cos(floor_angle) + \
-            ((v-cy) - Z/distance_m * (v-cv)) * np.sin(floor_angle) )
-    Y = - scaling_factor * ( \
-            ((v-cy) - Z/distance_m * (v-cv)) * np.cos(floor_angle) - \
-            ((u-cx) - Z/distance_m * (u-cu)) * np.sin(floor_angle) )
+    # X = scaling_factor * ( \
+    #         ((u-cx) - Z/distance_m * (u-cu)) * np.cos(floor_angle) + \
+    #         ((v-cy) - Z/distance_m * (v-cv)) * np.sin(floor_angle) )
+    # Y = - scaling_factor * ( \
+    #         ((v-cy) - Z/distance_m * (v-cv)) * np.cos(floor_angle) - \
+    #         ((u-cx) - Z/distance_m * (u-cu)) * np.sin(floor_angle) )
 
+    ## Cleaner form
+    # Depth perspective correction
+    A = scaling_factor * ((u - cx) - Z/distance_m * (u - cu))
+    B = -scaling_factor * ((v - cy) - Z/distance_m * (v - cv))
+    # With floor angle correction
+    X = A * np.cos(floor_angle) - B * np.sin(floor_angle)
+    Y = A * np.sin(floor_angle) + B * np.cos(floor_angle)
+    
     # Assemble results
     Q_coords_kpt_m = pd.DataFrame(np.array([X, Y, Z]).T, columns=Q_coords_kpt.columns)
 
