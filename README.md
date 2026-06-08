@@ -623,7 +623,7 @@ sports2d --result_dir path_to_result_dir
 ## Use a custom pose estimation model
 
 > [!WARNING]
-> Since yesterday (7th June, 2026), the openmmlab website has been down and you cannot download their models anymore. I mirrored all the ones I had locally downloaded (44) to [HuggingFace](https://huggingface.co/datasets/DavidPagnon/rtmlib_models) but some are still missing (13). If you happen to have any of them, please tell me so I can upload them!\
+> Since yesterday (7th June, 2026), the openmmlab website has been down and you cannot download their models anymore. I mirrored all the ones I had locally downloaded (46) to [HuggingFace](https://huggingface.co/datasets/DavidPagnon/rtmlib_models) but some are still missing (11). If you happen to have any of them, please tell me so I can upload them!\
 > On Windows, they should be located at `C:\Users\<YOUR_USERNAME>\.cache\rtmlib\hub\checkpoints` (replace `<YOUR_USERNAME`> with your actual username).\
 > ```
 > RTMPose HALPE26:
@@ -632,12 +632,10 @@ sports2d --result_dir path_to_result_dir
 > 
 > RTMPose COCO17:
 > - rtmpose-l_simcc-body7_pt-body7_420e-256x192-4dba18fc_20230504
-> - rtmpose-l_simcc-body7_pt-body7_420e-384x288-3f5a1437_20230504
 > 
 > RTMPose COCO133:
 > - rtmpose-l_simcc-ucoco_dw-ucoco_270e-256x192-4d6dfc62_20230728
 > - rtmpose-l_simcc-ucoco_dw-ucoco_270e-384x288-2438fd99_20230728
-> - rtmpose-m_simcc-ucoco_dw-ucoco_270e-256x192-c8b76419_20230728
 > - rtmpose-s_simcc-ucoco_dw-ucoco_270e-256x192-3fd922c8_20230728
 > - rtmpose-t_simcc-ucoco_dw-ucoco_270e-256x192-dcf277bf_20230728
 > 
@@ -646,7 +644,7 @@ sports2d --result_dir path_to_result_dir
 > - rtmpose-s_simcc-face6_pt-in1k_120e-256x256-d779fdef_20230529
 > - rtmpose-t_simcc-face6_pt-in1k_120e-256x256-df79d9a5_20230529
 > 
-> YOLOX (including animal classes):
+> YOLOX (only human class):
 > - yolox_l_8xb8-300e_humanart-ce1d7a62
 > ```
 
