@@ -640,10 +640,10 @@ Use any custom (deployed) MMPose model:
 ``` bash
 sports2d --pose_model BodyWithFeet : `
          --mode """{'det_class':'YOLOX', `
-                'det_model':'https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/onnx_sdk/yolox_m_8xb8-300e_humanart-c2c7a14a.zip', `
+                'det_model':'https://huggingface.co/datasets/DavidPagnon/rtmlib_models/resolve/main/mmpose/rtmposev1/onnx_sdk/yolox_m_8xb8-300e_humanart-c2c7a14a.onnx', `
                 'det_input_size':[640, 640], `
                 'pose_class':'RTMPose', `
-                'pose_model':'https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/onnx_sdk/rtmpose-m_simcc-body7_pt-body7-halpe26_700e-256x192-4d3e73dd_20230605.zip', `
+                'pose_model':'https://huggingface.co/datasets/DavidPagnon/rtmlib_models/resolve/main/mmpose/rtmposev1/onnx_sdk/rtmpose-m_simcc-body7_pt-body7-halpe26_700e-256x192-4d3e73dd_20230605.onnx', `
                 'pose_input_size':[192,256]}"""
 ```
 
@@ -770,10 +770,10 @@ sports2d --help
   Note that any detection and pose models can be used (if you do not have their .onnx or .zip files, first [deploy them with MMPose](https://mmpose.readthedocs.io/en/latest/user_guides/how_to_deploy.html#onnx)):
   ```
   --mode """{'det_class':'YOLOX',
-          'det_model':'https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/onnx_sdk/yolox_nano_8xb8-300e_humanart-40f6f0d0.zip',
+          'det_model':'https://huggingface.co/datasets/DavidPagnon/rtmlib_models/resolve/main/mmpose/rtmposev1/onnx_sdk/yolox_nano_8xb8-300e_humanart-40f6f0d0.onnx',
           'det_input_size':[416,416],
           'pose_class':'RTMPose',
-          'pose_model':'https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/onnx_sdk/rtmpose-t_simcc-body7_pt-body7_420e-256x192-026a1439_20230504.zip',
+          'pose_model':'https://huggingface.co/datasets/DavidPagnon/rtmlib_models/resolve/main/mmpose/rtmposev1/onnx_sdk/rtmpose-t_simcc-body7_pt-body7_420e-256x192-026a1439_20230504.onnx',
           'pose_input_size':[192,256]}"""
   ```
 - Use `--det_frequency 50` (or more).\
