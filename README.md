@@ -987,4 +987,4 @@ Run `uv pip install sports2d --upgrade` to get the latest version.
 ### Acknowledgements
 - Initial idea suggested by coach [Rob Olivar](linkedin.com/in/rob-olivar-489581280).
 - Big thanks to [all the contributors](https://github.com/davidpagnon/sports2d/graphs/contributors), past and to come! Big thanks to all those who gave feedback and contributed to making this software program better, too.
-- Further development supported by [Forceteck](https://forceteck.com/) <img src="Content/forceteck_logo.png" width="200">.
+- Further development supported by [Forceteck](https://forceteck.com/) <img style="display:inline; vertical-align:middle; width:100px !important;" src="Content/forceteck_logo.png">
