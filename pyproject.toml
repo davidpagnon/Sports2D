@@ -33,7 +33,7 @@ classifiers = [
 ]
 urls = {Homepage = "https://github.com/davidpagnon/Sports2D", "Bug Tracker" = "https://github.com/davidpagnon/Sports2D/issues"}
 dependencies = [
-    "Pose2Sim @ git+https://github.com/perfanalytics/Pose2Sim.git@a9311418cd06fc7ea9c3c13bc8dde6f5b9baedca"
+    "Pose2Sim @ git+https://github.com/perfanalytics/Pose2Sim.git@94fcfa66ab8615b8fbbbcccb2cda61462f907e60"
     # "Pose2Sim>=0.10.46",
 ]
 

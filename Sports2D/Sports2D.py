@@ -557,7 +557,8 @@ def process(config='Config_demo.toml'):
         elapsed_time = (datetime.now() - currentDateAndTime).total_seconds()
         logging.info(f'\nProcessing {video_file} took {elapsed_time:.2f} s.')
 
-    logging.shutdown()
+    if not use_custom_logging: 
+        logging.shutdown()
 
 
 def main():
