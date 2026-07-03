@@ -72,7 +72,15 @@ import numpy as np
 import pandas as pd
 import cv2
 import matplotlib as mpl
-import matplotlib.pyplot as plt
+try:
+    mpl.use('qtagg')
+    import matplotlib.pyplot as plt
+    fig = plt.figure()
+    plt.close(fig)
+except Exception as e:
+    logging.warning(f"GUI not available ({e}), falling back to 'Agg' backend.")
+    mpl.use('Agg')
+    import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, Button
 from matplotlib import patheffects
 from rtmlib.tools.object_detection.post_processings import nms
@@ -696,7 +704,6 @@ def pose_plots(trc_data_unfiltered, trc_data, person_id, show=True):
     os_name = platform.system()
     mpl.rc('figure', max_open_warning=0)
     if show:
-        mpl.use('qtagg')
         pw = plotWindow()
         pw.MainWindow.setWindowTitle('Person'+ str(person_id) + ' coordinates')
     else:
@@ -752,7 +759,6 @@ def angle_plots(angle_data_unfiltered, angle_data, person_id, show=True):
     os_name = platform.system()
     mpl.rc('figure', max_open_warning=0)
     if show:
-        mpl.use('qtagg')
         pw = plotWindow()
         pw.MainWindow.setWindowTitle('Person'+ str(person_id) + ' angles')
     else:
