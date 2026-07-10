@@ -692,8 +692,8 @@ sports2d --help
 'mode': ["m", 'light, balanced, performance, or a """{dictionary within triple quote}""". balanced if not specified. Use a dictionary to specify your own detection and/or pose estimation models (more about in the documentation).'],
 'det_frequency': ["f", "run person detection only every N frames, and inbetween track previously detected bounding boxes. keypoint detection is still run on all frames.\n\
                   Equal to or greater than 1, can be as high as you want in simple uncrowded cases. Much faster, but might be less accurate. 1 if not specified: detection runs on all frames"],
-'backend': ["", "Backend for pose estimation can be 'auto', 'cpu', 'cuda', 'mps' (for MacOS), or 'rocm' (for AMD GPUs)"],
-'device': ["", "Device for pose estimatino can be 'auto', 'openvino', 'onnxruntime', 'opencv'"],
+'backend': ["", "Backend for pose estimation can be 'auto', 'openvino', 'onnxruntime', 'opencv'"],
+'device': ["", "Device for pose estimation can be 'auto', 'cpu', 'cuda', 'mps' (for MacOS), or 'rocm' (for AMD GPUs)."],
 'to_meters': ["M", "convert pixels to meters. true if not specified"],
 'make_c3d': ["", "Convert trc to c3d file. true if not specified"],
 'floor_angle': ["", "angle of the floor (degrees). 'auto' if not specified"],
@@ -703,7 +703,19 @@ sports2d --help
 'feet_on_floor': ["", "offset marker augmentation results so that feet are at floor level. true if not specified"],
 'distortions': ["", "camera distortion coefficients [k1, k2, p1, p2, k3] or 'from_calib'. [0.0, 0.0, 0.0, 0.0, 0.0] if not specified"],
 'use_simple_model': ["", "IK 10+ times faster, but no muscles or flexible spine, no patella. false if not specified"],
+'parallel_workers_kinematics': ["", "'auto', int, or false. One CPU worker per person"],
 'tracking_mode': ["", "'sports2d' or 'deepsort'. 'deepsort' is slower, harder to parametrize but can be more robust if correctly tuned"],
+'predict_displacement': ["", "true or false. Default: False. \n\
+                            Use when people move in sustained straight lines (eg sprinting, cycling, swimming) or in case of long occlusions or slow framerate. \n\
+                            Don't use if there are sudden changes of direction (eg basketball, hopping). \n\
+                            Experiment if you are unsure (eg football, ...)."],
+'match_by': ["", "'keypoints', 'centroid', or 'bbox'. 'Default: 'keypoints'. \n\
+            Usually favor keypoints, especially if people are passing closely in front of each other with distinct limb positions and limited frame-by-frame limb motion (eg yoga class, ballroom dance, and even wrestling and gymnastics if the framerate is high). \n\
+            Favor centroid in crowded scenes where people are very small in the image (eg < 40 pixels). \n\
+            Favor bbox with `predict_displacement=true` with people of different sizes moving in a straight line with fast limb motion and large occlusions (eg sprinting with occlusions)."],
+'max_distance': ["", "Max distance a person can jump from their previous position before being considered as a new one. Only considered if match_by='keypoints' or 'centroid'. in px or None, 100 by default. Increase it if predict_displacement=False. Only considered if match_by='keypoints' or 'centroid'."],
+'min_iou': ["", "Minimum overlap between two consecutive bounding boxes before a person is considered as another one. 0.2 by default. Lower it if predict_displacement=False. Only considered if match_by='bbox'."],
+'max_unseen_time': ["", "Max number of seconds that a person can be unseen before the next person passing by is given a new ID. 1 second by default."],
 'deepsort_params': ["", 'Deepsort tracking parameters: """{dictionary between 3 double quotes}""". \n\
                     Default: max_age:30, n_init:3, nms_max_overlap:0.8, max_cosine_distance:0.3, nn_budget:200, max_iou_distance:0.8, embedder_gpu: True\n\
                     More information there: https://github.com/levan92/deep_sort_realtime/blob/master/deep_sort_realtime/deepsort_tracker.py#L51'],
@@ -711,8 +723,6 @@ sports2d --help
 'keypoint_likelihood_threshold': ["", "detected keypoints are not retained if likelihood is below this threshold. 0.3 if not specified"],
 'average_likelihood_threshold': ["", "detected persons are not retained if average keypoint likelihood is below this threshold. 0.5 if not specified"],
 'keypoint_number_threshold': ["", "detected persons are not retained if number of detected keypoints is below this threshold. 0.3 if not specified, i.e., i.e., 30 percent"],
-'max_distance': ["", "If a person is detected further than max_distance from its position on the previous frame, it will be considered as a new one. in px or None, 100 by default."],
-'max_unseen_time': ["", "If a person is not seen for more than max_unseen_time seconds, they are considered stale and they won't be confused with a person passing by. 1 second by default."],
 'large_hip_knee_angles': ["", "Hip and knee angles beyond this value are considered as imprecise. Defaults to 135°"],
 'trimmed_extrema_percent': ["", "Proportion of the most extreme segment values to remove before calculating their mean. Defaults to 50"],
 'fontSize': ["", "font size for angle values. 0.3 if not specified"],
@@ -725,7 +735,7 @@ sports2d --help
 'min_chunk_size': ["", "Minimum number of valid frames in a row to keep a chunk of data for a person.  10 if not specified"],
 'reject_outliers': ["", "reject outliers with Hampel filter before other filtering methods. true if not specified"],
 'filter': ["", "filter results. true if not specified"],
-'filter_type': ["", "utterworth, acc_minimizing, kalman, one_euro, gcv_spline, gaussian, LOESS, median, butterworth_on_speed. butterworth if not specified"],
+'filter_type': ["", "butterworth, acc_minimizing, kalman, one_euro, gcv_spline, gaussian, LOESS, median, butterworth_on_speed. butterworth if not specified"],
 'cut_off_frequency': ["", "cut-off frequency of the Butterworth filter. 6 if not specified"],
 'order': ["", "order of the Butterworth filter. 4 if not specified"],
 'trust_ratio': ["", "trust ratio of the Kalman filter: How much more do you trust triangulation results (measurements), than the assumption of constant acceleration(process)? 500 if not specified"],

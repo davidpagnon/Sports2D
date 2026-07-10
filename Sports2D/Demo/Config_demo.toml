@@ -89,17 +89,29 @@ det_frequency = 4       # Run person detection only every N frames, and inbetwee
                         # Equal to or greater than 1, can be as high as you want in simple uncrowded cases. Much faster, but might be less accurate. 
 device = 'auto' # 'auto', 'CPU', 'CUDA', 'MPS', 'ROCM'
 backend = 'auto' # 'auto', 'openvino', 'onnxruntime', 'opencv'
-tracking_mode = 'sports2d' # 'sports2d' or 'deepsort'. 'deepsort' is slower, harder to parametrize but can be more robust if correctly tuned
-# deepsort_params = """{'max_age':30, 'n_init':3, 'max_cosine_distance':0.3, 'max_iou_distance':0.8, 'embedder_gpu': True, 'embedder':'torchreid'}""" # """{dictionary between 3 double quotes}"""
-                  # More robust in crowded scenes but tricky to parametrize. More information there: https://github.com/levan92/deep_sort_realtime/blob/master/deep_sort_realtime/deepsort_tracker.py#L51
-                  # Requires `uv pip install torch torchvision torchreid gdown tensorboard`
 
-# Processing parameters
+# Confidence thresholds
 keypoint_likelihood_threshold = 0.3 # Keypoints whose likelihood is lower will not be taken into account
 average_likelihood_threshold = 0.5  # Person will be ignored if average likelihood of good keypoints is lower than this value
 keypoint_number_threshold = 0.3     # Person will be ignored if the number of good keypoints (above keypoint_likelihood_threshold) is less than this fraction
-max_distance = 250  # in px or None # Max distance a person can jump from their previous position before being considered as a new one
+
+# Tracking parameters
+tracking_mode = 'sports2d' # 'sports2d' or 'deepsort'. 'deepsort' is not recommended: slower and harder to parametrize
+predict_displacement = false # Use when people move in sustained straight lines (eg sprinting, cycling, swimming) or in case of long occlusions or slow framerate. 
+                            # Don't use if there are sudden changes of direction (eg basketball, hopping). 
+                            # Experiment if you are unsure (eg football, ...).
+match_by = 'keypoints' # 'keypoints', 'centroid', or 'bbox'
+                  # Usually favor keypoints, especially if people are passing closely in front of each other with distinct limb positions and limited frame-by-frame limb motion (eg yoga class, ballroom dance, and even wrestling and gymnastics if the framerate is high).
+                  # Favor centroid in crowded scenes where people are very small in the image (eg < 40 pixels). 
+                  # Favor bbox with `predict_displacement=true` with people of different sizes moving in a straight line with fast limb motion and large occlusions (eg sprinting with occlusions).
+max_distance = 250 # in px or None # Max distance a person can jump from their previous position before being considered as a new one. Increase it if predict_displacement=False 
+                   # only considered if match_by='keypoints' or 'centroid'
+min_iou = 0.2 # Minimum overlap between two consecutive bounding boxes before a person is considered as another one. Lower it if predict_displacement=False 
+              # Only considered if match_by='bbox'
 max_unseen_time = 1.0 # Max number of seconds that a person can be unseen before the next person passing by is given a new ID
+# deepsort_params = """{'max_age':30, 'n_init':3, 'max_cosine_distance':0.3, 'max_iou_distance':0.8, 'embedder_gpu': True, 'embedder':'torchreid'}""" # """{dictionary between 3 double quotes}"""
+                  # More robust in crowded scenes but tricky to parametrize. More information there: https://github.com/levan92/deep_sort_realtime/blob/master/deep_sort_realtime/deepsort_tracker.py#L51
+                  # Requires `uv pip install torch torchvision torchreid gdown tensorboard`
 
 
 [px_to_meters_conversion]

@@ -103,7 +103,7 @@ def test_workflow():
                  "--floor_angle", "from_calib", "--xy_origin", "from_calib", "--perspective_unit", "from_calib", "--calib_file", os.path.join(root_dir, "demo_Sports2D", "demo_Sports2D_calib.toml"), 
                  "--nb_persons_to_detect", "1", "--person_ordering_method", "greatest_displacement", 
                  "--mode", "lightweight", "--det_frequency", "50", 
-                #  "--match_by", "bbox", "--predict_displacement", "True", "min_iou", "0.2", 
+                 "--match_by", "bbox", "--predict_displacement", "True", "min_iou", "0.2", 
                  "--slowmo_factor", "4",
                  "--filter_type", "acc_minimizing", "--accminimizing_cut_off_frequency", "4",
                  "--do_augmentation", "False", "--do_ik", "False",

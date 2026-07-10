@@ -1530,9 +1530,20 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
     pose_model = config_dict.get('pose').get('pose_model')
     mode = config_dict.get('pose').get('mode')
     det_frequency = config_dict.get('pose').get('det_frequency')
-    backend = config_dict.get('pose').get('backend')
     device = config_dict.get('pose').get('device')
-    tracking_mode = config_dict.get('pose').get('tracking_mode')
+    backend = config_dict.get('pose').get('backend')
+    keypoint_likelihood_threshold = config_dict.get('pose').get('keypoint_likelihood_threshold')
+    average_likelihood_threshold = config_dict.get('pose').get('average_likelihood_threshold')
+    keypoint_number_threshold = config_dict.get('pose').get('keypoint_number_threshold')
+
+    tracking_mode = config_dict.get('pose').get('tracking_mode', 'sports2d')
+    use_prediction = config_dict.get('pose').get('predict_displacement', False)
+    match_by = config_dict.get('pose').get('match_by', 'keypoints')
+    max_distance = config_dict.get('pose').get('max_distance', 250)
+    min_iou = config_dict.get('pose').get('min_iou', 0.2)
+    if match_by == 'bbox':
+        max_distance = 1 - min_iou
+    max_unseen_time = config_dict.get('pose').get('max_unseen_time', 1.0)
     if tracking_mode == 'deepsort':
         from deep_sort_realtime.deepsort_tracker import DeepSort
         deepsort_params = config_dict.get('pose').get('deepsort_params')
@@ -1544,12 +1555,6 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
             deepsort_params = json.loads(deepsort_params)
         deepsort_tracker = DeepSort(**deepsort_params)
         deepsort_tracker.tracker.tracks.clear()
-
-    keypoint_likelihood_threshold = config_dict.get('pose').get('keypoint_likelihood_threshold')
-    average_likelihood_threshold = config_dict.get('pose').get('average_likelihood_threshold')
-    keypoint_number_threshold = config_dict.get('pose').get('keypoint_number_threshold')
-    max_distance = config_dict.get('pose').get('max_distance', None)
-    max_unseen_time = config_dict.get('pose').get('max_unseen_time', 1.0)
 
     # Pixel to meters conversion
     to_meters = config_dict.get('px_to_meters_conversion').get('to_meters')
@@ -1760,7 +1765,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
             except:
                 logging.error('Error: Pose estimation failed. Check in Config.toml that pose_model and mode are valid.')
                 raise ValueError('Error: Pose estimation failed. Check in Config.toml that pose_model and mode are valid.')
-        logging.info(f'Persons detection is run every {det_frequency} frames (pose estimation is run at every frame). Tracking is done with {tracking_mode}.')
+        logging.info(f'Persons detection is run every {det_frequency} frames (pose estimation is run at every frame). Tracking is done with {tracking_mode}: match_by {match_by}, predict_displacement {use_prediction}.')
         
         if tracking_mode == 'deepsort': 
             logging.info(f'Deepsort parameters: {deepsort_params}.')
@@ -1875,8 +1880,20 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
                     if tracking_mode == 'deepsort':
                         keypoints, scores = sort_people_deepsort(keypoints, scores, deepsort_tracker, frame, frame_count)
                     if tracking_mode == 'sports2d': 
-                        if 'prev_keypoints' not in locals(): prev_keypoints = keypoints
-                        prev_keypoints,  keypoints, scores, frames_since_last_seen = sort_people_sports2d(prev_keypoints, keypoints, scores=scores, max_dist=max_distance, max_unseen_frames=max_unseen_frames, frames_since_last_seen=frames_since_last_seen)
+                        if 'prev_keypoints' not in locals(): # Initialization
+                            prev_keypoints = keypoints
+                            if use_prediction:
+                                pred_displacement = np.zeros((len(keypoints), 2))
+                            else:
+                                pred_displacement = None
+                        ret = sort_people_sports2d(prev_keypoints, keypoints, scores=scores, 
+                                                match_by=match_by, pred_displacement=pred_displacement, 
+                                                max_dist=max_distance, 
+                                                max_unseen_frames=max_unseen_frames, frames_since_last_seen=frames_since_last_seen)
+                        if use_prediction:
+                            prev_keypoints, keypoints, scores, frames_since_last_seen, pred_displacement = ret
+                        else:
+                            prev_keypoints, keypoints, scores, frames_since_last_seen = ret
                     else:
                         pass
                     
@@ -2198,6 +2215,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
                             f.savefig(plot_path, dpi=dpi, bbox_inches='tight')
                             plt.close(f)
                     logging.info(f'Pose plots (px) saved in {plots_output_dir}.')
+                pw.close()
                     
             all_frames_X_processed[:,idx_person,:], all_frames_Y_processed[:,idx_person,:] = all_frames_X_person_filt, all_frames_Y_person_filt
             if calculate_angles or save_angles:
@@ -2537,6 +2555,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
                             f.savefig(plot_path, dpi=dpi, bbox_inches='tight')
                             plt.close(f)
                     logging.info(f'Pose plots (m) saved in {plots_output_dir}.')
+                pw.close()
 
 
     #%% ==================================================
