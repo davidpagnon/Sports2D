@@ -204,3 +204,114 @@ def write_calibration(calib_params, toml_path):
             cal_f.write(cam_str + name_str + size_str + mat_str + dist_str + rot_str + tran_str + fish_str)
         meta = '[metadata]\nadjusted = false\nerror = 0.0\n'
         cal_f.write(meta)
+
+
+def _bilateral_body_pairs(skeleton_model):
+    '''
+    Retrieve matching left/right body keypoint IDs from a Pose2Sim skeleton tree.
+    Face landmarks and hand landmarks below the wrists are ignored.
+    '''
+    nodes = (skeleton_model,) + tuple(skeleton_model.descendants)
+    nodes_by_name = {node.name: node for node in nodes if node.id is not None}
+    pairs = []
+
+    for name, left_node in nodes_by_name.items():
+        if not name.startswith('L'):
+            continue
+
+        right_node = nodes_by_name.get(f'R{name[1:]}')
+        if right_node is None:
+            continue
+
+        left_ancestors = {ancestor.name for ancestor in left_node.ancestors}
+        right_ancestors = {ancestor.name for ancestor in right_node.ancestors}
+        ancestors = left_ancestors | right_ancestors
+        if ancestors.intersection({'Head', 'Nose'}):
+            continue
+        if any(ancestor.endswith('Wrist') for ancestor in ancestors):
+            continue
+
+        pairs.append((left_node.id, right_node.id))
+
+    return pairs
+
+
+def correct_limb_swaps(person_keypoints, person_scores, previous_keypoints, skeleton_model,
+                       height_px, improvement_ratio=0.65, min_improvement_ratio=0.03,
+                       min_pairs=2):
+    '''
+    Correct clear temporal left/right limb assignment swaps.
+
+    Bilateral pairs are derived from the active Pose2Sim skeleton rather than
+    hardcoded for one pose model. A correction is made only when several pairs
+    agree that the swapped interpretation is substantially closer to the
+    previous frame. The absolute improvement threshold is scaled by the
+    detected person's height in pixels so it is not tied to one resolution.
+
+    INPUTS:
+    - person_keypoints: (K, 2) array of current keypoint coordinates
+    - person_scores: (K,) array of current confidence scores
+    - previous_keypoints: (K, 2) array for the same person in the previous frame
+    - skeleton_model: active Pose2Sim skeleton tree
+    - height_px: detected person height in pixels
+    - improvement_ratio: maximum swapped/normal global cost ratio
+    - min_improvement_ratio: minimum mean cost improvement relative to height_px
+    - min_pairs: minimum number of valid bilateral pairs required
+
+    OUTPUTS:
+    - keypoints: corrected keypoint coordinates
+    - scores: corrected confidence scores
+    - corrected: whether at least one pair was swapped
+    '''
+    keypoints = np.asarray(person_keypoints).copy()
+    scores = np.asarray(person_scores).copy()
+    previous_keypoints = np.asarray(previous_keypoints)
+
+    if keypoints.ndim != 2 or previous_keypoints.shape != keypoints.shape:
+        return keypoints, scores, False
+    if not np.isfinite(height_px) or height_px <= 0:
+        return keypoints, scores, False
+
+    pair_data = []
+    normal_cost = 0.0
+    swapped_cost = 0.0
+
+    for left_idx, right_idx in _bilateral_body_pairs(skeleton_model):
+        if max(left_idx, right_idx) >= len(keypoints):
+            continue
+
+        current_left = keypoints[left_idx]
+        current_right = keypoints[right_idx]
+        previous_left = previous_keypoints[left_idx]
+        previous_right = previous_keypoints[right_idx]
+        if not all(np.isfinite(point).all() for point in
+                   (current_left, current_right, previous_left, previous_right)):
+            continue
+
+        pair_normal = (np.linalg.norm(current_left - previous_left) +
+                       np.linalg.norm(current_right - previous_right))
+        pair_swapped = (np.linalg.norm(current_left - previous_right) +
+                        np.linalg.norm(current_right - previous_left))
+        normal_cost += pair_normal
+        swapped_cost += pair_swapped
+        pair_data.append((left_idx, right_idx, pair_normal, pair_swapped))
+
+    if len(pair_data) < min_pairs or normal_cost <= 0:
+        return keypoints, scores, False
+
+    mean_improvement = (normal_cost - swapped_cost) / len(pair_data)
+    min_mean_improvement = min_improvement_ratio * height_px
+    swap_is_clear = (swapped_cost < normal_cost * improvement_ratio and
+                     mean_improvement >= min_mean_improvement)
+    if not swap_is_clear:
+        return keypoints, scores, False
+
+    corrected = False
+    for left_idx, right_idx, pair_normal, pair_swapped in pair_data:
+        if pair_swapped < pair_normal:
+            keypoints[[left_idx, right_idx]] = keypoints[[right_idx, left_idx]]
+            scores[[left_idx, right_idx]] = scores[[right_idx, left_idx]]
+            corrected = True
+
+    return keypoints, scores, corrected
+

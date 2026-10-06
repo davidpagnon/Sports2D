@@ -1886,6 +1886,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
                                 pred_displacement = np.zeros((len(keypoints), 2))
                             else:
                                 pred_displacement = None
+                        previous_keypoints_for_swap = prev_keypoints.copy()
                         ret = sort_people_sports2d(prev_keypoints, keypoints, scores=scores, 
                                                 match_by=match_by, pred_displacement=pred_displacement, 
                                                 max_dist=max_distance, 
@@ -1938,14 +1939,21 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
                     
                     
                     ## RECREATE KEYPOINTS, SCORES
-
-
-
-
-
-
-
-
+                    # Optional temporal correction for clear bilateral limb swaps.
+                    if handle_LR_swap and tracking_mode == 'sports2d' and 'previous_keypoints_for_swap' in locals():
+                        if person_idx < len(previous_keypoints_for_swap):
+                            person_keypoints = np.column_stack((person_X, person_Y))
+                            finite_Y = person_Y[np.isfinite(person_Y)]
+                            height_px = np.ptp(finite_Y) if len(finite_Y) > 1 else np.nan
+                            person_keypoints, person_scores, swap_corrected = correct_limb_swaps(
+                                person_keypoints, person_scores, previous_keypoints_for_swap[person_idx],
+                                skeleton_model, height_px)
+                            person_X, person_Y = person_keypoints.T
+                            if swap_corrected:
+                                keypoints[person_idx] = person_keypoints
+                                scores[person_idx] = person_scores
+                                prev_keypoints[person_idx] = person_keypoints
+                                logging.debug(f'Corrected likely L/R limb swap for person {person_idx} at frame {frame_count-1}.')
 
                 # Add Shoulder, Neck and Hip if not provided
                 new_keypoints_names, new_keypoints_ids = keypoints_names.copy(), keypoints_ids.copy()

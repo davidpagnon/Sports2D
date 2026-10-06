@@ -157,6 +157,7 @@ fill_large_gaps_with = 'last_value' # 'last_value', 'nan', or 'zeros'
 sections_to_keep = 'all' # 'all', 'largest', 'first', 'last'
                         # Keep 'all' valid sections even when they are interspersed with undetected chunks, or the 'largest' valid section, or the 'first' one, or the 'last' one
 min_chunk_size = 10     # Minimum number of valid frames in a row to keep a chunk of data for a person
+handle_LR_swap = false  # Correct clear temporal left/right limb keypoint swaps before angle computation
 reject_outliers = true  # Hampel filter for outlier rejection before other filtering methods. Rejects outliers that are outside of a 95% confidence interal from the median in a sliding window of size 7.
 
 filter = true
