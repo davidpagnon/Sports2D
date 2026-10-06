@@ -1976,7 +1976,6 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
             # Draw keypoints and skeleton
             if show_realtime_results and len(keypoints) > 0:
                 img = frame.copy()
-                cv2.putText(img, f"Press 'q' to stop", (cam_width-int(600*fontSize), cam_height-20), cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (255,255,255), thickness+1, cv2.LINE_AA)
                 cv2.putText(img, f"Press 'q' to stop", (cam_width-int(600*fontSize), cam_height-20), cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (0,0,255), thickness, cv2.LINE_AA)
                 img = draw_bounding_box(img, valid_X, valid_Y, colors=colors, fontSize=fontSize, thickness=thickness)
                 try:
@@ -2215,7 +2214,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
                             f.savefig(plot_path, dpi=dpi, bbox_inches='tight')
                             plt.close(f)
                     logging.info(f'Pose plots (px) saved in {plots_output_dir}.')
-                pw.close()
+                if not isinstance(pw, list):
+                    pw.close()
                     
             all_frames_X_processed[:,idx_person,:], all_frames_Y_processed[:,idx_person,:] = all_frames_X_person_filt, all_frames_Y_person_filt
             if calculate_angles or save_angles:
@@ -2555,7 +2555,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
                             f.savefig(plot_path, dpi=dpi, bbox_inches='tight')
                             plt.close(f)
                     logging.info(f'Pose plots (m) saved in {plots_output_dir}.')
-                pw.close()
+                if not isinstance(pw, list):
+                    pw.close()
 
 
     #%% ==================================================
@@ -2615,7 +2616,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
         if save_vid:
             out_vid.release()
             if video_file == 'webcam':
-                actual_framerate = len(frame_processing_times) / sum(frame_processing_times)
+                actual_framerate = round(len(frame_processing_times) / sum(frame_processing_times))
                 logging.info(f"Rewriting webcam video based on the average framerate {actual_framerate}.")
                 resample_video(vid_output_path, desired_framerate=actual_framerate, fps=fps)
                 fps = actual_framerate
