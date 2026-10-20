@@ -1765,12 +1765,13 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
             except:
                 logging.error('Error: Pose estimation failed. Check in Config.toml that pose_model and mode are valid.')
                 raise ValueError('Error: Pose estimation failed. Check in Config.toml that pose_model and mode are valid.')
-        logging.info(f'Persons detection is run every {det_frequency} frames (pose estimation is run at every frame). Tracking is done with {tracking_mode}: match_by {match_by}, predict_displacement {use_prediction}.')
-        
-        if tracking_mode == 'deepsort': 
+        logging.info(f'Persons detection is run every {det_frequency} frames (pose estimation is run at every frame).')
+        if tracking_mode == 'sports2d':
+            logging.info(f'Tracking is done with {tracking_mode}. Match_by {match_by}, predict_displacement {use_prediction}, max_distance {max_distance}, min_iou {min_iou}, max_unseen_time {max_unseen_time}.')
+        elif tracking_mode == 'deepsort': 
             logging.info(f'Deepsort parameters: {deepsort_params}.')
-        if tracking_mode not in ['deepsort', 'sports2d']:
-            logging.warning(f"Tracking mode {tracking_mode} is not implemented. 'sports2d' is recommended.")
+        else:
+            logging.info(f'Tracking mode {tracking_mode} is not implemented: no tracking.')
         logging.info(f'{"All persons are" if nb_persons_to_detect=="all" else f"{nb_persons_to_detect} persons are" if nb_persons_to_detect>1 else "1 person is"} analyzed. Person ordering method is {person_ordering_method}.')
         logging.info(f"{keypoint_likelihood_threshold=}, {average_likelihood_threshold=}, {keypoint_number_threshold=}")
 
