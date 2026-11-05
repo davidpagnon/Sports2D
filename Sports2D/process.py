@@ -72,15 +72,14 @@ import numpy as np
 import pandas as pd
 import cv2
 import matplotlib as mpl
+headless = not (os.environ.get('DISPLAY') or os.environ.get('WAYLAND_DISPLAY') or sys.platform in ('win32', 'darwin'))
 try:
-    mpl.use('qtagg')
+    mpl.use('Agg' if headless else 'qtagg')
     import matplotlib.pyplot as plt
-    fig = plt.figure()
-    plt.close(fig)
+    fig = plt.figure(); plt.close(fig)
 except Exception as e:
     logging.warning(f"GUI not available ({e}), falling back to 'Agg' backend.")
-    mpl.use('Agg')
-    import matplotlib.pyplot as plt
+    plt.switch_backend("Agg")
 from matplotlib.widgets import Slider, Button
 from matplotlib import patheffects
 from rtmlib.tools.object_detection.post_processings import nms
@@ -707,7 +706,6 @@ def pose_plots(trc_data_unfiltered, trc_data, person_id, show=True):
         pw = plotWindow()
         pw.MainWindow.setWindowTitle('Person'+ str(person_id) + ' coordinates')
     else:
-        mpl.use('Agg') # Otherwise fails on Hugging-face
         figures_list = []    
 
     keypoints_names = trc_data.columns[1::3]
@@ -762,7 +760,6 @@ def angle_plots(angle_data_unfiltered, angle_data, person_id, show=True):
         pw = plotWindow()
         pw.MainWindow.setWindowTitle('Person'+ str(person_id) + ' angles')
     else:
-        mpl.use('Agg') # Otherwise fails on Hugging-face
         figures_list = []
 
     angles_names = angle_data.columns[1:]
@@ -1344,7 +1341,7 @@ def get_floor_params(floor_angle='auto', xy_origin=['auto'],
         if all(key in trc_data for key in ['LBigToe', 'RBigToe']):
             floor_angle_kin, xy_origin_kin, gait_direction = compute_floor_line(trc_data, score_data, keypoint_names=['LBigToe', 'RBigToe'], toe_speed_below=toe_speed_below_px_frame, score_threshold=score_threshold)
         else:
-            floor_angle_kin, xy_origin_estim, gait_direction = compute_floor_line(trc_data, score_data, keypoint_names=['LAnkle', 'RAnkle'], toe_speed_below=toe_speed_below_px_frame, score_threshold=score_threshold)
+            floor_angle_kin, xy_origin_kin, gait_direction = compute_floor_line(trc_data, score_data, keypoint_names=['LAnkle', 'RAnkle'], toe_speed_below=toe_speed_below_px_frame, score_threshold=score_threshold)
             xy_origin_kin[1] = xy_origin_kin[1] + 0.13*px_per_m # approx. height of the ankle above the floor
             logging.warning(f'The RBigToe and LBigToe are missing from your pose estimation model. Using ankles - 13 cm to compute the floor line.')
     except:
@@ -2151,7 +2148,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
                 all_frames_X_person_filt = all_frames_X_person_interp
                 all_frames_Y_person_filt = all_frames_Y_person_interp
             else:
-                if filter_type == ('butterworth' or 'butterworth_on_speed'):
+                if filter_type in ('butterworth', 'butterworth_on_speed'):
                     cutoff = butterworth_filter_cutoff
                     if video_file == 'webcam':
                         if cutoff / (fps / 2) >= 1:
@@ -2215,8 +2212,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
                             f.savefig(plot_path, dpi=dpi, bbox_inches='tight')
                             plt.close(f)
                     logging.info(f'Pose plots (px) saved in {plots_output_dir}.')
-                if not isinstance(pw, list):
-                    pw.close()
+                close_plots(pw)
                     
             all_frames_X_processed[:,idx_person,:], all_frames_Y_processed[:,idx_person,:] = all_frames_X_person_filt, all_frames_Y_person_filt
             if calculate_angles or save_angles:
@@ -2381,6 +2377,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
                                     f.savefig(plot_path, dpi=dpi, bbox_inches='tight')
                                     plt.close(f)
                             logging.info(f'Pose plots (m) saved in {plots_output_dir}.')
+                        close_plots(pw)
 
                     # Write to trc file
                     trc_data_m.append(trc_data_m_i)
@@ -2488,7 +2485,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
                 logging.info(f'No filtering.')
                 all_frames_angles_person_filt = all_frames_angles_person_interp
             else:
-                if filter_type == ('butterworth' or 'butterworth_on_speed'):
+                if filter_type in ('butterworth', 'butterworth_on_speed'):
                     cutoff = butterworth_filter_cutoff
                     if video_file == 'webcam':
                         if cutoff / (fps / 2) >= 1:
@@ -2514,8 +2511,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
                 elif filter_type == 'median':
                     args = f'Median filter, kernel of {median_filter_kernel}.'
                 else:
-                    logging.error(f"Invalid filter_type: {filter_type}. Must be 'butterworth', 'gcv_spline', 'kalman', 'gaussian', 'loess', or 'median'.")
-                    raise ValueError(f"Invalid filter_type: {filter_type}. Must be 'butterworth', 'gcv_spline', 'kalman', 'gaussian', 'loess', or 'median'.")
+                    logging.error(f"Invalid filter_type: {filter_type}. Must be 'butterworth', 'butterworth_on_speed', 'kalman', 'one_euro', 'gcv_spline', 'acc_minimizing', 'gaussian', 'loess', or 'median'.")
+                    raise ValueError(f"Invalid filter_type: {filter_type}. Must be 'butterworth', 'butterworth_on_speed', 'kalman', 'one_euro', 'gcv_spline', 'acc_minimizing', 'gaussian', 'loess', or 'median'.")
 
                 logging.info(f'Filtering with {args}')
                 all_frames_angles_person_filt = all_frames_angles_person_interp.apply(filter1d, axis=0, args = [Pose2Sim_config_dict, filter_type, frame_rate])
@@ -2556,8 +2553,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
                             f.savefig(plot_path, dpi=dpi, bbox_inches='tight')
                             plt.close(f)
                     logging.info(f'Pose plots (m) saved in {plots_output_dir}.')
-                if not isinstance(pw, list):
-                    pw.close()
+                close_plots(pw)
 
 
     #%% ==================================================
