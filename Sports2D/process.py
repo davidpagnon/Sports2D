@@ -88,7 +88,7 @@ from Sports2D.Utilities.common import *
 from Pose2Sim.common import *
 from Pose2Sim.skeletons import *
 from Pose2Sim.calibration import toml_write
-from Pose2Sim.poseEstimation import setup_model_class_mode, setup_backend_device, setup_pose_tracker
+from Pose2Sim.poseEstimation import setup_model_class_mode, setup_backend_device, setup_pose_tracker,get_face_keypoint_ids
 from Pose2Sim.triangulation import indices_of_first_last_non_nan_chunks
 from Pose2Sim.personAssociation import *
 from Pose2Sim.filtering import *
@@ -107,9 +107,17 @@ import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
 
 
+## CONSTANTS
 CORRECTION_2D_TO_3D = 1.063  # Corrective factor for height calculation: segments do not perfectly lie in the 2D plane and look shorter than in 3D
 DEFAULT_MASS = 70
 DEFAULT_HEIGHT = 1.7
+
+DEFAULT_BLUR_TYPE = 'blur' # 'blur' or 'black'
+DEFAULT_BLUR_INTENSITY = "medium" # low, medium, high
+DEFAULT_BLUR_SHAPE = "rectangle" # 'polygon' or 'rectangle'
+DEFAULT_BLUR_SIZE = "small" # 'small', 'medium', 'large'
+DEFAULT_CONFIDENCE_THRESHOLD = 0.0 # Face keypoint confidence threshold (often low confidence).
+
 
 ## AUTHORSHIP INFORMATION
 __author__ = "David Pagnon, HunMin Kim"
@@ -1518,6 +1526,10 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
     show_realtime_results = config_dict.get('base').get('show_realtime_results')
     save_vid = config_dict.get('base').get('save_vid')
     save_img = config_dict.get('base').get('save_img')
+    blur_faces = config_dict.get('pose', {}).get('blur_faces', True)
+    if blur_faces and not (save_vid or save_img):
+        logging.warning("blur_faces is ignored because save_vid or save_img is 'none'.")
+        blur_faces = False
     save_pose = config_dict.get('base').get('save_pose')
     calculate_angles = config_dict.get('base').get('calculate_angles')
     save_angles = config_dict.get('base').get('save_angles')
@@ -1722,6 +1734,10 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
     # Select device and backend
     backend, device = setup_backend_device(backend=backend, device=device)
 
+    # Face blurring
+    if blur_faces and (save_vid or save_img):
+        from Pose2Sim.Utilities.face_blurring import blur_faces_in_frame
+
     # Skip pose estimation or set it up:
     if load_trc_px:
         if not '_px' in str(load_trc_px): 
@@ -1733,6 +1749,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
         tf = time_col.iloc[-1]
         keypoints_ids = [i for i in range(len(keypoints_names))]
         keypoints_all, scores_all = load_pose_file(Q_coords)
+        face_ids = None
 
         for pre, _, node in RenderTree(skeleton_model):
             if node.name in keypoints_names:
@@ -1747,6 +1764,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
         # Retrieve keypoint names from model
         keypoints_ids = [node.id for _, _, node in RenderTree(skeleton_model) if node.id!=None]
         keypoints_names = [node.name for _, _, node in RenderTree(skeleton_model) if node.id!=None]
+        face_ids = get_face_keypoint_ids(skeleton_model) if blur_faces and (save_vid or save_img) else None
         t0 = 0
         tf = (cap.get(cv2.CAP_PROP_FRAME_COUNT)-1) / fps if cap.get(cv2.CAP_PROP_FRAME_COUNT)>0 else sys.maxsize
         kpt_id_max = max(keypoints_ids)+1
@@ -1797,6 +1815,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
     logging.info(f"\nProcessing video stream...")
     # logging.info(f"{'Video, ' if save_vid else ''}{'Images, ' if save_img else ''}{'Pose, ' if save_pose else ''}{'Angles ' if save_angles else ''}{'and ' if save_angles or save_img or save_pose or save_vid else ''}Logs will be saved in {result_dir}.")
     all_frames_X, all_frames_X_flipped, all_frames_Y, all_frames_scores, all_frames_angles = [], [], [], [], []
+    all_frames_face_X, all_frames_face_Y, all_frames_face_S = [], [], []
     frame_processing_times = []
     frame_count = 0
     first_frame = max(int(t0 * fps), frame_range[0])
@@ -1827,6 +1846,10 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
                     all_frames_scores.append([])
                 if save_angles:
                     all_frames_angles.append([])
+                if face_ids is not None:
+                    all_frames_face_X.append([])
+                    all_frames_face_Y.append([])
+                    all_frames_face_S.append([])
                 continue
 
             # Retrieve pose or Estimate pose and track people
@@ -1874,6 +1897,11 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
                     #         cv2.rectangle(frame, (int(bboxes[person_idx][0]), int(bboxes[person_idx][1])), (int(bboxes[person_idx][2]), int(bboxes[person_idx][3])), colors[person_idx%len(colors)], 1)
                     # cv2.imshow(f'{video_file} Sports2D', frame)
 
+                    # Blur faces
+                    if face_ids is not None:
+                        frame = blur_faces_in_frame(frame, keypoints, scores, face_ids, 
+                                                        blur_type=DEFAULT_BLUR_TYPE, blur_shape=DEFAULT_BLUR_SHAPE, blur_intensity=DEFAULT_BLUR_INTENSITY, blur_size=DEFAULT_BLUR_SIZE, conf_threshold=DEFAULT_CONFIDENCE_THRESHOLD)
+
                     # Track poses across frames
                     if tracking_mode == 'deepsort':
                         keypoints, scores = sort_people_deepsort(keypoints, scores, deepsort_tracker, frame, frame_count)
@@ -1910,6 +1938,12 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
                 except:
                     keypoints = np.full((1,kpt_id_max,2), fill_value=np.nan)
                     scores = np.full((1,kpt_id_max), fill_value=np.nan)
+
+            # Store raw face keypoints
+            if face_ids is not None and not load_trc_px:
+                all_frames_face_X.append(np.array([keypoints[p][face_ids, 0] for p in range(len(keypoints))]))
+                all_frames_face_Y.append(np.array([keypoints[p][face_ids, 1] for p in range(len(keypoints))]))
+                all_frames_face_S.append(np.array([scores[p][face_ids] for p in range(len(keypoints))]))
             
             # Process coordinates and compute angles
             valid_X, valid_Y, valid_scores = [], [], []
@@ -2031,6 +2065,10 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
     all_frames_Z_homog = pd.DataFrame(np.zeros_like(all_frames_X_homog)[:,0,:], columns=new_keypoints_names)
     all_frames_scores_homog = make_homogeneous(all_frames_scores)
     all_frames_scores_homog = all_frames_scores_homog[...,new_keypoints_ids]
+    if face_ids is not None and not load_trc_px:
+        face_X_homog = make_homogeneous(all_frames_face_X)   # (Nframes, Npersons, Nface)
+        face_Y_homog = make_homogeneous(all_frames_face_Y)
+        face_S_homog = make_homogeneous(all_frames_face_S)
 
     frame_range = [0,frame_count] if video_file == 'webcam' else frame_range
     all_frames_time = pd.Series(np.linspace(frame_range[0]/fps, (frame_range[1]-1)/fps, frame_count-frame_range[0]), name='time')
@@ -2596,6 +2634,12 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
             success, frame = cap.read()
             if not success:
                 raise ValueError(f"Could not read frame {i}")
+            
+            if face_ids is not None and not load_trc_px:
+                kpts_for_blur = np.stack((face_X_homog[i], face_Y_homog[i]), axis=-1)
+                frame = blur_faces_in_frame(frame, kpts_for_blur, face_S_homog[i], list(range(len(face_ids))),
+                                            blur_type=DEFAULT_BLUR_TYPE, blur_shape=DEFAULT_BLUR_SHAPE, blur_intensity=DEFAULT_BLUR_INTENSITY, blur_size=DEFAULT_BLUR_SIZE, conf_threshold=DEFAULT_CONFIDENCE_THRESHOLD)
+            
             img = frame.copy()
             img = draw_bounding_box(img, all_frames_X_processed[i], all_frames_Y_processed[i], colors=colors, fontSize=fontSize, thickness=thickness)
             img = draw_keypts(img, all_frames_X_processed[i], all_frames_Y_processed[i], all_frames_scores_processed[i], cmap_str='RdYlGn')

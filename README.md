@@ -704,6 +704,7 @@ sports2d --help
                   Equal to or greater than 1, can be as high as you want in simple uncrowded cases. Much faster, but might be less accurate. 1 if not specified: detection runs on all frames"],
 'backend': ["", "Backend for pose estimation can be 'auto', 'openvino', 'onnxruntime', 'opencv'"],
 'device': ["", "Device for pose estimation can be 'auto', 'cpu', 'cuda', 'mps' (for MacOS), or 'rocm' (for AMD GPUs)."],
+'blur_faces': ["", "blur faces in the output video. true if not specified"],
 'to_meters': ["M", "convert pixels to meters. true if not specified"],
 'make_c3d': ["", "Convert trc to c3d file. true if not specified"],
 'floor_angle': ["", "angle of the floor (degrees). 'auto' if not specified"],
