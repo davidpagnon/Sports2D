@@ -180,7 +180,7 @@ Open a terminal (conda, powershell, bash, or zsh).
   # Create uv environment
   uv venv "$env:USERPROFILE\.venv\pose2sim" --python 3.13 # or 3.11, or 3.12 
   # Activate the uv environment
-  & "$env:USERPROFILE\.venv\pose2sim\Scripts\Activate.ps1"
+  . "$HOME\.venv\pose2sim\Scripts\Activate.ps1"
 ```
 
 <br>
@@ -199,6 +199,15 @@ Open a terminal (conda, powershell, bash, or zsh).
 > [!TIP]
 > #### Activate your environment
 > Remembering the command for activating the uv environment can be a pain. Just type **Ctrl+R** in your terminal and start typing `activate` to find it.
+> 
+> Alternatively, if you want the environment to be activated by default:\
+> *On Windows:*\
+> `ni $PROFILE -Force; ac $PROFILE -Value '. "$HOME\.venv\pose2sim\Scripts\Activate.ps1"'`\
+> *On Linux:*\
+> `echo 'source ~/.venv/pose2sim/bin/activate' >> ~/.bashrc`\
+> *On MacOS:*\
+> `echo 'source ~/.venv/pose2sim/bin/activate' >> ~/.zshrc`\
+> --> And restart your terminal.
 
 <br>
 
