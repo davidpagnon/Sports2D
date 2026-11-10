@@ -89,6 +89,7 @@ det_frequency = 4       # Run person detection only every N frames, and inbetwee
                         # Equal to or greater than 1, can be as high as you want in simple uncrowded cases. Much faster, but might be less accurate. 
 device = 'auto' # 'auto', 'CPU', 'CUDA', 'MPS', 'ROCM'
 backend = 'auto' # 'auto', 'openvino', 'onnxruntime', 'opencv'
+blur_faces = true # Blur faces in the output video. true or false (lowercase)
 
 # Confidence thresholds
 keypoint_likelihood_threshold = 0.3 # Keypoints whose likelihood is lower will not be taken into account
