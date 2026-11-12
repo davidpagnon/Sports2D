@@ -1599,7 +1599,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
     sections_to_keep = config_dict.get('post-processing').get('sections_to_keep')
     min_chunk_size = config_dict.get('post-processing').get('min_chunk_size')
     do_filter = config_dict.get('post-processing').get('filter')
-    handle_LR_swap = config_dict.get('post-processing').get('handle_LR_swap', False)
+    handle_LR_swap = config_dict.get('post-processing').get('handle_LR_swap', True)
     reject_outliers = config_dict.get('post-processing').get('reject_outliers', False)
     show_plots = config_dict.get('post-processing').get('show_graphs')
     save_plots = config_dict.get('post-processing').get('save_graphs')
@@ -1728,6 +1728,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
     logging.info('\nEstimating pose...')
     pose_model_name = pose_model
     skeleton_model, ModelClass, mode = setup_model_class_mode(pose_model, mode, config_dict)
+    bilateral_pairs = bilateral_body_pairs(skeleton_model)
     
     # Select device and backend
     backend, device = setup_backend_device(backend=backend, device=device)
@@ -1942,25 +1943,26 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
                         person_X = np.full_like(person_X, np.nan)
                         person_Y = np.full_like(person_Y, np.nan)
                         person_scores = np.full_like(person_scores, np.nan)
-
                     
                     
                     ## RECREATE KEYPOINTS, SCORES
-                    # Optional temporal correction for clear bilateral limb swaps.
+
+                    # Fixing left/right limb swaps with optional temporal correction.
                     if handle_LR_swap and tracking_mode == 'sports2d' and 'previous_keypoints_for_swap' in locals():
                         if person_idx < len(previous_keypoints_for_swap):
                             person_keypoints = np.column_stack((person_X, person_Y))
                             finite_Y = person_Y[np.isfinite(person_Y)]
-                            height_px = np.ptp(finite_Y) if len(finite_Y) > 1 else np.nan
+                            # height_px != compute_height (more accurate but slower, and no need to be much more accurate than an order of magnitude for this threshold)
+                            height_px = np.ptp(finite_Y) if len(finite_Y) > 1 else np.nan 
                             person_keypoints, person_scores, swap_corrected = correct_limb_swaps(
                                 person_keypoints, person_scores, previous_keypoints_for_swap[person_idx],
-                                skeleton_model, height_px)
+                                height_px, bilateral_pairs, min_improvement=0.01, min_improvement_wrt_height=0.01, min_pairs=1)
                             person_X, person_Y = person_keypoints.T
                             if swap_corrected:
                                 keypoints[person_idx] = person_keypoints
                                 scores[person_idx] = person_scores
                                 prev_keypoints[person_idx] = person_keypoints
-                                logging.debug(f'Corrected likely L/R limb swap for person {person_idx} at frame {frame_count-1}.')
+                                logging.info(f'Corrected likely L/R limb swap for person {person_idx} at frame {frame_count-1}.')
 
                 # Add Shoulder, Neck and Hip if not provided
                 new_keypoints_names, new_keypoints_ids = keypoints_names.copy(), keypoints_ids.copy()
@@ -1991,7 +1993,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
             # Draw keypoints and skeleton
             if show_realtime_results and len(keypoints) > 0:
                 img = frame.copy()
-                cv2.putText(img, f"Press 'q' to stop", (cam_width-int(600*fontSize), cam_height-20), cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (255,255,255), thickness+1, cv2.LINE_AA)
+                for dx, dy in OUTLINE_OFFSETS:
+                    cv2.putText(img, f"Press 'q' to stop", (cam_width-int(600*fontSize)+dx, cam_height-20+dy), cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (255,255,255), thickness+1, cv2.LINE_AA)
                 cv2.putText(img, f"Press 'q' to stop", (cam_width-int(600*fontSize), cam_height-20), cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (0,0,255), thickness, cv2.LINE_AA)
                 img = draw_bounding_box(img, valid_X, valid_Y, colors=colors, fontSize=fontSize, thickness=thickness)
                 try:
@@ -2152,7 +2155,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
                 all_frames_Y_person_interp.replace(np.nan, 0, inplace=True)
 
             # if handle_LR_swap:
-            #     logging.info(f'Handling left-right swaps.')
+            #     logging.info('Handling right/left swaps.')
             #     all_frames_X_person_interp = all_frames_X_person_interp.apply(LR_unswap, axis=0)
             #     all_frames_Y_person_interp = all_frames_Y_person_interp.apply(LR_unswap, axis=0)
 
