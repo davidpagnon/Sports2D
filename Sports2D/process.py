@@ -2438,10 +2438,9 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
             for j in range(all_frames_angles_homog.shape[2]):  # for each angle
                 valid_mask = ~np.isnan(all_frames_angles_homog[:, i, j])
                 ang = all_frames_angles_homog[valid_mask, i, j]
-                # same period as the wrapping in fixed_angles: 180 for pelvis and shoulders, 360 otherwise
+                # same period as in fixed_angles
                 period = 180 if angle_names[j] in ['pelvis', 'shoulders'] else 360
-                # unwrap with respect to the median of the 5 previous frames rather than to the previous frame only,
-                # so that isolated flips or periodic jitter (e.g., with det_frequency > 1) do not add up to a drift
+                # unwrap with respect to the median of the 5 previous frames
                 for f in range(1, len(ang)):
                     ang[f] += period * np.round((np.median(ang[max(0, f-5):f]) - ang[f]) / period)
                 ang = ang-360 if ang.mean()> 180 else ang
