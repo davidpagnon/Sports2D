@@ -108,9 +108,12 @@ import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
 
 
+## CONSTANTS
 CORRECTION_2D_TO_3D = 1.063  # Corrective factor for height calculation: segments do not perfectly lie in the 2D plane and look shorter than in 3D
 DEFAULT_MASS = 70
 DEFAULT_HEIGHT = 1.7
+OUTLINE_OFFSETS = [(-2,-2),(-2,2),(2,-2),(2,2),(-2,0),(2,0),(0,-2),(0,2)]
+
 
 ## AUTHORSHIP INFORMATION
 __author__ = "David Pagnon, HunMin Kim"
@@ -370,8 +373,9 @@ def draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_
             # person label
             if 'list' in display_angle_values_on:
                 person_label_position = (int(10 + fontSize*150/0.3*person_id), int(fontSize*50))
-                cv2.putText(img, f'person {person_id}', person_label_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (255,255,255), thickness+1, cv2.LINE_AA)
-                cv2.putText(img, f'person {person_id}', person_label_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, c, thickness, cv2.LINE_AA)
+                for dx, dy in OUTLINE_OFFSETS:
+                    cv2.putText(img, f'person {person_id}', (person_label_position[0]+dx, person_label_position[1]+dy), cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (255,255,255), thickness+2, lineType=cv2.LINE_AA)
+                cv2.putText(img, f'person {person_id}', person_label_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, c, thickness+1, cv2.LINE_AA)
             
             # angle lines, names and values
             ang_label_line = 1
@@ -528,7 +532,8 @@ def write_angle_on_body(img, ang, app_point, vec1, vec2, dist=40, color=(255,255
         return
     unit_vec_sum = vec_sum/np.linalg.norm(vec_sum)
     text_position = np.int32(app_point + unit_vec_sum*dist)
-    cv2.putText(img, f'{ang:.1f}', text_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize, (0,0,0), thickness+1, cv2.LINE_AA)
+    for dx, dy in OUTLINE_OFFSETS:
+        cv2.putText(img, f'{ang:.1f}', (text_position[0]+dx, text_position[1]+dy), cv2.FONT_HERSHEY_SIMPLEX, fontSize, (0,0,0), thickness+1, cv2.LINE_AA)
     cv2.putText(img, f'{ang:.1f}', text_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize, color, thickness, cv2.LINE_AA)
 
 
@@ -553,9 +558,11 @@ def write_angle_as_list(img, ang, ang_name, person_label_position, ang_label_lin
         # angle names and values
         ang_label_position = (person_label_position[0], person_label_position[1]+int((ang_label_line)*40*fontSize))
         ang_value_position = (ang_label_position[0]+int(250*fontSize), ang_label_position[1])
-        cv2.putText(img, f'{ang_name}:', ang_label_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize, (0, 0, 0), thickness+1, cv2.LINE_AA)
+        for dx, dy in OUTLINE_OFFSETS:
+            cv2.putText(img, f'{ang_name}:', (ang_label_position[0]+dx, ang_label_position[1]+dy), cv2.FONT_HERSHEY_SIMPLEX, fontSize, (0, 0, 0), thickness+1, cv2.LINE_AA)
         cv2.putText(img, f'{ang_name}:', ang_label_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize, color, thickness, cv2.LINE_AA)
-        cv2.putText(img, f'{ang:.1f}', ang_value_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize, (0, 0, 0), thickness+1, cv2.LINE_AA)
+        for dx, dy in OUTLINE_OFFSETS:
+            cv2.putText(img, f'{ang:.1f}', (ang_value_position[0]+dx, ang_value_position[1]+dy), cv2.FONT_HERSHEY_SIMPLEX, fontSize, (0, 0, 0), thickness+1, cv2.LINE_AA)
         cv2.putText(img, f'{ang:.1f}', ang_value_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize, color, thickness, cv2.LINE_AA)
         
         # progress bar
@@ -2288,7 +2295,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
                 else:
                     return "."
             message = get_correction_message(xy_origin)
-            logging.info(f'Floor level: {cy:.2f} px (from the top of the image), gait starting at {cx:.2f} px in the {direction_person0} direction for the first person. Corrected using {message}\n')
+            logging.info(f'Floor level: {cy:.2f} px (from the top of the image), gait starting at {cx:.2f} px in the {direction_person0} direction for the first person. Corrected using {message}')
 
             # Prepare calibration data
             R90z = np.array([[0.0, -1.0, 0.0],
@@ -2326,7 +2333,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
             # Save calibration file
             if save_calib and not calib_file:
                 toml_write(calib_file_path, N, S, D, K, Rvec_cam, Tvec_cam)
-                logging.info(f'Calibration saved to {calib_file_path}.')
+                logging.info(f'Calibration saved to {calib_file_path}.\n')
 
 
             # Coordinates in m
