@@ -1,0 +1,643 @@
+{
+  "timestamp": "2026-11-14T11:10:57Z",
+  "sports2d_branch": "fix/temporal-lower-limb-swaps",
+  "methods_evaluated": [
+    "A_disabled",
+    "B_current_pr41",
+    "C_conservative",
+    "D_offline_viterbi"
+  ],
+  "synthetic_battery": {
+    "1_clean_continuous_motion": {
+      "description": "Clean walking motion with zero swaps; tests false-positive rate.",
+      "methods": {
+        "A_disabled": {
+          "swapped_frames_count": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 0,
+          "true_negatives": 40,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1_score": 1.0,
+          "persistent_errors": 0,
+          "max_coord_diff_px": 0.0,
+          "max_velocity_px_frame": 2.0,
+          "latency_ms": 0.005884000074729556
+        },
+        "B_current_pr41": {
+          "swapped_frames_count": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 0,
+          "true_negatives": 40,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1_score": 1.0,
+          "persistent_errors": 0,
+          "max_coord_diff_px": 0.0,
+          "max_velocity_px_frame": 2.0,
+          "latency_ms": 0.7647299999007373
+        },
+        "C_conservative": {
+          "swapped_frames_count": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 0,
+          "true_negatives": 40,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1_score": 1.0,
+          "persistent_errors": 0,
+          "max_coord_diff_px": 0.0,
+          "max_velocity_px_frame": 2.0,
+          "latency_ms": 0.8107439998639165
+        },
+        "D_offline_viterbi": {
+          "swapped_frames_count": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 0,
+          "true_negatives": 40,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1_score": 1.0,
+          "persistent_errors": 0,
+          "max_coord_diff_px": 0.0,
+          "max_velocity_px_frame": 2.0,
+          "latency_ms": 1.611522000075638
+        }
+      }
+    },
+    "2_isolated_single_frame_swap": {
+      "description": "Detector swaps Left and Right for a single isolated frame (t=15).",
+      "methods": {
+        "A_disabled": {
+          "swapped_frames_count": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 1,
+          "true_negatives": 39,
+          "precision": 1.0,
+          "recall": 0.0,
+          "f1_score": 0.0,
+          "persistent_errors": 0,
+          "max_coord_diff_px": 0.0,
+          "max_velocity_px_frame": 72.0,
+          "latency_ms": 0.0042550000216579065
+        },
+        "B_current_pr41": {
+          "swapped_frames_count": 1,
+          "true_positives": 1,
+          "false_positives": 0,
+          "false_negatives": 0,
+          "true_negatives": 39,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1_score": 1.0,
+          "persistent_errors": 0,
+          "max_coord_diff_px": 70.0,
+          "max_velocity_px_frame": 2.0,
+          "latency_ms": 0.7639659997948911
+        },
+        "C_conservative": {
+          "swapped_frames_count": 1,
+          "true_positives": 1,
+          "false_positives": 0,
+          "false_negatives": 0,
+          "true_negatives": 39,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1_score": 1.0,
+          "persistent_errors": 0,
+          "max_coord_diff_px": 70.0,
+          "max_velocity_px_frame": 2.0,
+          "latency_ms": 0.7374820002041815
+        },
+        "D_offline_viterbi": {
+          "swapped_frames_count": 1,
+          "true_positives": 1,
+          "false_positives": 0,
+          "false_negatives": 0,
+          "true_negatives": 39,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1_score": 1.0,
+          "persistent_errors": 0,
+          "max_coord_diff_px": 70.0,
+          "max_velocity_px_frame": 2.0,
+          "latency_ms": 1.5753689999655762
+        }
+      }
+    },
+    "3_sustained_multi_frame_swap": {
+      "description": "Detector swaps limbs across 8 consecutive frames; tests persistence recovery.",
+      "methods": {
+        "A_disabled": {
+          "swapped_frames_count": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 8,
+          "true_negatives": 32,
+          "precision": 1.0,
+          "recall": 0.0,
+          "f1_score": 0.0,
+          "persistent_errors": 0,
+          "max_coord_diff_px": 0.0,
+          "max_velocity_px_frame": 72.0,
+          "latency_ms": 0.002086999757011654
+        },
+        "B_current_pr41": {
+          "swapped_frames_count": 8,
+          "true_positives": 8,
+          "false_positives": 0,
+          "false_negatives": 0,
+          "true_negatives": 32,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1_score": 1.0,
+          "persistent_errors": 0,
+          "max_coord_diff_px": 70.0,
+          "max_velocity_px_frame": 2.0,
+          "latency_ms": 0.9142059998339391
+        },
+        "C_conservative": {
+          "swapped_frames_count": 8,
+          "true_positives": 8,
+          "false_positives": 0,
+          "false_negatives": 0,
+          "true_negatives": 32,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1_score": 1.0,
+          "persistent_errors": 0,
+          "max_coord_diff_px": 70.0,
+          "max_velocity_px_frame": 2.0,
+          "latency_ms": 0.8034100001168554
+        },
+        "D_offline_viterbi": {
+          "swapped_frames_count": 8,
+          "true_positives": 8,
+          "false_positives": 0,
+          "false_negatives": 0,
+          "true_negatives": 32,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1_score": 1.0,
+          "persistent_errors": 0,
+          "max_coord_diff_px": 70.0,
+          "max_velocity_px_frame": 2.0,
+          "latency_ms": 1.6211000001931097
+        }
+      }
+    },
+    "4_natural_limb_crossing": {
+      "description": "Natural gait crossover where limbs pass in 2D; tests resistance to spurious swaps.",
+      "methods": {
+        "A_disabled": {
+          "swapped_frames_count": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 0,
+          "true_negatives": 40,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1_score": 1.0,
+          "persistent_errors": 0,
+          "max_coord_diff_px": 0.0,
+          "max_velocity_px_frame": 4.0,
+          "latency_ms": 0.0022340000214171596
+        },
+        "B_current_pr41": {
+          "swapped_frames_count": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 0,
+          "true_negatives": 40,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1_score": 1.0,
+          "persistent_errors": 0,
+          "max_coord_diff_px": 0.0,
+          "max_velocity_px_frame": 4.0,
+          "latency_ms": 0.7190030000856495
+        },
+        "C_conservative": {
+          "swapped_frames_count": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 0,
+          "true_negatives": 40,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1_score": 1.0,
+          "persistent_errors": 0,
+          "max_coord_diff_px": 0.0,
+          "max_velocity_px_frame": 4.0,
+          "latency_ms": 1.1426729997765506
+        },
+        "D_offline_viterbi": {
+          "swapped_frames_count": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 0,
+          "true_negatives": 40,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1_score": 1.0,
+          "persistent_errors": 0,
+          "max_coord_diff_px": 0.0,
+          "max_velocity_px_frame": 4.0,
+          "latency_ms": 1.7687209997347964
+        }
+      }
+    },
+    "5_rapid_axial_rotation": {
+      "description": "Person spins 180 deg in place; lateral distance collapses and inverts projection.",
+      "methods": {
+        "A_disabled": {
+          "swapped_frames_count": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 0,
+          "true_negatives": 40,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1_score": 1.0,
+          "persistent_errors": 0,
+          "max_coord_diff_px": 0.0,
+          "max_velocity_px_frame": 6.8831164617701575,
+          "latency_ms": 0.002614999630168313
+        },
+        "B_current_pr41": {
+          "swapped_frames_count": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 0,
+          "true_negatives": 40,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1_score": 1.0,
+          "persistent_errors": 0,
+          "max_coord_diff_px": 0.0,
+          "max_velocity_px_frame": 6.8831164617701575,
+          "latency_ms": 0.7228289996419335
+        },
+        "C_conservative": {
+          "swapped_frames_count": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 0,
+          "true_negatives": 40,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1_score": 1.0,
+          "persistent_errors": 0,
+          "max_coord_diff_px": 0.0,
+          "max_velocity_px_frame": 6.8831164617701575,
+          "latency_ms": 0.7147510000322654
+        },
+        "D_offline_viterbi": {
+          "swapped_frames_count": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 0,
+          "true_negatives": 40,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1_score": 1.0,
+          "persistent_errors": 0,
+          "max_coord_diff_px": 0.0,
+          "max_velocity_px_frame": 6.8831164617701575,
+          "latency_ms": 1.5413030000672734
+        }
+      }
+    },
+    "6_partial_occlusion_nans": {
+      "description": "5 consecutive frames of occlusion (NaNs); tests missing-data robustness.",
+      "methods": {
+        "A_disabled": {
+          "swapped_frames_count": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 0,
+          "true_negatives": 40,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1_score": 1.0,
+          "persistent_errors": 0,
+          "max_coord_diff_px": 0.0,
+          "max_velocity_px_frame": 2.0,
+          "latency_ms": 0.0024869996195775457
+        },
+        "B_current_pr41": {
+          "swapped_frames_count": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 0,
+          "true_negatives": 40,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1_score": 1.0,
+          "persistent_errors": 0,
+          "max_coord_diff_px": 0.0,
+          "max_velocity_px_frame": 2.0,
+          "latency_ms": 0.6399670000973856
+        },
+        "C_conservative": {
+          "swapped_frames_count": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 0,
+          "true_negatives": 40,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1_score": 1.0,
+          "persistent_errors": 0,
+          "max_coord_diff_px": 0.0,
+          "max_velocity_px_frame": 2.0,
+          "latency_ms": 0.6388629999491968
+        },
+        "D_offline_viterbi": {
+          "swapped_frames_count": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 0,
+          "true_negatives": 40,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1_score": 1.0,
+          "persistent_errors": 0,
+          "max_coord_diff_px": 0.0,
+          "max_velocity_px_frame": 2.0,
+          "latency_ms": 1.4995810001892096
+        }
+      }
+    },
+    "7_single_pair_hallucination": {
+      "description": "Only 1 keypoint pair glitched while rest of limb is unswapped; tests group consensus.",
+      "methods": {
+        "A_disabled": {
+          "swapped_frames_count": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 0,
+          "true_negatives": 40,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1_score": 1.0,
+          "persistent_errors": 0,
+          "max_coord_diff_px": 0.0,
+          "max_velocity_px_frame": 72.0,
+          "latency_ms": 0.0021050000214017928
+        },
+        "B_current_pr41": {
+          "swapped_frames_count": 1,
+          "true_positives": 0,
+          "false_positives": 1,
+          "false_negatives": 0,
+          "true_negatives": 39,
+          "precision": 0.0,
+          "recall": 1.0,
+          "f1_score": 0.0,
+          "persistent_errors": 0,
+          "max_coord_diff_px": 70.0,
+          "max_velocity_px_frame": 2.0,
+          "latency_ms": 0.699058000009245
+        },
+        "C_conservative": {
+          "swapped_frames_count": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 0,
+          "true_negatives": 40,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1_score": 1.0,
+          "persistent_errors": 0,
+          "max_coord_diff_px": 0.0,
+          "max_velocity_px_frame": 72.0,
+          "latency_ms": 0.6856830000288028
+        },
+        "D_offline_viterbi": {
+          "swapped_frames_count": 0,
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 0,
+          "true_negatives": 40,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1_score": 1.0,
+          "persistent_errors": 0,
+          "max_coord_diff_px": 0.0,
+          "max_velocity_px_frame": 72.0,
+          "latency_ms": 1.4880369999445975
+        }
+      }
+    }
+  },
+  "skeleton_compatibility": {
+    "HALPE_26": {
+      "groups_found": [
+        "Hip",
+        "Shoulder"
+      ],
+      "total_pairs": 7,
+      "pairs_detail": {
+        "Hip": [
+          [
+            13,
+            14
+          ],
+          [
+            15,
+            16
+          ],
+          [
+            20,
+            21
+          ],
+          [
+            22,
+            23
+          ],
+          [
+            24,
+            25
+          ]
+        ],
+        "Shoulder": [
+          [
+            7,
+            8
+          ],
+          [
+            9,
+            10
+          ]
+        ]
+      },
+      "viterbi_execution_success": true,
+      "latency_ms": 2.4640450001243153
+    },
+    "COCO_17": {
+      "groups_found": [
+        "Hip",
+        "Shoulder"
+      ],
+      "total_pairs": 4,
+      "pairs_detail": {
+        "Hip": [
+          [
+            13,
+            14
+          ],
+          [
+            15,
+            16
+          ]
+        ],
+        "Shoulder": [
+          [
+            7,
+            8
+          ],
+          [
+            9,
+            10
+          ]
+        ]
+      },
+      "viterbi_execution_success": true,
+      "latency_ms": 1.4568149999831803
+    },
+    "BODY_25": {
+      "groups_found": [
+        "Hip",
+        "Shoulder"
+      ],
+      "total_pairs": 7,
+      "pairs_detail": {
+        "Hip": [
+          [
+            13,
+            10
+          ],
+          [
+            14,
+            11
+          ],
+          [
+            19,
+            22
+          ],
+          [
+            20,
+            23
+          ],
+          [
+            21,
+            24
+          ]
+        ],
+        "Shoulder": [
+          [
+            6,
+            3
+          ],
+          [
+            7,
+            4
+          ]
+        ]
+      },
+      "viterbi_execution_success": true,
+      "latency_ms": 2.3243179998644337
+    },
+    "BLAZEPOSE": {
+      "groups_found": [
+        "Hip",
+        "Shoulder"
+      ],
+      "total_pairs": 6,
+      "pairs_detail": {
+        "Hip": [
+          [
+            25,
+            26
+          ],
+          [
+            27,
+            28
+          ],
+          [
+            29,
+            30
+          ],
+          [
+            31,
+            32
+          ]
+        ],
+        "Shoulder": [
+          [
+            13,
+            14
+          ],
+          [
+            15,
+            16
+          ]
+        ]
+      },
+      "viterbi_execution_success": true,
+      "latency_ms": 2.1973520001665747
+    }
+  },
+  "real_recordings": {
+    "recording_front (Sitting / Room)": {
+      "video_path": "/home/mrudula/Downloads/mocap/media/raw_videos/annotated_front.mp4",
+      "video_exists": true,
+      "has_optoelectronic_ground_truth": false,
+      "visual_inspection_notes": "Clean frontal walking/sitting; 0 swap corrections triggered across all methods.",
+      "trc_comparison": {
+        "total_frames": 749,
+        "different_frames_count": 0,
+        "max_coordinate_diff_px": 0.0
+      }
+    },
+    "whatsapp_may03 (Tumbling Walk)": {
+      "video_path": "/home/mrudula/Downloads/mocap/media/raw_videos/whatsapp_video_2026-05-03_130228.mp4",
+      "video_exists": true,
+      "has_optoelectronic_ground_truth": false,
+      "visual_inspection_notes": "Tumbling / walking sequence; RTMPose maintains clean tracking; 0 triggers.",
+      "trc_comparison": {
+        "total_frames": 281,
+        "different_frames_count": 0,
+        "max_coordinate_diff_px": 0.0
+      }
+    },
+    "recording_right (Bedside Occlusion)": {
+      "video_path": "/home/mrudula/Downloads/mocap/media/raw_videos/annotated_right.mp4",
+      "video_exists": true,
+      "has_optoelectronic_ground_truth": false,
+      "visual_inspection_notes": "Bedside occlusion. af93197 triggered 14 false swaps (782px swing) due to min_pairs=1. Viterbi suppresses single-pair noise.",
+      "trc_comparison": {
+        "total_frames": 451,
+        "different_frames_count": 129,
+        "max_coordinate_diff_px": 782.3348524881696
+      }
+    },
+    "whatsapp_may01 (Acrobatic Backflip)": {
+      "video_path": "/home/mrudula/Downloads/mocap/media/raw_videos/whatsapp_video_2026-05-01_130041.mp4",
+      "video_exists": true,
+      "has_optoelectronic_ground_truth": false,
+      "visual_inspection_notes": "Aerial backflip with axial rotation. af93197 inverted legs at frames 50-55 due to nearest-neighbor matching across crossing.",
+      "trc_comparison": {
+        "total_frames": 348,
+        "different_frames_count": 131,
+        "max_coordinate_diff_px": 75.73132653579475
+      }
+    }
+  }
+}
