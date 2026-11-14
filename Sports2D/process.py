@@ -1607,8 +1607,20 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
     sections_to_keep = config_dict.get('post-processing').get('sections_to_keep')
     min_chunk_size = config_dict.get('post-processing').get('min_chunk_size')
     do_filter = config_dict.get('post-processing').get('filter')
-    handle_LR_swap = config_dict.get('post-processing').get('handle_LR_swap', True)
     reject_outliers = config_dict.get('post-processing').get('reject_outliers', False)
+    handle_LR_swap = config_dict.get('post-processing').get('handle_LR_swap', True)
+    lr_swap_method = config_dict.get('post-processing').get('lr_swap_method', 'viterbi')
+    if isinstance(handle_LR_swap, str):
+        if handle_LR_swap.lower() in ('false', 'none', 'off', '0'):
+            handle_LR_swap = False
+        elif handle_LR_swap.lower() in ('viterbi', 'offline'):
+            handle_LR_swap = True
+            lr_swap_method = 'viterbi'
+        elif handle_LR_swap.lower() in ('greedy', 'online', 'frame'):
+            handle_LR_swap = True
+            lr_swap_method = 'greedy'
+        else:
+            handle_LR_swap = True
     show_plots = config_dict.get('post-processing').get('show_graphs')
     save_plots = config_dict.get('post-processing').get('save_graphs')
     filter_type = config_dict.get('post-processing').get('filter_type')
@@ -1737,6 +1749,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
     pose_model_name = pose_model
     skeleton_model, ModelClass, mode = setup_model_class_mode(pose_model, mode, config_dict)
     bilateral_pairs = bilateral_body_pairs(skeleton_model)
+    bilateral_pairs_names = bilateral_body_pairs(skeleton_model, as_names=True)
     
     # Select device and backend
     backend, device = setup_backend_device(backend=backend, device=device)
@@ -1979,7 +1992,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
                     ## RECREATE KEYPOINTS, SCORES
 
                     # Fixing left/right limb swaps with optional temporal correction.
-                    if handle_LR_swap and tracking_mode == 'sports2d' and 'previous_keypoints_for_swap' in locals():
+                    if handle_LR_swap and lr_swap_method == 'greedy' and tracking_mode == 'sports2d' and 'previous_keypoints_for_swap' in locals():
                         if person_idx < len(previous_keypoints_for_swap):
                             person_keypoints = np.column_stack((person_X, person_Y))
                             finite_Y = person_Y[np.isfinite(person_Y)]
@@ -2141,7 +2154,49 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
             pose_path_person = pose_output_path.parent / (pose_output_path.stem + f'_person{i:02d}.trc')
             all_frames_X_person = pd.DataFrame(all_frames_X_processed[:,idx_person,:], columns=new_keypoints_names)
             all_frames_Y_person = pd.DataFrame(all_frames_Y_processed[:,idx_person,:], columns=new_keypoints_names)
-            score_data.append(pd.DataFrame(all_frames_scores_processed[:,idx_person,:], columns=new_keypoints_names))
+            all_frames_scores_person = pd.DataFrame(all_frames_scores_processed[:,idx_person,:], columns=new_keypoints_names)
+
+            # Offline temporal left/right swap correction before interpolation
+            if handle_LR_swap and lr_swap_method == 'viterbi':
+                req_height_markers = ['RAnkle', 'RKnee', 'RHip', 'RShoulder', 'LAnkle', 'LKnee', 'LHip', 'LShoulder']
+                height_px_person = None
+                if all(m in all_frames_X_person.columns for m in req_height_markers):
+                    try:
+                        trc_cols = []
+                        trc_data_list = []
+                        for col in all_frames_X_person.columns:
+                            trc_cols.extend([col, col, col])
+                            trc_data_list.append(np.column_stack([
+                                all_frames_X_person[col].values,
+                                all_frames_Y_person[col].values,
+                                np.zeros(len(all_frames_X_person))
+                            ]))
+                        pseudo_trc = pd.DataFrame(np.hstack(trc_data_list), columns=trc_cols, index=all_frames_X_person.index)
+                        h_estim = compute_height(pseudo_trc, large_hip_knee_angles=large_hip_knee_angles, trimmed_extrema_percent=trimmed_extrema_percent)
+                        if np.isfinite(h_estim) and h_estim > 0:
+                            height_px_person = float(h_estim)
+                    except (ValueError, KeyError, IndexError) as e:
+                        logging.debug(f"- Person {i}: compute_height failed ({e}). Falling back to vertical coordinate span.")
+                        height_px_person = None
+
+                (all_frames_X_person, all_frames_Y_person), score_df, swap_stats = correct_limb_swaps_viterbi(
+                    (all_frames_X_person, all_frames_Y_person),
+                    person_scores_seq=all_frames_scores_person,
+                    height_px=height_px_person,
+                    pairs_by_group=bilateral_pairs_names,
+                )
+                if score_df is not None:
+                    all_frames_scores_person = score_df
+                    all_frames_scores_processed[:, idx_person, :] = score_df.values
+                all_frames_X_processed[:, idx_person, :] = all_frames_X_person.values
+                all_frames_Y_processed[:, idx_person, :] = all_frames_Y_person.values
+                if calculate_angles or save_angles:
+                    all_frames_X_flipped_processed[:, idx_person, :] = cam_width - all_frames_X_person.values
+                if swap_stats.get("total_swapped_frames", 0) > 0:
+                    logging.info(f"- Person {i}: Corrected L/R limb swaps across {swap_stats['total_swapped_frames']} frames via Viterbi filter: {swap_stats['swapped_frames_by_group']}")
+
+            score_data.append(all_frames_scores_person)
+
             if calculate_angles or save_angles:
                 all_frames_X_flipped_person = pd.DataFrame(all_frames_X_flipped_processed[:,idx_person,:], columns=new_keypoints_names)
 
