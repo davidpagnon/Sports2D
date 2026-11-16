@@ -175,12 +175,12 @@ Open a terminal (conda, powershell, bash, or zsh).
 *On Windows:*
 
 ```powershell
-  # Install uv
-  powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-  # Create uv environment
-  uv venv "$env:USERPROFILE\.venv\pose2sim" --python 3.13 # or 3.11, or 3.12 
-  # Activate the uv environment
-  . "$HOME\.venv\pose2sim\Scripts\Activate.ps1"
+# Install uv
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+# Create uv environment
+uv venv "$env:USERPROFILE\.venv\pose2sim" --python 3.13 # or 3.11, or 3.12 
+# Activate the uv environment
+. "$HOME\.venv\pose2sim\Scripts\Activate.ps1"
 ```
 
 <br>
@@ -188,12 +188,12 @@ Open a terminal (conda, powershell, bash, or zsh).
 *On Linux or MacOS:*
 
 ```bash
-  # Install uv
-  curl -LsSf https://astral.sh/uv/install.sh | sh
-  # Create uv environment
-  uv venv ~/.venv/pose2sim --python 3.13 # or 3.11, or 3.12 
-  # Activate the uv environment
-  source ~/.venv/pose2sim/bin/activate
+# Install uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
+# Create uv environment
+uv venv ~/.venv/pose2sim --python 3.13 # or 3.11, or 3.12 
+# Activate the uv environment
+source ~/.venv/pose2sim/bin/activate
 ```
 
 > [!TIP]
@@ -219,15 +219,15 @@ Open a terminal (*conda, powershell, bash, or zsh*).\
 - OPTION 1: **Latest stable version:** 
 
   ```bash
-    uv pip install sports2d --upgrade
+  uv pip install sports2d --upgrade
   ```
 
 - OPTION 2: **For developers who want to test and edit the bleeding edge version:**
 
   ```bash
-    git clone --depth 1 https://github.com/davidpagnon/sports2d.git
-    cd sports2d
-    uv pip install -e .
+  git clone --depth 1 https://github.com/davidpagnon/sports2d.git
+  cd sports2d
+  uv pip install -e .
   ```
 
 <br>
@@ -338,9 +338,9 @@ The output files are in your current directory:
 Try:
 
 ``` bash
- sports2d --video_input path_to_video.mp4
- # or
- sports2d --video_input webcam
+sports2d --video_input path_to_video.mp4
+# or
+sports2d --video_input webcam
 ```
 
 <br>
