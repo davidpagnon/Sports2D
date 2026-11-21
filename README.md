@@ -690,6 +690,8 @@ sports2d --help
 'display_angle_values_on': ["a", '"body", "list", "body" "list", or "none". body list if not specified'],
 'show_graphs': ["G", "show plots of raw and processed results. true if not specified"],
 'save_graphs': ["", "save position and angle plots of raw and processed results. true if not specified"],
+'handle_LR_swap': ["", "correct clear temporal left/right body keypoint swaps before angle computation. false if not specified"],
+'LR_swap_method': ["", "'offline' or 'live'. offline is more powerful but the corrected live preview is lost. 'offline' if not specified"],
 'joint_angles': ["j", '"Right ankle" "Left ankle" "Right knee" "Left knee" "Right hip" "Left hip" "Right shoulder" "Left shoulder" "Right elbow" "Left elbow" if not specified'],
 'segment_angles': ["s", '"Right foot" "Left foot" "Right shank" "Left shank" "Right thigh" "Left thigh" "Pelvis" "Trunk" "Shoulders" "Head" "Right arm" "Left arm" "Right forearm" "Left forearm" if not specified'],
 'save_vid': ["V", "save processed video. true if not specified"],
@@ -701,7 +703,7 @@ sports2d --help
 'pose_model': ["p", "body_with_feet, whole_body_wrist, whole_body, lower_body, body, hand, face, animal. body_with_feet if not specified"],
 'mode': ["m", 'light, balanced, performance, or a """{dictionary within triple quote}""". balanced if not specified. Use a dictionary to specify your own detection and/or pose estimation models (more about in the documentation).'],
 'det_frequency': ["f", "run person detection only every N frames, and inbetween track previously detected bounding boxes. keypoint detection is still run on all frames.\n\
-                  Equal to or greater than 1, can be as high as you want in simple uncrowded cases. Much faster, but might be less accurate. 1 if not specified: detection runs on all frames"],
+                 Equal to or greater than 1, can be as high as you want in simple uncrowded cases. Much faster, but might be less accurate. 1 if not specified: detection runs on all frames"],
 'backend': ["", "Backend for pose estimation can be 'auto', 'openvino', 'onnxruntime', 'opencv'"],
 'device': ["", "Device for pose estimation can be 'auto', 'cpu', 'cuda', 'mps' (for MacOS), or 'rocm' (for AMD GPUs)."],
 'blur_faces': ["", "blur faces in the output video. true if not specified"],

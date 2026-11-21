@@ -1609,16 +1609,17 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
     do_filter = config_dict.get('post-processing').get('filter')
     reject_outliers = config_dict.get('post-processing').get('reject_outliers', False)
     handle_LR_swap = config_dict.get('post-processing').get('handle_LR_swap', True)
-    lr_swap_method = config_dict.get('post-processing').get('lr_swap_method', 'viterbi')
+    lr_swap_method = config_dict.get('post-processing').get('LR_swap_method', 'offline')
     if isinstance(handle_LR_swap, str):
         if handle_LR_swap.lower() in ('false', 'none', 'off', '0'):
             handle_LR_swap = False
-        elif handle_LR_swap.lower() in ('viterbi', 'offline'):
+        elif handle_LR_swap.lower() in ('offline', 'viterbi'):
             handle_LR_swap = True
-            lr_swap_method = 'viterbi'
-        elif handle_LR_swap.lower() in ('greedy', 'online', 'frame'):
+            lr_swap_method = 'offline'
+        elif handle_LR_swap.lower() in ('live', 'online', 'greedy'):
             handle_LR_swap = True
-            lr_swap_method = 'greedy'
+            lr_swap_method = 'live'
+            from scipy.spatial.distance import pdist
         else:
             handle_LR_swap = True
     show_plots = config_dict.get('post-processing').get('show_graphs')
@@ -1992,12 +1993,17 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
                     ## RECREATE KEYPOINTS, SCORES
 
                     # Fixing left/right limb swaps with optional temporal correction.
-                    if handle_LR_swap and lr_swap_method == 'greedy' and tracking_mode == 'sports2d' and 'previous_keypoints_for_swap' in locals():
+                    if handle_LR_swap and lr_swap_method == 'live' and tracking_mode == 'sports2d' and 'previous_keypoints_for_swap' in locals():
                         if person_idx < len(previous_keypoints_for_swap):
                             person_keypoints = np.column_stack((person_X, person_Y))
-                            finite_Y = person_Y[np.isfinite(person_Y)]
-                            # height_px != compute_height (more accurate but slower, and no need to be much more accurate than an order of magnitude for this threshold)
-                            height_px = np.ptp(finite_Y) if len(finite_Y) > 1 else np.nan 
+                            
+                            # height_px as maximum Euclidean distance between keypoints
+                            # != compute_height, which is more accurate but slower, and very good accuracy is not needed for this threshold
+                            pts = np.column_stack([person_X, person_Y])
+                            pts = pts[np.all(np.isfinite(pts), axis=1)] # drop nans
+                            height_px = pdist(pts).max() if len(pts) > 1 else np.nan
+
+                            # Correct swaps
                             person_keypoints, person_scores, swap_corrected = correct_limb_swaps(
                                 person_keypoints, person_scores, previous_keypoints_for_swap[person_idx],
                                 height_px, bilateral_pairs, min_improvement=0.01, min_improvement_wrt_height=0.01, min_pairs=1)
@@ -2111,7 +2117,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
         if nb_persons_to_detect == 'all':
             nb_persons_to_detect = all_frames_scores_homog.shape[1]
         if nb_detected_persons < nb_persons_to_detect:
-            logging.warning(f'Less than the {nb_persons_to_detect} required persons were detected. Analyzing all {nb_detected_persons} persons.')
+            logging.warning(f'Fewer than the {nb_persons_to_detect} required persons were detected. Analyzing all {nb_detected_persons} persons.')
             nb_persons_to_detect = nb_detected_persons
 
         if person_ordering_method == 'on_click':
@@ -2151,13 +2157,14 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
         trc_data, trc_data_unfiltered, score_data = [], [], []
         first_run_starts_everyone, last_run_ends_everyone = [], []
         for i, idx_person in enumerate(selected_persons):
+            logging.info(f"- Person {i}:")
             pose_path_person = pose_output_path.parent / (pose_output_path.stem + f'_person{i:02d}.trc')
             all_frames_X_person = pd.DataFrame(all_frames_X_processed[:,idx_person,:], columns=new_keypoints_names)
             all_frames_Y_person = pd.DataFrame(all_frames_Y_processed[:,idx_person,:], columns=new_keypoints_names)
             all_frames_scores_person = pd.DataFrame(all_frames_scores_processed[:,idx_person,:], columns=new_keypoints_names)
 
             # Offline temporal left/right swap correction before interpolation
-            if handle_LR_swap and lr_swap_method == 'viterbi':
+            if handle_LR_swap and lr_swap_method == 'offline':
                 req_height_markers = ['RAnkle', 'RKnee', 'RHip', 'RShoulder', 'LAnkle', 'LKnee', 'LHip', 'LShoulder']
                 height_px_person = None
                 if all(m in all_frames_X_person.columns for m in req_height_markers):
@@ -2176,15 +2183,12 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
                         if np.isfinite(h_estim) and h_estim > 0:
                             height_px_person = float(h_estim)
                     except (ValueError, KeyError, IndexError) as e:
-                        logging.debug(f"- Person {i}: compute_height failed ({e}). Falling back to vertical coordinate span.")
+                        logging.debug(f"Compute_height failed ({e}). Falling back to vertical coordinate span.")
                         height_px_person = None
 
                 (all_frames_X_person, all_frames_Y_person), score_df, swap_stats = correct_limb_swaps_viterbi(
-                    (all_frames_X_person, all_frames_Y_person),
-                    person_scores_seq=all_frames_scores_person,
-                    height_px=height_px_person,
-                    pairs_by_group=bilateral_pairs_names,
-                )
+                    (all_frames_X_person, all_frames_Y_person), person_scores_seq=all_frames_scores_person,
+                    height_px=height_px_person, pairs_by_group=bilateral_pairs_names, min_confidence=keypoint_likelihood_threshold)
                 if score_df is not None:
                     all_frames_scores_person = score_df
                     all_frames_scores_processed[:, idx_person, :] = score_df.values
@@ -2193,7 +2197,12 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
                 if calculate_angles or save_angles:
                     all_frames_X_flipped_processed[:, idx_person, :] = cam_width - all_frames_X_person.values
                 if swap_stats.get("total_swapped_frames", 0) > 0:
-                    logging.info(f"- Person {i}: Corrected L/R limb swaps across {swap_stats['total_swapped_frames']} frames via Viterbi filter: {swap_stats['swapped_frames_by_group']}")
+                    logging.info(f"Corrected L/R limb swaps across {swap_stats['total_swapped_frames']} frames:")
+                    swap_lines = ",\n".join(
+                                f"  '{group}' limb: Corrected frames {frames}"
+                                for group, frames in swap_stats['swapped_frames_by_group'].items()
+                            )
+                    logging.info(swap_lines)
 
             score_data.append(all_frames_scores_person)
 
@@ -2202,11 +2211,11 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
 
             # Interpolate
             if not interpolate:
-                logging.info(f'- Person {i}: No interpolation.')
+                logging.info(f'No interpolation.')
                 all_frames_X_person_interp = all_frames_X_person
                 all_frames_Y_person_interp = all_frames_Y_person
             else:
-                logging.info(f'- Person {i}: Interpolating missing sequences if they are smaller than {interp_gap_smaller_than} frames. Large gaps filled with {fill_large_gaps_with}.')
+                logging.info(f'Interpolating missing sequences if they are smaller than {interp_gap_smaller_than} frames. Large gaps filled with {fill_large_gaps_with}.')
                 all_frames_X_person_interp = all_frames_X_person.apply(interpolate_zeros_nans, axis=0, args = [interp_gap_smaller_than, 'linear'])
                 all_frames_Y_person_interp = all_frames_Y_person.apply(interpolate_zeros_nans, axis=0, args = [interp_gap_smaller_than, 'linear'])
 
@@ -2229,7 +2238,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
                 trc_data.append(trc_data_i)
                 trc_data_unfiltered_i = trc_data_i.copy()
                 trc_data_unfiltered.append(trc_data_unfiltered_i)
-                logging.info(f'  Person {i}: Less than {min_chunk_size} valid frames in a row. Deleting person.')
+                logging.info(f'Fewer than {min_chunk_size} valid frames in a row. Deleting person.')
                 continue
 
             # Fill remaining gaps
@@ -2243,11 +2252,6 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
             elif fill_large_gaps_with.lower() == 'zeros':
                 all_frames_X_person_interp.replace(np.nan, 0, inplace=True)
                 all_frames_Y_person_interp.replace(np.nan, 0, inplace=True)
-
-            # if handle_LR_swap:
-            #     logging.info('Handling right/left swaps.')
-            #     all_frames_X_person_interp = all_frames_X_person_interp.apply(LR_unswap, axis=0)
-            #     all_frames_Y_person_interp = all_frames_Y_person_interp.apply(LR_unswap, axis=0)
 
             if reject_outliers:
                 logging.info('Rejecting outliers with a Hampel filter.')
@@ -2574,7 +2578,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
             # Do not process person if no section of min_chunk_size valid frames in a row
             if (first_run_start_min, last_run_end_max) == (0,0):
                 all_frames_angles_processed[:,idx_person,:]= np.nan
-                logging.info(f'  Person {i}: Less than {min_chunk_size} valid frames in a row. Deleting person.')
+                logging.info(f'  Person {i}: Fewer than {min_chunk_size} valid frames in a row. Deleting person.')
                 continue
 
             # Fill remaining gaps
@@ -2768,7 +2772,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
                 else:
                     logging.info(f'- Person {i}: Running marker augmentation and inverse kinematics.')
 
-                # Delete person if less than 4 valid frames
+                # Delete person if fewer than 4 valid frames
                 pose_path_person = pose_output_path.parent / (pose_output_path.stem + f'_person{i:02d}.trc')
                 all_frames_X_person = pd.DataFrame(all_frames_X_homog[:,i,:], columns=new_keypoints_names)
                 if new_visible_side[i] == 'none':

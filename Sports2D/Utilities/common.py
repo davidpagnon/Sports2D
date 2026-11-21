@@ -337,17 +337,8 @@ def correct_limb_swaps(person_keypoints, person_scores, previous_keypoints, heig
     return keypoints, scores, corrected
 
 
-def correct_limb_swaps_viterbi(
-    person_keypoints_seq,
-    person_scores_seq=None,
-    height_px=None,
-    pairs_by_group=None,
-    lambda_enter=0.04,
-    lambda_exit=0.04,
-    lambda_prior=0.001,
-    min_confidence=0.3,
-    max_gap=10,
-):
+def correct_limb_swaps_viterbi(person_keypoints_seq, person_scores_seq=None, height_px=None, pairs_by_group=None,
+                               lambda_enter=0.04, lambda_exit=0.04, lambda_prior=0.001, min_confidence=0.3, max_gap=10):
     '''
     Offline temporal left/right limb assignment swap correction using a
     two-state Viterbi filter per bilateral group (e.g. lower body, upper body).
@@ -372,6 +363,7 @@ def correct_limb_swaps_viterbi(
     - corrected_scores: matching input format
     - swap_stats: dict containing swap events and per-frame states for each group
     '''
+    
     is_dataframe = False
     col_names = None
     df_index = None
