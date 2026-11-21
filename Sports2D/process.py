@@ -2171,11 +2171,6 @@ def process_fun(config_dict, video_file, time_range, frame_rate, output_dir):
                 all_frames_X_person_interp.replace(np.nan, 0, inplace=True)
                 all_frames_Y_person_interp.replace(np.nan, 0, inplace=True)
 
-            # if handle_LR_swap:
-            #     logging.info(f'Handling left-right swaps.')
-            #     all_frames_X_person_interp = all_frames_X_person_interp.apply(LR_unswap, axis=0)
-            #     all_frames_Y_person_interp = all_frames_Y_person_interp.apply(LR_unswap, axis=0)
-
             if reject_outliers:
                 logging.info('Rejecting outliers with a Hampel filter.')
                 all_frames_X_person_interp = all_frames_X_person_interp.apply(hampel_filter, axis=0, args = [round(7*frame_rate/30), 2])
