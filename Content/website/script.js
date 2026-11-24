@@ -287,6 +287,16 @@ document.addEventListener('click', e => {
     }
 }, true);
 
+
+// ---------------------------------------------------------------------------
+// Version switcher
+// ---------------------------------------------------------------------------
+function switchVersion(select) {
+    // Keep the current #section: if it doesn't exist in the target version,
+    // resolveSection() falls back to the first section.
+    window.location.href = select.value + location.hash;
+}
+
 // ---------------------------------------------------------------------------
 // Keyboard navigation
 // ---------------------------------------------------------------------------
